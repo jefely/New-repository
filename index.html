@@ -121,6 +121,8 @@ table.grid td.col-code input.dup { color: var(--danger); font-weight: 700; backg
    背景必须带 !important —— table.grid tbody td 的特异性比 .cat-row td 高。 */
 .cat-row td { background: var(--bg-gray-light)!important; color: var(--text-muted); font-weight: 600; font-size: 12px; padding: 7.5px 10px!important; text-align: left; border-bottom: 1px solid var(--border-light); }
 .cat-row .cat-name { padding-left: 12px!important; }
+/* 分组标签放进固定的序号格里：两个字、小字号，横向滚动时一直能看到 */
+table#summary-table .cat-row td.cat-tag { font-size: 10px; font-weight: 700; color: var(--text-main); padding: 0; white-space: nowrap; letter-spacing: -0.5px; }
 .cat-row .cat-sum { text-align: right; font-variant-numeric: tabular-nums; padding-right: 6px!important; color: #475569; }
 /* 分组行的期初右边框：所有行都有，和下面的数据行连成一条 */
 table#summary-table .cat-row td.col-open { border-right: 1px solid var(--border-light); }
@@ -1353,6 +1355,8 @@ function renderSummary(main, footer) {
   const tbody = table.querySelector('tbody');
 
   // 按分类分组，但分组标签做得很轻（浅灰细条），不再用显眼的蓝色块。
+  // 分组标签缩成两个字，塞进固定的序号格里
+  const shortCat = c => ({ '资产类': '资产', '负债类': '负债', '收入类': '收入', '权益类': '权益', '费用类': '费用' }[c] || String(c).slice(0, 2));
   const catsOrder = ['资产类', '负债类', '收入类', '权益类', '费用类'];
   const byCat = {};
   for (const a of state.accounts) {
@@ -1386,7 +1390,8 @@ function renderSummary(main, footer) {
     // 其它分类的分组行这两格连边框都不画（下面数据行本来也没有线）。
     const isDebt = cat === '负债类';
     cr.innerHTML =
-      `<td colspan="4" class="cat-name">${esc(cat)}</td>` +
+      `<td class="col-seq cat-tag">${esc(shortCat(cat))}</td>` +
+      `<td colspan="3" class="cat-name"></td>` +
       `<td class="cat-sum col-bal">${money(s.bal)}</td>` +
       `<td class="cat-sum col-out">${dash(s.out)}</td>` +
       `<td class="cat-sum col-in">${dash(s.in)}</td>` +
