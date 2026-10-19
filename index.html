@@ -344,8 +344,12 @@ table.install-table tr.inst-i td.col-name input:focus { background: #eff6ff; }
 /* 区间模式：两个日期输入框各占一半，中间一个 ~ 分隔 */
 .toolbar.bar2 .grow { flex: 1 1 0; min-width: 0; }
 .toolbar.bar2 .tilde { flex: 0 0 auto; color: var(--text-muted); }
-/* 月份模式：左右留白收到 4px，12 个格子才放得下（12px 会让最后一个「12」被裁） */
-.toolbar.bar2 { padding-left: 4px; padding-right: 4px; }
+/* 月份模式：两条工具栏的左右留白统一成 4px，两排月份才能左右对齐 */
+.toolbar.bar1, .toolbar.bar2 { padding-left: 4px; padding-right: 4px; }
+/* 下排月份要和上排左边界对齐。
+   上排月份起点 = 4 + 48(区间) + 8 + 48(月份) + 8 = 116px
+   下排起点 = 4 + 年份框宽 + 8 + 补偿，所以补偿 = 104 - 年份框宽（桌面 96px → 8px） */
+.toolbar.bar2 .month-row { margin-left: 8px; }
 /* 区间模式的两个日期框在桌面上固定半宽（原来会平分整行），窄屏再让它自适应 */
 .toolbar .grow { flex: 0 0 210px; min-width: 0; }
 /* 流水页这一行同样 32px，标题与按钮在行内垂直居中。
