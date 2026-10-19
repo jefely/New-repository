@@ -122,10 +122,16 @@ table.grid td.col-code input.dup { color: var(--danger); font-weight: 700; backg
    分类名左对齐；右侧六列是该分类的合计（当前结余/转出/转入/转出历史/转入历史/期初），
    各自落在对应列上。账单日/还款日两格留空，但保留列网格线。
    背景必须带 !important —— table.grid tbody td 的特异性比 .cat-row td 高。 */
-.cat-row td { background: var(--bg-gray-light)!important; color: var(--text-muted); font-weight: 600; font-size: 12px; padding: 7.5px 10px!important; text-align: left; border-bottom: 1px solid var(--border-light); }
+/* 分类分组行：整行深色底 + 白字，比浅灰底醒目得多 */
+.cat-row td { background: var(--bg-dark)!important; color: #fff; font-weight: 700; font-size: 12px; padding: 7.5px 10px!important; text-align: left; border-bottom: 1px solid var(--bg-dark); }
+.cat-row td .cat-col { color: rgba(255, 255, 255, .72); }
+/* 分组行的合计金额在深底上也要白字（否则沿用默认的深灰，看不清） */
+.cat-row td.cat-sum { color: #fff; }
+/* 标签格只有 32px，去掉内边距和字距，"资产"两个字才放得下 */
+table#summary-table .cat-row td.cat-tag { padding: 0; letter-spacing: 0; }
 .cat-row .cat-name { padding-left: 12px!important; }
 /* 分组标签放进固定的序号格里：两个字、小字号，横向滚动时一直能看到 */
-table#summary-table .cat-row td.cat-tag { font-size: 10px; font-weight: 700; color: var(--text-main); padding: 0; white-space: nowrap; letter-spacing: -0.5px; }
+table#summary-table .cat-row td.cat-tag { font-size: 12px; font-weight: 700; color: #fff; padding: 0; white-space: nowrap; letter-spacing: -0.5px; }
 .cat-row .cat-sum { text-align: right; font-variant-numeric: tabular-nums; padding-right: 6px!important; color: #475569; }
 /* 分组行的期初右边框：所有行都有，和下面的数据行连成一条 */
 table#summary-table .cat-row td.col-open { border-right: 1px solid var(--border-light); }
@@ -142,7 +148,7 @@ table#flow-table th.col-amount, table#flow-table td.col-amount { width: 16%; }
 table#flow-table th.col-note, table#flow-table td.col-note { width: 24%; }
 
 /* 汇总表 */
-table#summary-table th.col-seq, table#summary-table td.col-seq { width: 4%; }
+table#summary-table th.col-seq, table#summary-table td.col-seq { width: 5%; }
 table#summary-table th.col-cat, table#summary-table td.col-cat { width: 8%; }
 table#summary-table th.col-code, table#summary-table td.col-code { width: 7%; }
 table#summary-table th.col-name, table#summary-table td.col-name { width: 15%; }
@@ -448,7 +454,7 @@ td.query-empty { text-align: center; color: var(--text-light); padding: 40px 12p
   /* 窄屏下重分配列宽：13 列挤在 800px 里，金额列必须拿到足够像素，
      否则 ¥-1,034.56 会被省略成 "¥-1,034..."（桌面端百分比不动） */
   table#summary-table thead th { padding: 8px 2px; font-size: 12px; }
-  table#summary-table th.col-seq,   table#summary-table td.col-seq   { width: 4%; }
+  table#summary-table th.col-seq,   table#summary-table td.col-seq   { width: 5%; }
   table#summary-table th.col-cat,   table#summary-table td.col-cat   { width: 8%; }
   table#summary-table th.col-code,  table#summary-table td.col-code  { width: 5%; }
   table#summary-table th.col-name,  table#summary-table td.col-name  { width: 13%; }
