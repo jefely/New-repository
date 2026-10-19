@@ -106,9 +106,12 @@ table.grid tbody td.col-bill > .row-del { right: auto; left: 0; }
 
 /* 空行：默认铺 100 行，整行高亮太吵，只把序号淡化以区分「还没落库的行」 */
 table.grid tbody tr[data-new="1"] td.col-seq { color: var(--text-light); font-weight: 400; }
+/* 账户名称列固定在左侧。表头那格要压在所有列之上（含 sticky 的其它 th），
+   否则滚动时分类/简码的旧边框会从边上透出来，看着参差不齐。
+   右缘补一道阴影当分隔线，盖掉底下列边框的 1px 残影。 */
 table#summary-table thead th.col-name,
-table#summary-table tbody td.col-name { position: sticky; z-index: 2; }
-table#summary-table thead th.col-name { z-index: 4; }
+table#summary-table tbody td.col-name { position: sticky; z-index: 2; background-clip: padding-box; box-shadow: 1px 0 0 var(--border-light); }
+table#summary-table thead th.col-name { z-index: 6; }
 /* 分类分组行那条跨四列的格子也一起固定 */
 /* 分类分组行那条格子不固定：它 colspan=4，宽度是前四列之和，而数据行的账户名称只占 序号+名称，固定后会多盖住后面一截，把「当前结余」遮掉。让它照常跟着滚走。 */
 
@@ -1391,7 +1394,11 @@ function renderSummary(main, footer) {
     const isDebt = cat === '负债类';
     cr.innerHTML =
       `<td class="col-seq cat-tag">${esc(shortCat(cat))}</td>` +
-      `<td colspan="3" class="cat-name"></td>` +
+      // 拆成独立格子（而不是 colspan=4）：这样「账户名称」那格也是真实单元格，
+      // 它会跟着 sticky，分组行滚过来时不会露出透明的空洞。
+      `<td class="col-cat"></td>` +
+      `<td class="col-code"></td>` +
+      `<td class="col-name"></td>` +
       `<td class="cat-sum col-bal">${money(s.bal)}</td>` +
       `<td class="cat-sum col-out">${dash(s.out)}</td>` +
       `<td class="cat-sum col-in">${dash(s.in)}</td>` +
