@@ -819,15 +819,8 @@ function setFooterText(text) {
    IV. 视图渲染：流水页面 (Flow View)
    ============================================================ */
 function renderFlow(main, footer) {
-  // 1. Datalist 提供自动补全
-  const dl = document.createElement('datalist');
-  dl.id = 'acc-list';
-  state.accounts.forEach(a => {
-    const o = document.createElement('option');
-    o.value = a.name; o.label = a.code || '';
-    dl.appendChild(o);
-  });
-  main.appendChild(dl);
+  // 转出/转入不再挂 datalist 下拉 —— 输入时弹出的候选列表会挡住下面的行，用着别扭。
+  // 仍然支持输简码：失焦时 resolveCode 会把 XJ 自动换成账户全称。
 
   // 2. 工具栏：导入导出靠左，标题仍然绝对定位居中，两者互不干扰
   const bar = document.createElement('div');
@@ -930,7 +923,6 @@ function makeFlowRow(t, idx, isNew) {
       input.value = fmtMoneyOrBlank(t.amount);
     } else {
       input.type = 'text'; input.value = t[field] || '';
-      if (field === 'from' || field === 'to') input.setAttribute('list', 'acc-list');
     }
     td.appendChild(input);
     // 删除按钮跟在行尾的备注格里，不再单独占一列
