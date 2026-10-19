@@ -84,11 +84,10 @@ table.grid tbody td.readonly { background: rgba(248, 250, 252, 0.6)!important; c
 table.grid tbody td.readonly.strong { font-weight: 700; color: #1e293b; }
 table.grid td.col-amount input, table.grid td.col-amount.readonly { text-align: right; padding-right: 8px; font-weight: 600; color: var(--text-main); }
 
-/* 列对齐：日期居中、金额靠右、备注靠左；
-   转出/转入带下拉候选（datalist），左对齐才能和候选列表自然对齐 */
+/* 列对齐：日期居中、金额靠右、备注靠左；转出/转入恢复居中（下拉早就取消了，左对齐没必要） */
 table#flow-table td.col-date input { text-align: center; }
 table#flow-table td.col-from input,
-table#flow-table td.col-to input { text-align: left; }
+table#flow-table td.col-to input { text-align: center; }
 table#flow-table td.col-note input { text-align: left; }
 table#summary-table td.col-cat input,
 table#summary-table td.col-code input,
@@ -215,6 +214,9 @@ table.query-table tbody tr:nth-child(even) td { background: var(--bg-gray-light)
 table.query-table tbody td.col-seq { background: var(--bg-gray)!important; color: var(--text-muted); font-size: 12px; padding: 7px 2px; }
 table.query-table tbody td.col-amount { text-align: right; font-weight: 600; color: var(--text-main); }
 table.query-table tbody td.col-note { color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: left; }
+/* th 必须是定位元素，列宽把手（absolute）才有正确基准。
+   之前把 sticky 从 th 移到 thead，th 变回 static，把手跑到表外面就拖不到了。 */
+table.query-table thead th { position: relative; }
 
 /* 每行最后一列（备注）不画右边框：这条竖线由栏自己的 border-right 承担，
    两者不能同时画，否则会错开 1px 变成双线。 */
@@ -317,6 +319,8 @@ table.install-table tr.inst-i td.col-name input:focus { background: #eff6ff; }
 .toolbar.bar1, .toolbar.bar2 { max-width: var(--grid-right, 100%); padding-right: 0; }
 /* 第一行工具栏不画底边框：和第二行同为浅灰底，连成一块更干净 */
 .toolbar.bar1 { border-bottom: none; }
+/* 「区间 / 月份」两个切换按钮也收窄，和月份格子的宽度接近 */
+.toolbar.bar1 > button { padding: 0 9px; }
 /* 区间模式的两个日期框在桌面上固定半宽（原来会平分整行），窄屏再让它自适应 */
 .toolbar .grow { flex: 0 0 210px; min-width: 0; }
 /* 流水页这一行同样 32px，标题与按钮在行内垂直居中。
@@ -326,6 +330,8 @@ table.install-table tr.inst-i td.col-name input:focus { background: #eff6ff; }
 /* 页面标题：与「流水查询」同字号同字重。居中范围是表格的实际宽度（到备注列右缘为止），
    不是整个窗口 —— 列宽被拖窄后右边会留白，标题也跟着往左收。宽度由 syncFlowTitleWidth 写入。 */
 .bar-title { position: absolute; left: 0; top: 50%; transform: translateY(-50%); width: var(--title-w, 100%); text-align: center; font-size: 16px; font-weight: 700; color: var(--text-main); pointer-events: none; }
+/* 流水页标题：跟在「同步」按钮后面，普通流式布局（不再绝对定位居中） */
+.flow-title { flex: 0 0 auto; font-size: 16px; font-weight: 700; color: var(--text-main); white-space: nowrap; padding-left: 8px; }
 /* 工具栏内的按钮、输入框统一高度 28px（border-box 含边框），
    否则带边框的 ghost 按钮会比月份按钮高出几个像素，同一行看起来参差不齐 */
 .toolbar input { height: 28px; padding: 0 10px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 14px; outline: none; }
@@ -341,15 +347,15 @@ table.install-table tr.inst-i td.col-name input:focus { background: #eff6ff; }
    所以真实宽度由 syncYearWidth() 量出来写进 flex-basis，这里的 116px 只是首帧兜底。
    必须带 min-width:0 —— input 默认 size=20 的固有宽度会被 flex 的
    min-width:auto 当成下限，否则 flex-basis 会被顶到 200px 宽。 */
-.year-input { flex: 0 0 116px; min-width: 0; height: 28px; padding: 0; font-size: 14px; font-weight: 700; text-align: center; border: 1px solid var(--border); border-radius: var(--radius); }
+.year-input { flex: 0 0 96px; min-width: 0; height: 28px; padding: 0; font-size: 14px; font-weight: 700; text-align: center; border: 1px solid var(--border); border-radius: var(--radius); }
 /* 月份排成两行：1-6 月在第一行、7-12 月在第二行，两行的左边缘自动对齐。
    桌面上第一行直接占用「区间/月份 + 导出/导入」那一行，所以不额外增加行高；
    手机上 12 个都挤在第二行排两排。 */
-.month-row { display: grid; grid-template-columns: repeat(6, 53px); gap: 6px; flex: 0 0 auto; }
+.month-row { display: grid; grid-template-columns: repeat(6, 46px); gap: 6px; flex: 0 0 auto; }
 /* 注意特异性：这几条必须用 .month-row .m-btn（0,2,0）压过 .toolbar button（0,1,1），
    否则月份按钮会被工具栏那条"主按钮"规则刷成蓝底，导致 12 个月份全是选中态。 */
 /* 12 个月按钮统一宽度，按「12月」这种三位内容定尺寸，个位数月份不再窄一截 */
-.month-row .m-btn { flex: 0 0 53px; width: 53px; min-width: 0; height: 28px; padding: 0; font-size: 14px; font-weight: 600; background: #fff; color: var(--text-main); border: 1px solid var(--border); border-radius: var(--radius); cursor: pointer; text-align: center; }
+.month-row .m-btn { flex: 0 0 46px; width: 46px; min-width: 0; height: 28px; padding: 0; font-size: 13px; font-weight: 600; background: #fff; color: var(--text-main); border: 1px solid var(--border); border-radius: var(--radius); cursor: pointer; text-align: center; }
 .month-row .m-btn[data-active="true"] { background: var(--primary); color: #fff; border-color: var(--primary); }
 .month-row .m-btn:active { background: #dbeafe; }
 .month-row .m-btn[data-active="true"]:active { background: var(--primary-dark); }
@@ -426,7 +432,7 @@ td.query-empty { text-align: center; color: var(--text-light); padding: 40px 12p
 
   /* 汇总页时间行：年份框给个固定宽度（否则 JS 量出来的宽度会把整行撑散），
      具体日期区间在手机上不显示，省出一行给表格。 */
-  .year-input { flex: 0 0 88px; }
+  .year-input { flex: 0 0 72px; }
   .month-bar .range-inline { display: none; }
 
   /* 流水 / 分期两页的标题：手机上改成左对齐放在最前，不再绝对定位居中（会和按钮叠字） */
@@ -844,8 +850,8 @@ function renderFlow(main, footer) {
     <button class="ghost" id="f-imp">导入</button>
     <button class="ghost" id="f-sync">同步</button>
     <input type="file" id="f-impfile" accept=".txt,text/plain" style="display:none">
+    <span class="flow-title">流水记录</span>
     <span style="flex:1"></span>
-    <span class="bar-title">流水记录</span>
   `;
   main.appendChild(bar);
 
@@ -1259,7 +1265,8 @@ function renderSummary(main, footer) {
   `;
   main.appendChild(bar1);
 
-  // 工具栏2：时间选择器。右边界对齐表格「期初」列的右边缘，右端的统计区间就不会探出去。
+  // 工具栏2：时间选择器。右边界对齐表格「期初」列的右边缘。
+  // 不再显示「2026-10-01 ~ 2026-10-31」这类明细细间——手机上它要单独占一行，电脑上也是冗余信息。
   const bar2 = document.createElement('div');
   bar2.className = 'toolbar bar2';
   if (summaryMode === 'range') {
@@ -1267,14 +1274,14 @@ function renderSummary(main, footer) {
       <input id="r-start" class="grow" placeholder="起始 2026 / 2608 / 260801" inputmode="numeric" value="${esc(summaryRange.start)}">
       <span style="color:var(--text-muted)">~</span>
       <input id="r-end" class="grow" placeholder="结束 2026 / 2608 / 260801" inputmode="numeric" value="${esc(summaryRange.end)}">
-      <span class="range-inline" id="range-tag">${esc(range.start)} ~ ${esc(range.end)}</span>
+      <span style="flex:1"></span>
     `;
   } else {
     bar2.innerHTML = `
       <div class="month-bar">
         <input id="r-year" class="year-input" placeholder="年" inputmode="numeric" value="${summaryMonth.year}年">
         <div class="month-row" id="month-row">${monthsBottom}</div>
-        <span class="range-inline" id="range-tag">${esc(range.start)} ~ ${esc(range.end)}</span>
+        <span style="flex:1"></span>
       </div>
     `;
   }
@@ -1361,10 +1368,7 @@ function renderSummary(main, footer) {
   document.getElementById('mode-month').onclick = () => { if (summaryMode !== 'month') { summaryMode = 'month'; saveSummaryState(); render(); } };
 
   function rangeUpdate() {
-    const r = getCurrentRange();
-    const tag = document.getElementById('range-tag');
-    if (tag) tag.textContent = `${r.start} ~ ${r.end}`;
-    return r;
+    return getCurrentRange();
   }
   function refreshSummaryTable(r) {
     tbody.querySelectorAll('tr[data-id]').forEach(tr => {
@@ -2804,7 +2808,6 @@ document.querySelectorAll('.tabbar button').forEach(b => {
 render();
 </script>
 
-<!-- PWA：注册 Service Worker，断网时用缓存打开 -->
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function () {
