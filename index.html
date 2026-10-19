@@ -106,6 +106,11 @@ table.grid tbody td.col-bill > .row-del { right: auto; left: 0; }
 
 /* 空行：默认铺 100 行，整行高亮太吵，只把序号淡化以区分「还没落库的行」 */
 table.grid tbody tr[data-new="1"] td.col-seq { color: var(--text-light); font-weight: 400; }
+table#summary-table thead th.col-name,
+table#summary-table tbody td.col-name { position: sticky; z-index: 2; }
+table#summary-table thead th.col-name { z-index: 4; }
+/* 分类分组行那条跨四列的格子也一起固定 */
+table#summary-table .cat-row .cat-name { position: sticky; left: 0; z-index: 2; }
 
 /* 简码重复警告 */
 table.grid td.col-code input.dup { color: var(--danger); font-weight: 700; background: #fee2e2; }
@@ -1402,6 +1407,25 @@ function renderSummary(main, footer) {
   main.appendChild(wrap);
 
   initColResize(table, 'summary');
+// 汇总表前四列（序号 / 分类 / 简码 / 账户名称）横向滚动时固定在左侧。
+// 列宽是百分比，left 必须按实际渲染宽度累加，所以每次渲染/改宽后重算一次。
+function applySummarySticky() {
+  const table = document.getElementById('summary-table');
+  if (!table) return;
+  const headRow = table.querySelector('thead tr');
+  if (!headRow) return;
+  // 只固定「序号」和「账户名称」；分类 / 简码照常滚动。
+  // 账户名称紧贴序号（left = 序号宽度），这样滚动后它正好盖住分类+简码的位置，
+  // 中间不会露出被滚过来的其它列。未滚动时它仍待在原位。
+  const seqTh = headRow.querySelector('th.col-seq');
+  if (!seqTh) return;
+  const seqW = Math.round(seqTh.getBoundingClientRect().width);
+  table.querySelectorAll('thead th, tbody td').forEach(cell => {
+    if (cell.classList.contains('col-seq')) cell.style.left = '0px';
+    else if (cell.classList.contains('col-name')) cell.style.left = seqW + 'px';
+  });
+}
+  applySummarySticky();
 
   // 绑定事件（导入导出统一在流水页，汇总页不再放这两个按钮）
   document.getElementById('mode-range').onclick = () => { if (summaryMode !== 'range') { summaryMode = 'range'; saveSummaryState(); render(); } };
@@ -1772,7 +1796,7 @@ window.addEventListener('resize', () => {
   const nowNarrow = window.innerWidth < 768;
   if (nowNarrow !== _wasNarrow) { _wasNarrow = nowNarrow; render(); return; }
   if (currentTab === 'flow') syncFlowTitleWidth();
-  if (currentTab === 'summary') { syncYearWidth(); syncGridRight(); }
+  if (currentTab === 'summary') { syncYearWidth(); syncGridRight(); applySummarySticky(); }
 });
 
 function bindQuerySection(sec, idx, footer) {
@@ -2803,7 +2827,7 @@ function initColResize(table, key) {
         grip.removeEventListener('pointerup', onUp);
         grip.removeEventListener('pointercancel', onUp);
         grip.classList.remove('dragging');
-        if (moved) { saveColWidths(); syncFlowTitleWidth(); syncGridRight(); }
+        if (moved) { saveColWidths(); syncFlowTitleWidth(); syncGridRight(); applySummarySticky(); }
       };
       grip.addEventListener('pointermove', onMove);
       grip.addEventListener('pointerup', onUp);
