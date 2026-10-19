@@ -281,10 +281,13 @@ table.install-table thead th .th-line { display: block; height: 1px; background:
 /* 账户名称列固定在左侧：横向滚动看月份时不跟着滚走 */
 table.install-table thead th.col-name { position: sticky; left: 0; z-index: 5; }
 table.install-table tbody td.col-name { position: sticky; left: 0; z-index: 2; background: #fff; }
-table.install-table th.col-day, table.install-table td.col-day { width: 36px; min-width: 36px; padding: 0 1px; }
+table.install-table th.col-day, table.install-table td.col-day { width: 40px; min-width: 40px; padding: 0 1px; }
 /* 账单日/还款日表头缩到 34px 后要分三行才放得下 */
 table.install-table thead th.col-day { font-size: 10.5px; line-height: 1.4; }
-table.install-table th.col-sum, table.install-table td.col-sum { width: 96px; min-width: 96px; text-align: right; padding-right: 6px; position: relative; }
+table.install-table th.col-sum, table.install-table td.col-sum { width: 74px; min-width: 74px; text-align: right; padding-right: 6px; position: relative; }
+/* 「每月合计 / 本息余计」和账户名称一起冻结在左侧：left = 名称列宽 */
+table.install-table thead th.col-sum { position: sticky; left: 100px; z-index: 5; }
+table.install-table tbody td.col-sum { position: sticky; left: 100px; z-index: 2; background: #fff; }
 table.install-table .col-month { width: 78px; min-width: 78px; }
 /* 表头文字一律居中（要压过下面 th.col-name 的左对齐） */
 table.install-table thead th,
@@ -349,7 +352,7 @@ table.install-table tr.inst-i td.col-name input:focus { background: #eff6ff; }
    绝对定位后它不是 flex item，flex-basis 失效，必须显式给宽度，否则会撑满并盖住按钮。 */
 .toolbar.bar1 .year-input { position: absolute; left: 50%; transform: translateX(-50%); width: 96px; flex: none; }
 /* 区间模式：两个日期输入框各占一半，中间一个 ~ 分隔 */
-.toolbar.bar2 .grow { flex: 1 1 0; min-width: 0; }
+.toolbar.bar2 .grow { flex: 1 1 0; min-width: 0; font-size: 12px; padding: 0 7px; }
 .toolbar.bar2 .tilde { flex: 0 0 auto; color: var(--text-muted); }
 /* 月份模式：两条工具栏的左右留白统一成 4px，两排月份才能左右对齐 */
 .toolbar.bar1, .toolbar.bar2 { padding-left: 4px; padding-right: 4px; }
@@ -1302,6 +1305,7 @@ function renderSummary(main, footer) {
   bar1.innerHTML = `
     <button id="mode-range" class="ghost" data-active="${summaryMode === 'range'}">区间</button>
     <button id="mode-month" class="ghost" data-active="${summaryMode === 'month'}">月份</button>
+    ${monthsMode ? '' : '<button id="range-clear" class="ghost" title="清空起止日期">清空</button>'}
     ${monthsMode ? `<div class="month-row" id="month-row-top">${monthsTop}</div>` : ''}
   `;
   main.appendChild(bar1);
@@ -1311,9 +1315,9 @@ function renderSummary(main, footer) {
   bar2.className = 'toolbar bar2';
   if (summaryMode === 'range') {
     bar2.innerHTML = `
-      <input id="r-start" class="grow" placeholder="起始 2608" inputmode="numeric" title="起始：YY / YYMM / YYMMDD，例如 26 / 2608 / 260801" value="${esc(summaryRange.start)}">
+      <input id="r-start" class="grow" placeholder="起始 YY/YYMM/YYMMDD" inputmode="numeric" title="起始：YY / YYMM / YYMMDD，例如 26 / 2608 / 260801" value="${esc(summaryRange.start)}">
       <span class="tilde">~</span>
-      <input id="r-end" class="grow" placeholder="结束 2608" inputmode="numeric" title="结束：YY / YYMM / YYMMDD，例如 26 / 2608 / 260801" value="${esc(summaryRange.end)}">
+      <input id="r-end" class="grow" placeholder="结束 YY/YYMM/YYMMDD" inputmode="numeric" title="结束：YY / YYMM / YYMMDD，例如 26 / 2608 / 260801" value="${esc(summaryRange.end)}">
     `;
   } else {
     bar2.innerHTML = `
@@ -1424,6 +1428,16 @@ function renderSummary(main, footer) {
       saveSummaryState(); refreshSummaryTable(rangeUpdate());
     };
     [startEl, endEl].forEach(el => { el.addEventListener('change', onChange); el.addEventListener('blur', onChange); });
+
+    // 「清空」：把两个起止日期清空，回到默认区间
+    const clearBtn = document.getElementById('range-clear');
+    if (clearBtn) clearBtn.onclick = () => {
+      summaryRange.start = '';
+      summaryRange.end = '';
+      saveSummaryState();
+      render();
+      toast('已清空起止日期');
+    };
   } else {
     const yearEl = document.getElementById('r-year');
     // 月份按钮可能分在上下两行（第一行 1-6、第二行 7-12），所以统一在文档里找
