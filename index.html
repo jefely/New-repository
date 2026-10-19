@@ -271,7 +271,9 @@ table.install-table th, table.install-table td { padding: 0 6px; text-align: cen
 table.install-table tr > th:last-child, table.install-table tr > td:last-child { border-right: none; }
 table.install-table thead th { background: var(--bg-gray); color: var(--text-muted); font-weight: 700; font-size: 12px; line-height: 1.25; border-bottom: 1px solid var(--border); }
 table.install-table thead tr:nth-child(2) th { background: var(--bg-gray-light); font-weight: 600; }
-table.install-table th.col-name, table.install-table td.col-name { width: 87px; min-width: 87px; text-align: center; }
+table.install-table th.col-name, table.install-table td.col-name { width: 100px; min-width: 100px; text-align: center; }
+/* 表头里用一条真正的横线代替斜杠 */
+table.install-table thead th .th-line { display: block; height: 1px; background: var(--border); margin: 3px auto; width: 76%; }
 /* 账户名称列固定在左侧：横向滚动看月份时不跟着滚走 */
 table.install-table thead th.col-name { position: sticky; left: 0; z-index: 5; }
 table.install-table tbody td.col-name { position: sticky; left: 0; z-index: 2; background: #fff; }
@@ -307,8 +309,8 @@ table.install-table tbody tr.inst-i td { border-bottom: 2px solid var(--border);
 table.install-table tr.inst-p td.col-name { background: #364760; }
 table.install-table tr.inst-p td.col-name input { color: #fff; font-weight: 700; }
 /* 名称列收窄到 87px 后，13px 字号会把「招行信1007」截断，降一档到 11px 刚好完整 */
-/* 名称列收窄到 87px 后，13px 字号会把「招行信1007」截断，降一档到 11px 刚好；两行都居中 */
-table.install-table tbody td.col-name input { font-size: 11px; text-align: center; }
+/* 名称字号和其它单元格一致（13px），列宽相应放宽到 100px */
+table.install-table tbody td.col-name input { text-align: center; }
 /* 分期金额那一行左侧给删除按钮留出位置 */
 table.install-table tr.inst-i td.col-name input { padding-left: 16px; }
 table.install-table td.col-name { position: relative; }
@@ -353,8 +355,8 @@ table.install-table tr.inst-i td.col-name input:focus { background: #eff6ff; }
 /* 页面标题：与「流水查询」同字号同字重。居中范围是表格的实际宽度（到备注列右缘为止），
    不是整个窗口 —— 列宽被拖窄后右边会留白，标题也跟着往左收。宽度由 syncFlowTitleWidth 写入。 */
 .bar-title { position: absolute; left: 0; top: 50%; transform: translateY(-50%); width: var(--title-w, 100%); text-align: center; font-size: 16px; font-weight: 700; color: var(--text-main); pointer-events: none; }
-/* 流水页标题：跟在「同步」按钮后面，普通流式布局（不再绝对定位居中） */
-.flow-title { flex: 0 0 auto; font-size: 16px; font-weight: 700; color: var(--text-main); white-space: nowrap; padding-left: 8px; }
+/* 流水页标题：绝对定位，在「左边缘 → 备注列右边缘」这段区域里水平居中 */
+.flow-title { position: absolute; left: 0; top: 50%; transform: translateY(-50%); width: var(--flow-title-w, 100%); text-align: center; font-size: 16px; font-weight: 700; color: var(--text-main); white-space: nowrap; pointer-events: none; }
 /* 工具栏内的按钮、输入框统一高度 28px（border-box 含边框），
    否则带边框的 ghost 按钮会比月份按钮高出几个像素，同一行看起来参差不齐 */
 .toolbar input { height: 28px; padding: 0 10px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 14px; outline: none; }
@@ -374,8 +376,8 @@ table.install-table tr.inst-i td.col-name input:focus { background: #eff6ff; }
 /* 月份排成两行：1-6 月在第一行、7-12 月在第二行，两行的左边缘自动对齐。
    桌面上第一行直接占用「区间/月份 + 导出/导入」那一行，所以不额外增加行高；
    手机上 12 个都挤在第二行排两排。 */
-/* 12 个月排成一行（桌面固定 46px，手机均分） */
-.month-row { display: grid; grid-template-columns: repeat(12, 46px); gap: 6px; flex: 0 0 auto; }
+/* 6 月一组（两行各 6 个），桌面固定 46px，手机按可用宽度均分 */
+.month-row { display: grid; grid-template-columns: repeat(6, 46px); gap: 6px; flex: 0 0 auto; }
 .month-row .m-suf { display: inline; }
 /* 注意特异性：这几条必须用 .month-row .m-btn（0,2,0）压过 .toolbar button（0,1,1），
    否则月份按钮会被工具栏那条"主按钮"规则刷成蓝底，导致 12 个月份全是选中态。 */
@@ -409,7 +411,8 @@ td.query-empty { text-align: center; color: var(--text-light); padding: 40px 12p
 
   /* 窄屏：12 个月挤在一行，均分可用宽度；「月」字去掉只留数字，否则「10月」放不下 */
   .month-bar { flex-wrap: wrap; row-gap: 4px; }
-  .month-row { flex: 1 1 100%; min-width: 0; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 3px; }
+  .month-row { flex: 1 1 auto; min-width: 0; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 3px; }
+  .toolbar.bar1 .month-row { flex: 0 1 auto; width: auto; }
   .month-row .m-btn { width: auto; min-width: 0; font-size: 12px; padding: 0; }
   .month-row .m-suf { display: none; }
   .toolbar .grow { flex: 1 1 0; }
@@ -461,7 +464,8 @@ td.query-empty { text-align: center; color: var(--text-light); padding: 40px 12p
   .month-bar .range-inline { display: none; }
 
   /* 流水 / 分期两页的标题：手机上改成左对齐放在最前，不再绝对定位居中（会和按钮叠字） */
-  .toolbar.flow-bar .bar-title,
+  .toolbar.flow-bar .flow-title { position: static; transform: none; width: auto; flex: 0 0 auto; text-align: left; font-size: 14px; padding-left: 8px; }
+  /* 分期页标题在窄屏也改成左对齐放在最前 */
   .toolbar.install-bar .bar-title { position: static; transform: none; width: auto; flex: 0 0 auto; order: -1; text-align: left; font-size: 14px; padding-right: 4px; }
   .toolbar.flow-bar { padding-left: 8px; }
   /* 分期页：标题 + 新增 + 复制 + 起 + 止 要塞进 390px，尺寸统一收一档，否则「止」会被挤到第二行 */
@@ -933,6 +937,7 @@ function syncFlowTitleWidth() {
   const tableW = table.getBoundingClientRect().width;
   const w = Math.round(Math.min(tableW || barW, barW));
   bar.style.setProperty('--title-w', w + 'px');
+  bar.style.setProperty('--flow-title-w', w + 'px');
   bar.style.setProperty('--flow-right', w + 'px');
 }
 
@@ -1269,25 +1274,28 @@ function reseq() {
 function renderSummary(main, footer) {
   const range = getCurrentRange();
 
-  // 月份按钮：12 个排一行。桌面显示「1月」，手机太窄只显示数字（CSS 隐藏 .m-suf）。
+  // 月份按钮：桌面和手机统一拆两半 —— 1-6 月跟「区间 / 月份」放第一行，
+  // 年份框和 7-12 月放第二行。这样两行都排满、不会出现小半行空着。
   const activeM = parseInt(summaryMonth.month, 10);
-  let monthBtns = '';
+  let monthsTop = '', monthsBottom = '';
   for (let m = 1; m <= 12; m++) {
-    monthBtns += `<button type="button" class="m-btn" data-m="${m}" data-active="${activeM === m}"><span class="m-num">${m}</span><span class="m-suf">月</span></button>`;
+    const btn = `<button type="button" class="m-btn" data-m="${m}" data-active="${activeM === m}"><span class="m-num">${m}</span><span class="m-suf">月</span></button>`;
+    if (m <= 6) monthsTop += btn; else monthsBottom += btn;
   }
   const monthsMode = summaryMode === 'month';
 
-  // 工具栏1：区间 / 月份 两个切换，加上年份框（月份模式才需要）。年份框在整行里居中。
+  // 工具栏1：区间 / 月份 两个切换 + 1-6 月
   const bar1 = document.createElement('div');
   bar1.className = 'toolbar bar1';
   bar1.innerHTML = `
     <button id="mode-range" class="ghost" data-active="${summaryMode === 'range'}">区间</button>
     <button id="mode-month" class="ghost" data-active="${summaryMode === 'month'}">月份</button>
-    ${monthsMode ? `<input id="r-year" class="year-input" placeholder="年" inputmode="numeric" title="输入年份，如 2026" value="${summaryMonth.year}年">` : ''}
+    ${monthsMode ? `<div class="month-row" id="month-row-top">${monthsTop}</div>` : ''}
+    <span style="flex:1"></span>
   `;
   main.appendChild(bar1);
 
-  // 工具栏2：月份模式下是 12 个月一整行；区间模式下是两个日期输入框。
+  // 工具栏2：区间模式是两个日期输入框；月份模式是年份框 + 7-12 月
   const bar2 = document.createElement('div');
   bar2.className = 'toolbar bar2';
   if (summaryMode === 'range') {
@@ -1297,7 +1305,11 @@ function renderSummary(main, footer) {
       <input id="r-end" class="grow" placeholder="结束 2608" inputmode="numeric" title="结束：YY / YYMM / YYMMDD，例如 26 / 2608 / 260801" value="${esc(summaryRange.end)}">
     `;
   } else {
-    bar2.innerHTML = `<div class="month-row" id="month-row">${monthBtns}</div>`;
+    bar2.innerHTML = `
+      <input id="r-year" class="year-input" placeholder="年" inputmode="numeric" title="输入年份，如 2026" value="${summaryMonth.year}年">
+      <div class="month-row" id="month-row">${monthsBottom}</div>
+      <span style="flex:1"></span>
+    `;
   }
   main.appendChild(bar2);
 
@@ -1931,9 +1943,9 @@ function renderInstall(main, footer) {
   table.innerHTML = `
     <thead>
       <tr>
-        <th rowspan="2" class="col-name">账户名称<br>/ 分期金额</th>
-        <th rowspan="2" class="col-day">账单日<br>/<br>还款日</th>
-        <th rowspan="2" class="col-sum">每月合计<br>/ 本息余计</th>
+        <th rowspan="2" class="col-name">账户名称<span class="th-line"></span>分期金额</th>
+        <th rowspan="2" class="col-day">账单日<span class="th-line"></span>还款日</th>
+        <th rowspan="2" class="col-sum">每月合计<span class="th-line"></span>本息余计</th>
         ${head1}
       </tr>
       <tr>${head2}</tr>
