@@ -473,7 +473,7 @@ td.query-empty { text-align: center; color: var(--text-light); padding: 40px 12p
   /* 查询页：三栏继续横向排列，整块左右滚动查看（不再上下堆叠） */
   .query-dual { flex-direction: row; overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch; scroll-snap-type: x mandatory; }
   /* 每栏占视口 92%，右侧露出一点下一栏，提示可以左右滑；滑动后吸附到整栏 */
-  .query-section { flex: 0 0 auto !important; width: 92vw; scroll-snap-align: start; }
+  .query-section { flex: 0 0 100% !important; width: 100%; scroll-snap-align: start; }
   table.query-table { min-width: 0; }
 
   /* 查询标题行精简（标题文字保留，手机上也能看出是 A/B/C 哪一栏） */
