@@ -270,6 +270,10 @@ table.install-table { border-collapse: separate; border-spacing: 0; font-size: 1
 table.install-table th, table.install-table td { padding: 0 6px; text-align: center; white-space: nowrap; overflow: hidden; height: 32px; border-right: 1px dashed #cbd5e1; }
 table.install-table tr > th:last-child, table.install-table tr > td:last-child { border-right: none; }
 table.install-table thead th { background: var(--bg-gray); color: var(--text-muted); font-weight: 700; font-size: 12px; line-height: 1.25; border-bottom: 1px solid var(--border); }
+/* 表头固定成「文字 / 横线 / 文字」三行高度，不随内容伸缩 */
+table.install-table thead th.col-name,
+table.install-table thead th.col-day,
+table.install-table thead th.col-sum { height: 64px; line-height: 1.35; }
 table.install-table thead tr:nth-child(2) th { background: var(--bg-gray-light); font-weight: 600; }
 table.install-table th.col-name, table.install-table td.col-name { width: 100px; min-width: 100px; text-align: center; }
 /* 表头里用一条真正的横线代替斜杠 */
@@ -277,7 +281,7 @@ table.install-table thead th .th-line { display: block; height: 1px; background:
 /* 账户名称列固定在左侧：横向滚动看月份时不跟着滚走 */
 table.install-table thead th.col-name { position: sticky; left: 0; z-index: 5; }
 table.install-table tbody td.col-name { position: sticky; left: 0; z-index: 2; background: #fff; }
-table.install-table th.col-day, table.install-table td.col-day { width: 34px; min-width: 34px; padding: 0 1px; }
+table.install-table th.col-day, table.install-table td.col-day { width: 36px; min-width: 36px; padding: 0 1px; }
 /* 账单日/还款日表头缩到 34px 后要分三行才放得下 */
 table.install-table thead th.col-day { font-size: 10.5px; line-height: 1.4; }
 table.install-table th.col-sum, table.install-table td.col-sum { width: 96px; min-width: 96px; text-align: right; padding-right: 6px; position: relative; }
@@ -337,7 +341,10 @@ table.install-table tr.inst-i td.col-name input:focus { background: #eff6ff; }
 /* 第一行工具栏不画底边框：和第二行同为浅灰底，连成一块更干净 */
 .toolbar.bar1 { border-bottom: none; }
 /* 「区间 / 月份」两个切换按钮也收窄，和月份格子的宽度接近 */
-.toolbar.bar1 > button { padding: 0 9px; }
+/* 「区间 / 月份」按钮固定宽度，两个按钮 + 间隙 = 年份框宽度，两排左边界自然对齐 */
+.toolbar.bar1 > button { width: 44px; padding: 0; }
+/* 年份框宽度 = 44 × 2 + 8 = 96 */
+.toolbar.bar1 .year-input { width: 96px; }
 /* 年份框在工具栏里绝对居中（flex 的 auto 边距只会平分「按钮右侧」的余量，不是真居中）。
    绝对定位后它不是 flex item，flex-basis 失效，必须显式给宽度，否则会撑满并盖住按钮。 */
 .toolbar.bar1 .year-input { position: absolute; left: 50%; transform: translateX(-50%); width: 96px; flex: none; }
@@ -349,7 +356,6 @@ table.install-table tr.inst-i td.col-name input:focus { background: #eff6ff; }
 /* 下排月份要和上排左边界对齐。
    上排月份起点 = 4 + 48(区间) + 8 + 48(月份) + 8 = 116px
    下排起点 = 4 + 年份框宽 + 8 + 补偿，所以补偿 = 104 - 年份框宽（桌面 96px → 8px） */
-.toolbar.bar2 .month-row { margin-left: 8px; }
 /* 区间模式的两个日期框在桌面上固定半宽（原来会平分整行），窄屏再让它自适应 */
 .toolbar .grow { flex: 0 0 210px; min-width: 0; }
 /* 流水页这一行同样 32px，标题与按钮在行内垂直居中。
@@ -418,9 +424,7 @@ td.query-empty { text-align: center; color: var(--text-light); padding: 40px 12p
   /* 窄屏：6 个格子均分剩余宽度（宽度必须由 flex 撑开，minmax(0,1fr) 才有基准） */
   .month-row { flex: 1 1 auto; min-width: 0; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 3px; }
   /* 下排空出「区间 + 月份」两个按钮的宽度，让两排的月份格子左右对齐、宽度一致 */
-  .toolbar.bar2 .month-row { margin-left: 32px; }
-  .month-row .m-btn { width: auto; min-width: 0; font-size: 12px; padding: 0; }
-  .month-row .m-suf { display: none; }
+  .month-row .m-btn { width: auto; min-width: 0; font-size: 11px; padding: 0; }
   .toolbar .grow { flex: 1 1 0; }
   .month-bar .range-inline { flex: 1 1 100%; margin-left: 0; text-align: right; }
   .toolbar.bar2 { height: auto; min-height: 32px; padding-top: 3px; padding-bottom: 3px; align-items: flex-start; }
@@ -466,7 +470,9 @@ td.query-empty { text-align: center; color: var(--text-light); padding: 40px 12p
 
   /* 汇总页时间行：年份框给个固定宽度（否则 JS 量出来的宽度会把整行撑散），
      具体日期区间在手机上不显示，省出一行给表格。 */
-  .year-input { flex: 0 0 72px; width: 72px; }
+  /* 窄屏：按钮 34px × 2 + 8 = 年份框 76px，两排同样对齐 */
+  .toolbar.bar1 > button { width: 34px; font-size: 12px; }
+  .year-input { flex: 0 0 76px; width: 76px; }
   .month-bar .range-inline { display: none; }
 
   /* 流水 / 分期两页的标题：手机上改成左对齐放在最前，不再绝对定位居中（会和按钮叠字） */
