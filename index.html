@@ -2420,11 +2420,37 @@ function splitEscaped(line, sep) {
   return out;
 }
 
-function downloadTXT(filename, text) {
+// 导出文件。手机上很多浏览器（微信、夸克、部分国产内核）会拦掉 a[download]，
+// 所以优先走系统分享面板，退而求其次才用下载，最后再兜底复制到剪贴板。
+async function downloadTXT(filename, text) {
   const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a'); a.href = url; a.download = filename; a.click();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+
+  // 1) 支持分享文件的浏览器（Android Chrome / Safari 15+）：直接弹系统分享
+  try {
+    const file = new File([blob], filename, { type: 'text/plain' });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({ files: [file], title: filename });
+      return;
+    }
+  } catch (e) {
+    if (e && e.name === 'AbortError') return;   // 用户主动取消，不算失败
+  }
+
+  // 2) 常规下载
+  try {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename; a.rel = 'noopener';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+    return;
+  } catch (e) { /* 掉到下面的复制兜底 */ }
+
+  // 3) 兜底：复制到剪贴板，让用户自己粘到备忘录 / 微信
+  if (copyText(text)) toast('导出被浏览器拦截，内容已复制到剪贴板，可粘贴保存', { duration: 6000 });
+  else toast('导出失败，请换 Chrome 打开本页再试', { type: 'error', duration: 6000 });
 }
 
 /* 导出：一个文件装两段 —— 先是汇总（账户），再是流水。
