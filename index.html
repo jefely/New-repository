@@ -124,7 +124,10 @@ table.grid td.col-code input.dup { color: var(--danger); font-weight: 700; backg
    背景必须带 !important —— table.grid tbody td 的特异性比 .cat-row td 高。 */
 /* 分类分组行：整行深色底 + 白字，比浅灰底醒目得多 */
 .cat-row td { background: var(--bg-dark)!important; color: #fff; font-weight: 700; font-size: 12px; padding: 7.5px 10px!important; text-align: left; border-bottom: 1px solid var(--bg-dark); }
-.cat-row td .cat-col { color: rgba(255, 255, 255, .72); }
+/* 账单日 / 还款日那两格保持原样：浅色底 + 深色字，不参与分组行的深色填充 */
+table#summary-table .cat-row td.col-bill,
+table#summary-table .cat-row td.col-repay { background: transparent !important; color: var(--text-muted); }
+.cat-row td .cat-col { color: var(--text-main); }
 /* 分组行的合计金额在深底上也要白字（否则沿用默认的深灰，看不清） */
 .cat-row td.cat-sum { color: #fff; }
 /* 标签格只有 32px，去掉内边距和字距，"资产"两个字才放得下 */
