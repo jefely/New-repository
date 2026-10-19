@@ -110,7 +110,7 @@ table#summary-table thead th.col-name,
 table#summary-table tbody td.col-name { position: sticky; z-index: 2; }
 table#summary-table thead th.col-name { z-index: 4; }
 /* 分类分组行那条跨四列的格子也一起固定 */
-table#summary-table .cat-row .cat-name { position: sticky; left: 0; z-index: 2; }
+/* 分类分组行那条格子不固定：它 colspan=4，宽度是前四列之和，而数据行的账户名称只占 序号+名称，固定后会多盖住后面一截，把「当前结余」遮掉。让它照常跟着滚走。 */
 
 /* 简码重复警告 */
 table.grid td.col-code input.dup { color: var(--danger); font-weight: 700; background: #fee2e2; }
