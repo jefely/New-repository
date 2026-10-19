@@ -80,7 +80,10 @@ table.grid input:focus { background: #dbeafe; box-shadow: inset 0 0 0 2px var(--
 table.grid input::placeholder { color: var(--text-light); }
 
 /* 只读单元格 */
-table.grid tbody td.readonly { background: rgba(248, 250, 252, 0.6)!important; color: var(--text-main); padding: 7px 6px; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; font-size: 13px; overflow: hidden; text-overflow: ellipsis; }
+/* 只读单元格不设自己的背景 —— 交给 tbody 的奇偶行规则统一处理。
+   之前这里是 rgba(248,250,252,.6) + !important，半透明盖在白色行上会比左边淡一截，
+   导致「账户」是白的、「金额」是浅灰的，一行里两种底色对不齐。 */
+table.grid tbody td.readonly { color: var(--text-main); padding: 7px 6px; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; font-size: 13px; overflow: hidden; text-overflow: ellipsis; }
 table.grid tbody td.readonly.strong { font-weight: 700; color: #1e293b; }
 table.grid td.col-amount input, table.grid td.col-amount.readonly { text-align: right; padding-right: 8px; font-weight: 600; color: var(--text-main); }
 
@@ -351,7 +354,9 @@ table.install-table tr.inst-i td.col-name input:focus { background: #eff6ff; }
 /* 月份排成两行：1-6 月在第一行、7-12 月在第二行，两行的左边缘自动对齐。
    桌面上第一行直接占用「区间/月份 + 导出/导入」那一行，所以不额外增加行高；
    手机上 12 个都挤在第二行排两排。 */
-.month-row { display: grid; grid-template-columns: repeat(6, 46px); gap: 6px; flex: 0 0 auto; }
+/* 12 个月排成一行（桌面固定 46px，手机均分） */
+.month-row { display: grid; grid-template-columns: repeat(12, 46px); gap: 6px; flex: 0 0 auto; }
+.month-row .m-suf { display: inline; }
 /* 注意特异性：这几条必须用 .month-row .m-btn（0,2,0）压过 .toolbar button（0,1,1），
    否则月份按钮会被工具栏那条"主按钮"规则刷成蓝底，导致 12 个月份全是选中态。 */
 /* 12 个月按钮统一宽度，按「12月」这种三位内容定尺寸，个位数月份不再窄一截 */
@@ -382,11 +387,11 @@ td.query-empty { text-align: center; color: var(--text-light); padding: 40px 12p
 @media (max-width: 767px) {
   .grid-wrap { overflow-x: auto; }
 
-  /* 窄屏：月份两排按可用宽度均分，字号缩小；
-     右侧的区间标签放不下就换到下一行，避免把月份按钮挤扁 */
+  /* 窄屏：12 个月挤在一行，均分可用宽度；「月」字去掉只留数字，否则「10月」放不下 */
   .month-bar { flex-wrap: wrap; row-gap: 4px; }
-  .month-row { flex: 1 1 auto; min-width: 0; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 4px; }
+  .month-row { flex: 1 1 100%; min-width: 0; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 3px; }
   .month-row .m-btn { width: auto; min-width: 0; font-size: 12px; padding: 0; }
+  .month-row .m-suf { display: none; }
   .toolbar .grow { flex: 1 1 0; }
   .month-bar .range-inline { flex: 1 1 100%; margin-left: 0; text-align: right; }
   .toolbar.bar2 { height: auto; min-height: 32px; padding-top: 3px; padding-bottom: 3px; align-items: flex-start; }
@@ -1242,31 +1247,26 @@ function reseq() {
 function renderSummary(main, footer) {
   const range = getCurrentRange();
 
-  // 月份按钮拆成两半：桌面上 1-6 月放进第一行（和区间/月份、导出/导入同一行），
-  // 7-12 月留在第二行，这样两个月份行正好占用原有的两行工具栏，不额外加高。
-  // 手机宽度塞不下，12 个月都放第二行、排成两排。
-  const narrow = window.innerWidth < 768;
+  // 月份按钮：12 个排一行。桌面显示「1月」，手机太窄只显示数字（CSS 隐藏 .m-suf）。
   const activeM = parseInt(summaryMonth.month, 10);
-  let monthsTop = '', monthsBottom = '';
+  let monthBtns = '';
   for (let m = 1; m <= 12; m++) {
-    const btn = `<button type="button" class="m-btn" data-m="${m}" data-active="${activeM === m}">${m}月</button>`;
-    if (!narrow && m <= 6) monthsTop += btn; else monthsBottom += btn;
+    monthBtns += `<button type="button" class="m-btn" data-m="${m}" data-active="${activeM === m}"><span class="m-num">${m}</span><span class="m-suf">月</span></button>`;
   }
   const monthsMode = summaryMode === 'month';
 
-  // 工具栏1：模式切换、上半排月份（导入导出只在流水页，这里不再放）
+  // 工具栏1：区间 / 月份 两个切换，加上年份框（月份模式才需要）
   const bar1 = document.createElement('div');
   bar1.className = 'toolbar bar1';
   bar1.innerHTML = `
     <button id="mode-range" class="ghost" data-active="${summaryMode === 'range'}">区间</button>
     <button id="mode-month" class="ghost" data-active="${summaryMode === 'month'}">月份</button>
-    ${monthsMode && monthsTop ? `<div class="month-row">${monthsTop}</div>` : ''}
+    ${monthsMode ? `<input id="r-year" class="year-input" placeholder="年" inputmode="numeric" value="${summaryMonth.year}年">` : ''}
     <span style="flex:1"></span>
   `;
   main.appendChild(bar1);
 
-  // 工具栏2：时间选择器。右边界对齐表格「期初」列的右边缘。
-  // 不再显示「2026-10-01 ~ 2026-10-31」这类明细细间——手机上它要单独占一行，电脑上也是冗余信息。
+  // 工具栏2：月份模式下是 12 个月一整行；区间模式下是两个日期输入框。
   const bar2 = document.createElement('div');
   bar2.className = 'toolbar bar2';
   if (summaryMode === 'range') {
@@ -1277,13 +1277,7 @@ function renderSummary(main, footer) {
       <span style="flex:1"></span>
     `;
   } else {
-    bar2.innerHTML = `
-      <div class="month-bar">
-        <input id="r-year" class="year-input" placeholder="年" inputmode="numeric" value="${summaryMonth.year}年">
-        <div class="month-row" id="month-row">${monthsBottom}</div>
-        <span style="flex:1"></span>
-      </div>
-    `;
+    bar2.innerHTML = `<div class="month-row" id="month-row">${monthBtns}</div>`;
   }
   main.appendChild(bar2);
 
@@ -1441,15 +1435,9 @@ function syncGridRight() {
 
 // 年份框的右边缘对齐「月份」按钮的右边缘。按钮宽度随内边距/字体变化，
 // 所以实时量取，而不是写死一个像素值。
-function syncYearWidth() {
-  const modeBtn = document.getElementById('mode-month');
-  const yr = document.getElementById('r-year');
-  if (!modeBtn || !yr) return;
-  // 窄屏下月份按钮会换行，量出来的宽度会把年份框撑得过宽 —— 直接交给 CSS 的固定宽度
-  if (window.innerWidth < 768) { yr.style.flexBasis = ''; return; }
-  const w = Math.round(modeBtn.getBoundingClientRect().right - yr.getBoundingClientRect().left);
-  if (w > 40) yr.style.flexBasis = w + 'px';
-}
+// 年份框改成固定宽度（CSS：桌面 96px、窄屏 72px），不再按月份按钮实时测量。
+// 保留这个空函数，是因为 resize 与首次渲染里都还有调用点。
+function syncYearWidth() {}
 
 function makeSummaryRow(acc, idx, range) {
   const isNew = !acc;
