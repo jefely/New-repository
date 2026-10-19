@@ -271,7 +271,10 @@ table.install-table th, table.install-table td { padding: 0 6px; text-align: cen
 table.install-table tr > th:last-child, table.install-table tr > td:last-child { border-right: none; }
 table.install-table thead th { background: var(--bg-gray); color: var(--text-muted); font-weight: 700; font-size: 12px; line-height: 1.25; border-bottom: 1px solid var(--border); }
 table.install-table thead tr:nth-child(2) th { background: var(--bg-gray-light); font-weight: 600; }
-table.install-table th.col-name, table.install-table td.col-name { width: 119px; min-width: 119px; text-align: left; }
+table.install-table th.col-name, table.install-table td.col-name { width: 107px; min-width: 107px; text-align: left; }
+/* 账户名称列固定在左侧：横向滚动看月份时不跟着滚走 */
+table.install-table thead th.col-name { position: sticky; left: 0; z-index: 5; }
+table.install-table tbody td.col-name { position: sticky; left: 0; z-index: 2; background: #fff; }
 table.install-table th.col-day, table.install-table td.col-day { width: 56px; min-width: 56px; }
 table.install-table th.col-sum, table.install-table td.col-sum { width: 96px; min-width: 96px; text-align: right; padding-right: 6px; }
 table.install-table .col-month { width: 78px; min-width: 78px; }
@@ -298,9 +301,11 @@ table.install-table tbody tr.inst-i td { border-bottom: 2px solid var(--border);
    ≈ hsl(215, 27.5%, 29.4%) ≈ #364760。
    字号 12px —— 119px 的列宽减去左侧内边距和删除按钮，
    剩下的空间放 13px 会截断「招行信1007」。 */
-table.install-table tr.inst-p td.col-name { background: #364760; padding-right: 20px; }
+table.install-table tr.inst-p td.col-name { background: #364760; padding-right: 19px; }
 table.install-table tr.inst-p td.col-name input { color: #fff; font-weight: 700; }
-table.install-table td.col-name input { font-size: 12px; }
+/* 名称列收窄到 107px 后，13px 字号会把「招行信1007」截成「招行信10C」，
+   这里降一档到 11px 顺便让它完整显示（选择器要比下面那条通用规则更具体才压得住） */
+table.install-table tbody td.col-name input { font-size: 11px; }
 table.install-table td.col-name { position: relative; }
 table.install-table td.col-name input { width: 100%; height: 30px; border: none; background: transparent; font-size: 13px; outline: none; padding: 0 2px; }
 table.install-table td.col-name input:focus { background: rgba(255, 255, 255, .16); }
@@ -324,6 +329,14 @@ table.install-table tr.inst-i td.col-name input:focus { background: #eff6ff; }
 .toolbar.bar1 { border-bottom: none; }
 /* 「区间 / 月份」两个切换按钮也收窄，和月份格子的宽度接近 */
 .toolbar.bar1 > button { padding: 0 9px; }
+/* 年份框在工具栏里绝对居中（flex 的 auto 边距只会平分「按钮右侧」的余量，不是真居中）。
+   绝对定位后它不是 flex item，flex-basis 失效，必须显式给宽度，否则会撑满并盖住按钮。 */
+.toolbar.bar1 .year-input { position: absolute; left: 50%; transform: translateX(-50%); width: 96px; flex: none; }
+/* 区间模式：两个日期输入框各占一半，中间一个 ~ 分隔 */
+.toolbar.bar2 .grow { flex: 1 1 0; min-width: 0; }
+.toolbar.bar2 .tilde { flex: 0 0 auto; color: var(--text-muted); }
+/* 月份模式：左右留白收到 4px，12 个格子才放得下（12px 会让最后一个「12」被裁） */
+.toolbar.bar2 { padding-left: 4px; padding-right: 4px; }
 /* 区间模式的两个日期框在桌面上固定半宽（原来会平分整行），窄屏再让它自适应 */
 .toolbar .grow { flex: 0 0 210px; min-width: 0; }
 /* 流水页这一行同样 32px，标题与按钮在行内垂直居中。
@@ -437,7 +450,7 @@ td.query-empty { text-align: center; color: var(--text-light); padding: 40px 12p
 
   /* 汇总页时间行：年份框给个固定宽度（否则 JS 量出来的宽度会把整行撑散），
      具体日期区间在手机上不显示，省出一行给表格。 */
-  .year-input { flex: 0 0 72px; }
+  .year-input { flex: 0 0 72px; width: 72px; }
   .month-bar .range-inline { display: none; }
 
   /* 流水 / 分期两页的标题：手机上改成左对齐放在最前，不再绝对定位居中（会和按钮叠字） */
@@ -1255,14 +1268,13 @@ function renderSummary(main, footer) {
   }
   const monthsMode = summaryMode === 'month';
 
-  // 工具栏1：区间 / 月份 两个切换，加上年份框（月份模式才需要）
+  // 工具栏1：区间 / 月份 两个切换，加上年份框（月份模式才需要）。年份框在整行里居中。
   const bar1 = document.createElement('div');
   bar1.className = 'toolbar bar1';
   bar1.innerHTML = `
     <button id="mode-range" class="ghost" data-active="${summaryMode === 'range'}">区间</button>
     <button id="mode-month" class="ghost" data-active="${summaryMode === 'month'}">月份</button>
-    ${monthsMode ? `<input id="r-year" class="year-input" placeholder="年" inputmode="numeric" value="${summaryMonth.year}年">` : ''}
-    <span style="flex:1"></span>
+    ${monthsMode ? `<input id="r-year" class="year-input" placeholder="年" inputmode="numeric" title="输入年份，如 2026" value="${summaryMonth.year}年">` : ''}
   `;
   main.appendChild(bar1);
 
@@ -1271,10 +1283,9 @@ function renderSummary(main, footer) {
   bar2.className = 'toolbar bar2';
   if (summaryMode === 'range') {
     bar2.innerHTML = `
-      <input id="r-start" class="grow" placeholder="起始 2026 / 2608 / 260801" inputmode="numeric" value="${esc(summaryRange.start)}">
-      <span style="color:var(--text-muted)">~</span>
-      <input id="r-end" class="grow" placeholder="结束 2026 / 2608 / 260801" inputmode="numeric" value="${esc(summaryRange.end)}">
-      <span style="flex:1"></span>
+      <input id="r-start" class="grow" placeholder="起始 2608" inputmode="numeric" title="起始日期：可输 2026 / 2608 / 260801" value="${esc(summaryRange.start)}">
+      <span class="tilde">~</span>
+      <input id="r-end" class="grow" placeholder="结束 2608" inputmode="numeric" title="结束日期：可输 2026 / 2608 / 260801" value="${esc(summaryRange.end)}">
     `;
   } else {
     bar2.innerHTML = `<div class="month-row" id="month-row">${monthBtns}</div>`;
