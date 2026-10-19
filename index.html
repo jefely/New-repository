@@ -3031,147 +3031,311 @@ async function readXLSMFile(file) {
    字符串用 inlineStr，不维护 sharedStrings；三种单元格样式：
    s=0 文本 / s=1 日期(numFmt 14) / s=2 金额(#,##0.00)
    ============================================================ */
-const XLSX_SHEETS = ['流水', '汇总', '分期'];
+/* ============================================================
+   导出 .xlsx（尽力还原网页观感）
+   ------------------------------------------------------------
+   · 手写最小 OOXML，浏览器原生 deflate 压缩，零依赖
+   · 样式：深色表头 + 白字、斑马纹、细边框、冻结前两行
+   · 三种数据类型：文本(inlineStr) / 日期(真日期) / 金额(#,##0.00)
+   ============================================================ */
 
-function _xlsxCell(ref, value, kind) {
-  if (value === '' || value == null) return '';
-  if (kind === 'num') {
-    const n = Number(value);
-    if (!isFinite(n)) return '<c r="' + ref + '" t="inlineStr"><is><t>' + _xEsc(String(value)) + '</t></is></c>';
-    return '<c r="' + ref + '" s="2"><v>' + n + '</v></c>';
-  }
-  if (kind === 'date') {
-    const ser = _xSerial(value);
-    if (ser == null) return '<c r="' + ref + '" t="inlineStr"><is><t>' + _xEsc(String(value)) + '</t></is></c>';
-    return '<c r="' + ref + '" s="1"><v>' + ser + '</v></c>';
-  }
-  if (kind === 'int') {
-    const n = Number(value);
-    return isFinite(n) ? '<c r="' + ref + '" s="3"><v>' + n + '</v></c>'
-      : '<c r="' + ref + '" t="inlineStr"><is><t>' + _xEsc(String(value)) + '</t></is></c>';
-  }
-  return '<c r="' + ref + '" t="inlineStr"><is><t xml:space="preserve">' + _xEsc(String(value)) + '</t></is></c>';
+// ---- 配色（对齐网页变量）----
+const XC = {
+  dark: 'FF1E293B',   // --bg-dark，表头/分组行
+  gray: 'FFF8FAFC',   // --bg-gray-light，斑马纹
+  white: 'FFFFFFFF',
+  border: 'FFCBD5E1',
+  text: 'FF0F172A',
+  muted: 'FF64748B',
+  accent: 'FF2563EB'
+};
+
+// ---- style 索引表：每种“数据类型 × 是否斑马纹”一个 ----
+// 0 默认  1 标题  2 表头  3 表头右对齐
+// 10 左  11 中  12 右(金额)  13 日期  14 分组文本  15 分组金额  16 合计右
+// 20..26 是 10..16 的斑马纹版本
+const XS = {
+  default: 0, title: 1, head: 2, headRight: 3, titleDate: 4, int: 17, zInt: 24,
+  left: 10, center: 11, money: 12, date: 13, groupText: 14, groupMoney: 15, total: 16,
+  zLeft: 20, zCenter: 21, zMoney: 22, zDate: 23
+};
+
+function _xlsxNumFmts() {
+  return '<numFmts count="2">'
+    + '<numFmt numFmtId="164" formatCode="yyyy-mm-dd"/>'
+    + '<numFmt numFmtId="165" formatCode="#,##0.00;-#,##0.00;&quot;&quot;"/>'
+    + '</numFmts>';
 }
-
-// rows: [[{v, k}]] ；k ∈ num / date / int / str
-function _xlsxSheetXml(rows, colWidths) {
-  const head = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
-    + '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"'
-    + ' xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">';
-  let cols = '';
-  if (colWidths && colWidths.length) {
-    cols = '<cols>' + colWidths.map((w, i) => '<col min="' + (i + 1) + '" max="' + (i + 1) + '" width="' + w + '" customWidth="1"/>').join('') + '</cols>';
-  }
-  const body = rows.map((cells, ri) => {
-    const r = ri + 1;
-    const parts = cells.map((cell, ci) => _xlsxCell(_xColName(ci + 1) + r, cell.v, cell.k)).filter(Boolean);
-    return parts.length ? '<row r="' + r + '">' + parts.join('') + '</row>' : '';
-  }).filter(Boolean).join('');
-  return head + cols + '<sheetData>' + body + '</sheetData></worksheet>';
+function _xlsxFonts() {
+  return '<fonts count="4">'
+    + '<font><sz val="11"/><color rgb="' + XC.text + '"/><name val="微软雅黑"/><charset val="134"/></font>'
+    + '<font><b/><sz val="11"/><color rgb="' + XC.text + '"/><name val="微软雅黑"/><charset val="134"/></font>'
+    + '<font><b/><sz val="14"/><color rgb="' + XC.text + '"/><name val="微软雅黑"/><charset val="134"/></font>'
+    + '<font><b/><sz val="11"/><color rgb="' + XC.white + '"/><name val="微软雅黑"/><charset val="134"/></font>'
+    + '</fonts>';
 }
+function _xlsxFills() {
+  return '<fills count="4">'
+    + '<fill><patternFill patternType="none"/></fill>'
+    + '<fill><patternFill patternType="gray125"/></fill>'
+    + '<fill><patternFill patternType="solid"><fgColor rgb="' + XC.dark + '"/><bgColor indexed="64"/></patternFill></fill>'
+    + '<fill><patternFill patternType="solid"><fgColor rgb="' + XC.gray + '"/><bgColor indexed="64"/></patternFill></fill>'
+    + '</fills>';
+}
+function _xlsxBorders() {
+  return '<borders count="2">'
+    + '<border><left/><right/><top/><bottom/><diagonal/></border>'
+    + '<border>'
+    + '<left style="thin"><color rgb="' + XC.border + '"/></left>'
+    + '<right style="thin"><color rgb="' + XC.border + '"/></right>'
+    + '<top style="thin"><color rgb="' + XC.border + '"/></top>'
+    + '<bottom style="thin"><color rgb="' + XC.border + '"/></bottom>'
+    + '<diagonal/></border>'
+    + '</borders>';
+}
+// 一个 xf 的快捷拼装
+function _xf(fontId, fillId, borderId, numFmtId, opts) {
+  opts = opts || {};
+  const al = opts.align
+    ? '<alignment horizontal="' + opts.align + '" vertical="' + (opts.valign || 'center')
+      + '"' + (opts.wrap ? ' wrapText="1"' : '') + '/>'
+    : '';
+  return '<xf numFmtId="' + numFmtId + '" fontId="' + fontId + '" fillId="' + fillId
+    + '" borderId="' + borderId + '" xfId="0"'
+    + (numFmtId ? ' applyNumberFormat="1"' : '')
+    + (fontId ? ' applyFont="1"' : '')
+    + (fillId > 1 ? ' applyFill="1"' : '')
+    + (borderId ? ' applyBorder="1"' : '')
+    + (al ? ' applyAlignment="1"' : '') + '>'
+    + al + '</xf>';
+}
+function _xlsxCellXfs() {
+  const P = '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>';
+  const list = [];
+  const put = (idx, xml) => { while (list.length < idx) list.push(P); list[idx] = xml; };
 
+  put(0, P);                                                              // 默认
+  put(1, _xf(3, 2, 1, 0, { align: 'center' }));                           // 标题（深底白字）
+  put(2, _xf(3, 2, 1, 0, { align: 'center', wrap: true }));               // 表头
+  put(3, _xf(3, 2, 1, 0, { align: 'right' }));                            // 表头右
+  put(4, _xf(3, 2, 1, 164, { align: 'center' }));                         // 标题里的日期
+  put(10, _xf(0, 0, 1, 0, { align: 'left' }));                            // 文本左
+  put(11, _xf(0, 0, 1, 0, { align: 'center' }));                          // 文本中
+  put(12, _xf(0, 0, 1, 165, { align: 'right' }));                         // 金额
+  put(13, _xf(0, 0, 1, 164, { align: 'center' }));                        // 日期
+  put(14, _xf(3, 2, 1, 0, { align: 'left' }));                            // 分组文本（深底白字）
+  put(15, _xf(3, 2, 1, 165, { align: 'right' }));                         // 分组金额
+  put(16, _xf(1, 3, 1, 165, { align: 'right' }));                         // 合计
+  put(17, _xf(0, 0, 1, 1, { align: 'center' }));                          // 序号（整数）
+  put(20, _xf(0, 3, 1, 0, { align: 'left' }));                            // 斑马-左
+  put(21, _xf(0, 3, 1, 0, { align: 'center' }));                          // 斑马-中
+  put(22, _xf(0, 3, 1, 165, { align: 'right' }));                         // 斑马-金额
+  put(23, _xf(0, 3, 1, 164, { align: 'center' }));                        // 斑马-日期
+  put(24, _xf(0, 3, 1, 1, { align: 'center' }));                          // 斑马-序号
+  for (let k = 0; k < list.length; k++) if (!list[k]) list[k] = P;
+  return '<cellXfs count="' + list.length + '">' + list.join('') + '</cellXfs>';
+}
 function _xlsxStyles() {
   return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
     + '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'
-    + '<fonts count="1"><font><sz val="11"/><color theme="1"/><name val="宋体"/><family val="3"/></font></fonts>'
-    + '<fills count="2"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills>'
-    + '<borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders>'
+    + _xlsxNumFmts() + _xlsxFonts() + _xlsxFills() + _xlsxBorders()
     + '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>'
-    + '<cellXfs count="4">'
-    + '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>'
-    + '<xf numFmtId="14" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/>'
-    + '<xf numFmtId="4" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/>'
-    + '<xf numFmtId="1" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/>'
-    + '</cellXfs>'
+    + _xlsxCellXfs()
     + '<cellStyles count="1"><cellStyle name="常规" xfId="0" builtinId="0"/></cellStyles>'
     + '</styleSheet>';
 }
 
-// 组装 .xlsx（三张表：流水 / 汇总 / 分期）
+// 单元格：k = str / center / num / date / int ；z = 是否斑马纹
+function _xlsxCell(ref, v, k, sIdx) {
+  if (v === '' || v == null) {
+    // 空值也要画边框，否则表格缺一块
+    return sIdx == null ? '' : '<c r="' + ref + '" s="' + sIdx + '"/>';
+  }
+  if (k === 'num' || k === 'int') {
+    const n = Number(v);
+    if (isFinite(n)) return '<c r="' + ref + '" s="' + sIdx + '"><v>' + n + '</v></c>';
+  }
+  if (k === 'date') {
+    const ser = _xSerial(v);
+    if (ser != null) return '<c r="' + ref + '" s="' + sIdx + '"><v>' + ser + '</v></c>';
+  }
+  return '<c r="' + ref + '" s="' + sIdx + '" t="inlineStr"><is><t xml:space="preserve">' + _xEsc(String(v)) + '</t></is></c>';
+}
+
+// rows: [{ cells:[{v,k}], h:行高, kind:'title'|'head'|'data'|'group'|'total', zebra:bool }]
+function _xlsxSheetXml(sheet) {
+  const rows = sheet.rows;
+  const widths = sheet.widths || [];
+  const freeze = sheet.freeze == null ? 0 : sheet.freeze;
+  const head = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+    + '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"'
+    + ' xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">';
+  let views = '<sheetViews><sheetView workbookViewId="0"';
+  views += freeze > 0 ? ' tabSelected="1"' : '';
+  views += '>';
+  if (freeze > 0) {
+    views += '<pane ySplit="' + freeze + '" topLeftCell="A' + (freeze + 1) + '" activePane="bottomLeft" state="frozen"/>';
+  }
+  views += '</sheetView></sheetViews>';
+  let cols = '';
+  if (widths.length) {
+    cols = '<cols>' + widths.map((w, i) =>
+      '<col min="' + (i + 1) + '" max="' + (i + 1) + '" width="' + w + '" customWidth="1"/>').join('') + '</cols>';
+  }
+  const body = rows.map((row, ri) => {
+    const r = ri + 1;
+    const kind = row.kind || 'data';
+    const zebra = !!row.zebra && kind === 'data';
+    const parts = row.cells.map((cell, ci) => {
+      const k = cell.k || 'str';
+      let s;
+      if (kind === 'title') s = (k === 'date' ? XS.titleDate : XS.title);
+      else if (kind === 'head') s = (k === 'num' ? XS.headRight : XS.head);
+      else if (kind === 'group') s = (k === 'num' ? XS.groupMoney : XS.groupText);
+      else if (kind === 'total') s = XS.total;
+      else if (k === 'int') s = zebra ? XS.zInt : XS.int;
+      else if (k === 'num') s = zebra ? XS.zMoney : XS.money;
+      else if (k === 'date') s = zebra ? XS.zDate : XS.date;
+      else if (k === 'center') s = zebra ? XS.zCenter : XS.center;
+      else s = zebra ? XS.zLeft : XS.left;
+      return _xlsxCell(_xColName(ci + 1) + r, cell.v, k, s);
+    }).join('');
+    const h = row.h ? ' ht="' + row.h + '" customHeight="1"' : '';
+    return '<row r="' + r + '"' + h + '>' + parts + '</row>';
+  }).join('');
+  return head + views + cols + '<sheetData>' + body + '</sheetData></worksheet>';
+}
+
+// ---- 组装三张表 ----
 async function buildXlsxBytes() {
   const sheets = [];
 
-  // --- 流水 ---
+  // ===== 1. 流水 =====
   const flowRows = [];
-  flowRows.push([{ v: '流水记录', k: 'str' }]);
-  flowRows.push(['序号', '日期', '转出账户', '转入账户', '金额', '备注'].map(h => ({ v: h, k: 'str' })));
+  flowRows.push({ h: 30, kind: 'title', cells: [{ v: '流水记录', k: 'str' }] });
+  flowRows.push({ h: 26, kind: 'head', cells: ['序号', '日期', '转出账户', '转入账户', '金额', '备注'].map(h => ({ v: h, k: 'str' })) });
   state.transactions.slice().sort((a, b) => (a.seq || 0) - (b.seq || 0)).forEach((t, i) => {
-    flowRows.push([
-      { v: i + 1, k: 'int' },
-      { v: t.date || '', k: 'date' },
-      { v: t.from || '', k: 'str' },
-      { v: t.to || '', k: 'str' },
-      { v: t.amount === '' || t.amount == null ? '' : t.amount, k: 'num' },
-      { v: t.note || '', k: 'str' }
-    ]);
+    flowRows.push({
+      h: 22, kind: 'data', zebra: i % 2 === 0,
+      cells: [
+        { v: i + 1, k: 'int' },
+        { v: t.date || '', k: 'date' },
+        { v: t.from || '', k: 'center' },
+        { v: t.to || '', k: 'center' },
+        { v: t.amount === '' || t.amount == null ? '' : t.amount, k: 'num' },
+        { v: t.note || '', k: 'str' }
+      ]
+    });
   });
-  sheets.push({ name: '流水', rows: flowRows, widths: [6, 11, 16, 16, 12, 24] });
+  sheets.push({ name: '流水', rows: flowRows, widths: [7, 13, 20, 20, 14, 30], freeze: 2 });
 
-  // --- 汇总（起止：今天往前推 1 年 → 今天）---
+  // ===== 2. 汇总（起止：今天往前推 1 年 → 今天）=====
   const today = todayISO();
   const endD = new Date(today + 'T00:00:00');
   const startD = new Date(endD.getFullYear() - 1, endD.getMonth(), endD.getDate());
   const startIso = startD.getFullYear() + '-' + pad2(startD.getMonth() + 1) + '-' + pad2(startD.getDate());
-  const sumRows = [];
-  sumRows.push([{ v: '起', k: 'str' }, { v: startIso, k: 'date' }, { v: '至', k: 'str' }, { v: today, k: 'date' }]);
-  sumRows.push(['序号', '分类', '简码', '账户名称', '当前结余', '转出', '转入', '转出历史', '转入历史', '期初', '账单日', '还款日'].map(h => ({ v: h, k: 'str' })));
-  state.accounts.forEach((a, i) => {
-    const st = computeStats(a, { start: startIso, end: today });
-    const isDebt = (a.cat || '') === '负债类';
-    sumRows.push([
-      { v: i + 1, k: 'int' },
-      { v: a.cat || '', k: 'str' },
-      { v: a.code || '', k: 'str' },
-      { v: a.name || '', k: 'str' },
-      { v: Number(st.balance).toFixed(2), k: 'num' },
-      { v: Number(st.mOut).toFixed(2), k: 'num' },
-      { v: Number(st.mIn).toFixed(2), k: 'num' },
-      { v: Number(st.hOut).toFixed(2), k: 'num' },
-      { v: Number(st.hIn).toFixed(2), k: 'num' },
-      { v: Number(a.opening || 0).toFixed(2), k: 'num' },
-      { v: isDebt ? (a.billDay || '') : '', k: 'str' },
-      { v: isDebt ? (a.repayDay || '') : '', k: 'str' }
-    ]);
-  });
-  sheets.push({ name: '汇总', rows: sumRows, widths: [6, 10, 8, 18, 13, 12, 12, 12, 12, 13, 8, 8] });
+  const range = { start: startIso, end: today };
 
-  // --- 分期 ---
+  const sumRows = [];
+  sumRows.push({ h: 30, kind: 'title', cells: [
+    { v: startIso, k: 'date' }, { v: '至', k: 'str' }, { v: today, k: 'date' },
+    { v: '汇总表', k: 'str' }
+  ] });
+  sumRows.push({ h: 26, kind: 'head', cells: ['序号', '分类', '简码', '账户名称', '当前结余', '转出', '转入', '转出历史', '转入历史', '期初', '账单日', '还款日'].map((h, i) =>
+    ({ v: h, k: i >= 4 && i <= 9 ? 'num' : 'str' })) });
+
+  // 按分类分组，组头用深色行（和网页一致）
+  const catsOrder = ['资产类', '负债类', '收入类', '权益类', '费用类'];
+  const byCat = {};
+  for (const a of state.accounts) { const c = a.cat || '未分类'; (byCat[c] = byCat[c] || []).push(a); }
+  const cats = Object.keys(byCat).sort((a, b) => {
+    const ia = catsOrder.indexOf(a), ib = catsOrder.indexOf(b);
+    return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib);
+  });
+  let idx = 1, zebraToggle = 0;
+  for (const cat of cats) {
+    const list = byCat[cat];
+    const st = { bal: 0, out: 0, inn: 0, hout: 0, hin: 0, open: 0 };
+    for (const a of list) {
+      const s = computeStats(a, range);
+      st.bal += s.balance; st.out += s.mOut; st.inn += s.mIn; st.hout += s.hOut; st.hin += s.hIn;
+      st.open += Number(a.opening) || 0;
+    }
+    const label = { '资产类': '资产', '负债类': '负债', '收入类': '收入', '权益类': '权益', '费用类': '费用' }[cat] || cat.slice(0, 2);
+    sumRows.push({ h: 24, kind: 'group', cells: [
+      { v: label, k: 'str' }, { v: '', k: 'str' }, { v: '', k: 'str' }, { v: cat, k: 'str' },
+      { v: Number(st.bal).toFixed(2), k: 'num' }, { v: Number(st.out).toFixed(2), k: 'num' },
+      { v: Number(st.inn).toFixed(2), k: 'num' }, { v: Number(st.hout).toFixed(2), k: 'num' },
+      { v: Number(st.hin).toFixed(2), k: 'num' }, { v: Number(st.open).toFixed(2), k: 'num' },
+      { v: '', k: 'str' }, { v: '', k: 'str' }
+    ] });
+    zebraToggle = 0;
+    for (const a of list) {
+      const s = computeStats(a, range);
+      const isDebt = (a.cat || '') === '负债类';
+      sumRows.push({
+        h: 22, kind: 'data', zebra: zebraToggle % 2 === 0,
+        cells: [
+          { v: idx++, k: 'int' },
+          { v: a.cat || '', k: 'center' },
+          { v: a.code || '', k: 'center' },
+          { v: a.name || '', k: 'center' },
+          { v: Number(s.balance).toFixed(2), k: 'num' },
+          { v: Number(s.mOut).toFixed(2), k: 'num' },
+          { v: Number(s.mIn).toFixed(2), k: 'num' },
+          { v: Number(s.hOut).toFixed(2), k: 'num' },
+          { v: Number(s.hIn).toFixed(2), k: 'num' },
+          { v: Number(a.opening || 0).toFixed(2), k: 'num' },
+          { v: isDebt ? (a.billDay || '') : '', k: 'center' },
+          { v: isDebt ? (a.repayDay || '') : '', k: 'center' }
+        ]
+      });
+      zebraToggle++;
+    }
+  }
+  sheets.push({ name: '汇总', rows: sumRows, widths: [7, 11, 9, 20, 14, 13, 13, 13, 13, 14, 9, 9], freeze: 2 });
+
+  // ===== 3. 分期 =====
   const months = installMonths();
   const instRows = [];
-  const head1 = ['账户名称/分期金额', '账单日/还款日', '每月合计/本息余计'].map(h => ({ v: h, k: 'str' }));
-  months.forEach(() => head1.push({ v: '', k: 'str' }));
-  instRows.push(head1);
-  const head2 = [{ v: '', k: 'str' }, { v: '', k: 'str' }, { v: '', k: 'str' }];
+  const segHead = ['账户名称/分期金额', '账单日/还款日', '每月合计/本息余计'];
+  const headCells = segHead.map(h => ({ v: h, k: 'str' }));
+  months.forEach(() => headCells.push({ v: '', k: 'num' }));
+  instRows.push({ h: 30, kind: 'head', cells: headCells });
+  const monCells = [{ v: '', k: 'str' }, { v: '', k: 'str' }, { v: '', k: 'str' }];
   months.forEach(ym => {
     const yy = Math.floor(ym / 100), mm = ym % 100;
-    head2.push({ v: yy + '-' + pad2(mm) + '-01', k: 'date' });
+    monCells.push({ v: yy + '-' + pad2(mm) + '-01', k: 'date' });
   });
-  instRows.push(head2);
-  (state.installments || []).forEach(inst => {
+  instRows.push({ h: 24, kind: 'head', cells: monCells });
+
+  const instTotal = {};
+  (state.installments || []).forEach((inst, ii) => {
     let sumP = 0, sumI = 0;
     months.forEach(ym => { const c = inst.cells && inst.cells[ym]; if (c) { sumP += Number(c.p) || 0; sumI += Number(c.i) || 0; } });
-    const pRow = [
-      { v: inst.name || '', k: 'str' },
-      { v: inst.billDay || '', k: 'str' },
+    const pCells = [
+      { v: inst.name || '', k: 'center' },
+      { v: inst.billDay || '', k: 'center' },
       { v: sumP ? sumP.toFixed(2) : '', k: 'num' }
     ];
-    const iRow = [
+    const iCells = [
       { v: inst.principal || '', k: 'num' },
-      { v: inst.repayDay || '', k: 'str' },
+      { v: inst.repayDay || '', k: 'center' },
       { v: sumI ? sumI.toFixed(2) : '', k: 'num' }
     ];
     months.forEach(ym => {
       const c = inst.cells && inst.cells[ym];
-      pRow.push({ v: c && c.p !== '' && c.p != null ? c.p : '', k: 'num' });
-      iRow.push({ v: c && c.i !== '' && c.i != null ? c.i : '', k: 'num' });
+      pCells.push({ v: c && c.p !== '' && c.p != null ? c.p : '', k: 'num' });
+      iCells.push({ v: c && c.i !== '' && c.i != null ? c.i : '', k: 'num' });
     });
-    instRows.push(pRow, iRow);
+    instRows.push({ h: 22, kind: 'group', cells: pCells });
+    instRows.push({ h: 22, kind: 'data', zebra: ii % 2 === 0, cells: iCells });
   });
   const instWidths = [18, 22, 18];
-  months.forEach(() => instWidths.push(11));
-  sheets.push({ name: '分期', rows: instRows, widths: instWidths });
+  months.forEach(() => instWidths.push(12));
+  sheets.push({ name: '分期', rows: instRows, widths: instWidths, freeze: 2 });
 
-  // --- 打包 ---
+  // ===== 打包 =====
   const files = [];
   const ct = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
     + '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'
@@ -3182,12 +3346,10 @@ async function buildXlsxBytes() {
     + '<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>'
     + '</Types>';
   files.push({ name: '[Content_Types].xml', data: _xenc.encode(ct) });
-  files.push({
-    name: '_rels/.rels', data: _xenc.encode('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
-      + '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
-      + '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>'
-      + '</Relationships>')
-  });
+  files.push({ name: '_rels/.rels', data: _xenc.encode('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+    + '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+    + '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>'
+    + '</Relationships>') });
   const wb = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
     + '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"'
     + ' xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>'
@@ -3202,7 +3364,7 @@ async function buildXlsxBytes() {
   files.push({ name: 'xl/_rels/workbook.xml.rels', data: _xenc.encode(wbRels) });
   files.push({ name: 'xl/styles.xml', data: _xenc.encode(_xlsxStyles()) });
   sheets.forEach((s, i) => {
-    files.push({ name: 'xl/worksheets/sheet' + (i + 1) + '.xml', data: _xenc.encode(_xlsxSheetXml(s.rows, s.widths)) });
+    files.push({ name: 'xl/worksheets/sheet' + (i + 1) + '.xml', data: _xenc.encode(_xlsxSheetXml(s)) });
   });
   return await xlsmZip(files);
 }
@@ -3226,6 +3388,7 @@ async function exportXLSX() {
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 4000);
 }
+
 function openXlsmDialog() {
   const has = !!getXlsmTemplate();
   const mask = document.createElement('div');
