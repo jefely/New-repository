@@ -271,12 +271,12 @@ table.install-table th, table.install-table td { padding: 0 6px; text-align: cen
 table.install-table tr > th:last-child, table.install-table tr > td:last-child { border-right: none; }
 table.install-table thead th { background: var(--bg-gray); color: var(--text-muted); font-weight: 700; font-size: 12px; line-height: 1.25; border-bottom: 1px solid var(--border); }
 table.install-table thead tr:nth-child(2) th { background: var(--bg-gray-light); font-weight: 600; }
-table.install-table th.col-name, table.install-table td.col-name { width: 107px; min-width: 107px; text-align: left; }
+table.install-table th.col-name, table.install-table td.col-name { width: 87px; min-width: 87px; text-align: center; }
 /* 账户名称列固定在左侧：横向滚动看月份时不跟着滚走 */
 table.install-table thead th.col-name { position: sticky; left: 0; z-index: 5; }
 table.install-table tbody td.col-name { position: sticky; left: 0; z-index: 2; background: #fff; }
 table.install-table th.col-day, table.install-table td.col-day { width: 56px; min-width: 56px; }
-table.install-table th.col-sum, table.install-table td.col-sum { width: 96px; min-width: 96px; text-align: right; padding-right: 6px; }
+table.install-table th.col-sum, table.install-table td.col-sum { width: 96px; min-width: 96px; text-align: right; padding-right: 6px; position: relative; }
 table.install-table .col-month { width: 78px; min-width: 78px; }
 /* 表头文字一律居中（要压过下面 th.col-name 的左对齐） */
 table.install-table thead th,
@@ -301,18 +301,20 @@ table.install-table tbody tr.inst-i td { border-bottom: 2px solid var(--border);
    ≈ hsl(215, 27.5%, 29.4%) ≈ #364760。
    字号 12px —— 119px 的列宽减去左侧内边距和删除按钮，
    剩下的空间放 13px 会截断「招行信1007」。 */
-table.install-table tr.inst-p td.col-name { background: #364760; padding-right: 19px; }
+/* 账户名称列：本金行深色底白字，利息行普通字；两行都居中 */
+table.install-table tr.inst-p td.col-name { background: #364760; }
 table.install-table tr.inst-p td.col-name input { color: #fff; font-weight: 700; }
-/* 名称列收窄到 107px 后，13px 字号会把「招行信1007」截成「招行信10C」，
-   这里降一档到 11px 顺便让它完整显示（选择器要比下面那条通用规则更具体才压得住） */
-table.install-table tbody td.col-name input { font-size: 11px; }
+/* 名称列收窄到 87px 后，13px 字号会把「招行信1007」截断，降一档到 11px 刚好完整 */
+table.install-table tbody td.col-name input { font-size: 11px; text-align: center; }
 table.install-table td.col-name { position: relative; }
 table.install-table td.col-name input { width: 100%; height: 30px; border: none; background: transparent; font-size: 13px; outline: none; padding: 0 2px; }
 table.install-table td.col-name input:focus { background: rgba(255, 255, 255, .16); }
 table.install-table tr.inst-i td.col-name input { font-weight: 700; text-align: right; }
 table.install-table tr.inst-i td.col-name input:focus { background: #eff6ff; }
-.inst-del { position: absolute; right: 3px; top: 0; bottom: 0; width: 16px; border: none; background: none; color: rgba(255, 255, 255, .6); font-size: 15px; line-height: 1; cursor: pointer; }
-.inst-del:active { background: rgba(255, 255, 255, .22); color: #fff; }
+/* 删除按钮：放在「每月合计」格靠左的位置。金额是右对齐的，左边本来就空着，
+   这样它不再占用账户名称列的宽度。 */
+.inst-del { position: absolute; left: 2px; top: 0; bottom: 0; width: 16px; border: none; background: none; color: var(--border); font-size: 15px; line-height: 1; cursor: pointer; }
+.inst-del:active { background: #fee2e2; color: var(--danger); }
 .install-empty { text-align: center; color: var(--text-muted); padding: 28px 0; font-size: 13px; }
 
 /* ==========================================
@@ -1891,12 +1893,8 @@ function setInstallCell(inp, raw) {
 
 function renderInstall(main, footer) {
   const months = installMonths();
-
-  // 账户名下拉候选，来自汇总表
-  const dl = document.createElement('datalist');
-  dl.id = 'inst-acc-list';
-  state.accounts.forEach(a => { const o = document.createElement('option'); o.value = a.name; o.label = a.code || ''; dl.appendChild(o); });
-  main.appendChild(dl);
+  // 账户名不再挂 datalist 下拉：输入时弹出的候选会挡住相邻行。
+  // 仍然支持输简码，失焦时自动补全成账户全称（见 findInstallAccount / syncInstallAccountDays）。
 
   // 工具栏：新增、参考月、起止月
   const bar = document.createElement('div');
@@ -1950,17 +1948,7 @@ function renderInstall(main, footer) {
     inpName.dataset.field = kind === 'p' ? 'name' : 'principal';
     inpName.dataset.id = inst.id;
     inpName.value = kind === 'p' ? (inst.name || '') : (inst.principal || '');
-    if (kind === 'p') inpName.setAttribute('list', 'inst-acc-list');
     tdName.appendChild(inpName);
-    if (kind === 'p') {
-      const del = document.createElement('button');
-      del.type = 'button'; del.className = 'inst-del'; del.textContent = '×'; del.title = '删除这个分期';
-      del.addEventListener('click', () => {
-        state.installments = state.installments.filter(x => x.id !== inst.id);
-        save(); render();
-      });
-      tdName.appendChild(del);
-    }
     tr.appendChild(tdName);
 
     const tdDay = document.createElement('td');
@@ -1970,6 +1958,21 @@ function renderInstall(main, footer) {
 
     const tdSum = document.createElement('td');
     tdSum.className = 'col-sum';
+    // 文字放在内部 span 里，删除按钮挂在旁边。
+    // 合计更新时只改 span 的 textContent —— 直接写 td.textContent 会把按钮一起清掉。
+    const sumText = document.createElement('span');
+    sumText.className = 'sum-text';
+    tdSum.appendChild(sumText);
+    // 删除按钮靠左：金额是右对齐的，左边本来就空着，这样账户名称列不用给它留位置。
+    if (kind === 'p') {
+      const del = document.createElement('button');
+      del.type = 'button'; del.className = 'inst-del'; del.textContent = '×'; del.title = '删除这个分期';
+      del.addEventListener('click', () => {
+        state.installments = state.installments.filter(x => x.id !== inst.id);
+        save(); render();
+      });
+      tdSum.appendChild(del);
+    }
     tr.appendChild(tdSum);
 
     months.forEach(ym => {
@@ -2049,7 +2052,7 @@ function recalcInstall() {
       if (cellsP[k]) cellsP[k].className = cls;
       if (cellsI[k]) cellsI[k].className = cls;
     });
-    const sP = trP.querySelector('.col-sum'), sI = trI.querySelector('.col-sum');
+    const sP = trP.querySelector('.col-sum .sum-text'), sI = trI.querySelector('.col-sum .sum-text');
     if (sP) sP.textContent = sumP ? fmtMoney(sumP) : '—';
     if (sI) sI.textContent = sumI ? fmtMoney(sumI) : '—';
   });
@@ -2063,7 +2066,8 @@ function recalcInstallFooter() {
     total += parseFloat(String(th.textContent).replace(/[^\d.-]/g, '')) || 0;
   });
   table.querySelectorAll('tr.inst-p .col-sum, tr.inst-i .col-sum').forEach(td => {
-    const v = parseFloat(String(td.textContent).replace(/[^\d.-]/g, '')) || 0;
+    const el = td.querySelector('.sum-text') || td;
+    const v = parseFloat(String(el.textContent).replace(/[^\d.-]/g, '')) || 0;
     if (td.closest('tr').classList.contains('inst-p')) pendingP += v; else pendingI += v;
   });
   return { total, pendingP, pendingI, count: state.installments.length };
