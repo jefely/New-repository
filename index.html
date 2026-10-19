@@ -384,8 +384,6 @@ td.query-empty { text-align: center; color: var(--text-light); padding: 40px 12p
   .toolbar .grow { flex: 1 1 0; }
   .month-bar .range-inline { flex: 1 1 100%; margin-left: 0; text-align: right; }
   .toolbar.bar2 { height: auto; min-height: 32px; padding-top: 3px; padding-bottom: 3px; align-items: flex-start; }
-  /* 流水页三个按钮在窄屏下已经把整行占满，标题再居中就会压在按钮上 —— 直接不显示（标签栏已高亮「流水」） */
-  .toolbar.flow-bar .bar-title { display: none; }
 
   /* 流水表：日期 6 位、金额 8 字符都要放得下 */
   table#flow-table { min-width: 560px; }
@@ -415,8 +413,7 @@ td.query-empty { text-align: center; color: var(--text-light); padding: 40px 12p
   .query-section { flex: 0 0 auto !important; width: 92vw; scroll-snap-align: start; }
   table.query-table { min-width: 0; }
 
-  /* 查询标题行精简 */
-  .q-title .q-title-txt { display: none; }
+  /* 查询标题行精简（标题文字保留，手机上也能看出是 A/B/C 哪一栏） */
   .q-title { font-size: 13px; }
   .q-total { font-size: 12px; }
   .q-clear { font-size: 11px; padding: 3px 7px; }
@@ -426,6 +423,22 @@ td.query-empty { text-align: center; color: var(--text-light); padding: 40px 12p
   table.query-table .q-head-row th { font-size: 11px; padding: 6.5px 2px; }
   table.query-table tbody td { font-size: 12px; padding: 6.5px 4px; }
   table.query-table tbody td.col-seq { padding: 6.5px 2px; }
+
+  /* 汇总页时间行：年份框给个固定宽度（否则 JS 量出来的宽度会把整行撑散），
+     具体日期区间在手机上不显示，省出一行给表格。 */
+  .year-input { flex: 0 0 88px; }
+  .month-bar .range-inline { display: none; }
+
+  /* 流水 / 分期两页的标题：手机上改成左对齐放在最前，不再绝对定位居中（会和按钮叠字） */
+  .toolbar.flow-bar .bar-title,
+  .toolbar.install-bar .bar-title { position: static; transform: none; width: auto; flex: 0 0 auto; order: -1; text-align: left; font-size: 14px; padding-right: 4px; }
+  .toolbar.flow-bar { padding-left: 8px; }
+  /* 分期页：标题 + 新增 + 复制 + 起 + 止 要塞进 390px，尺寸统一收一档，否则「止」会被挤到第二行 */
+  .toolbar.install-bar { flex-wrap: wrap; height: auto; min-height: 32px; padding: 2px 8px; gap: 6px; }
+  .toolbar.install-bar .bar-title { font-size: 13px; }
+  .toolbar.install-bar > button { width: 56px; }
+  .toolbar.install-bar .inst-input { width: 56px; }
+  .toolbar.install-bar > .inst-label:first-of-type { margin-left: 0; }
 }
 
 /* ==========================================
@@ -441,10 +454,11 @@ td.query-empty { text-align: center; color: var(--text-light); padding: 40px 12p
 .col-resizer { position: absolute; top: 0; bottom: 0; right: 0; width: 8px; cursor: col-resize; z-index: 6; touch-action: none; }
 .col-resizer::after { content: ''; position: absolute; top: 25%; bottom: 25%; left: 3px; width: 2px; border-radius: 1px; background: transparent; transition: background .15s; }
 .col-resizer:hover::after, .col-resizer.dragging::after { background: var(--primary); }
-/* 触屏上 8px 太难点中，加宽命中区 */
+/* 触屏上 8px 太难点中，加宽命中区，并让把手常显（触屏没有 hover，否则用户以为没这功能） */
 @media (pointer: coarse) {
   .col-resizer { width: 14px; }
-  .col-resizer::after { left: 6px; }
+  .col-resizer::after { left: 6px; background: #cbd5e1; }
+  .col-resizer.dragging::after { background: var(--primary); }
 }
 
 /* 自定义列宽后，宽度由各列之和决定，不再被响应式 min-width 与百分比干扰 */
@@ -1427,6 +1441,8 @@ function syncYearWidth() {
   const modeBtn = document.getElementById('mode-month');
   const yr = document.getElementById('r-year');
   if (!modeBtn || !yr) return;
+  // 窄屏下月份按钮会换行，量出来的宽度会把年份框撑得过宽 —— 直接交给 CSS 的固定宽度
+  if (window.innerWidth < 768) { yr.style.flexBasis = ''; return; }
   const w = Math.round(modeBtn.getBoundingClientRect().right - yr.getBoundingClientRect().left);
   if (w > 40) yr.style.flexBasis = w + 'px';
 }
