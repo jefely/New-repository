@@ -911,6 +911,7 @@ function renderFlow(main, footer) {
     <button class="ghost" id="f-exp">导出</button>
     <button class="ghost" id="f-imp">导入</button>
     <button class="ghost" id="f-sync">同步</button>
+    <button class="ghost" id="f-xlsm">Excel</button>
     <input type="file" id="f-impfile" accept=".txt,text/plain" style="display:none">
     <span class="flow-title">流水记录</span>
     <span style="flex:1"></span>
@@ -921,6 +922,7 @@ function renderFlow(main, footer) {
   document.getElementById('f-imp').onclick = () => document.getElementById('f-impfile').click();
   document.getElementById('f-impfile').onchange = (e) => importAllTXT(e, footer);
   document.getElementById('f-sync').onclick = () => openSyncDialog();
+  document.getElementById('f-xlsm').onclick = () => openXlsmDialog();
 
   // 3. 表格主体
   const wrap = document.createElement('div');
@@ -2473,6 +2475,258 @@ function exportAllTXT() {
   downloadTXT(`流水账_${todayISO()}.txt`, lines.join('\n'));
 }
 
+
+/* ============================================================
+   Excel (.xlsm) 模板法：保留用户的 VBA，只替换数据
+   ------------------------------------------------------------
+   · 模板由用户上传一次，存进 localStorage（base64）
+   · 导出：读模板 → 重写「流水」「汇总」两张表的 sheetData → 重新打包
+   · 导入：读 .xlsm → 解析同样两张表 → 覆盖到网页数据
+   · .xlsm 本质是 ZIP，用浏览器原生 deflate-raw，无第三方依赖
+   ============================================================ */
+const XLSM_KEY = 'flow_xlsm_template_v1';
+const XLSM_SHEET_FLOW = '流水';
+const XLSM_SHEET_SUM = '汇总';
+
+const _xenc = new TextEncoder();
+const _xdec = new TextDecoder();
+
+function _xDecompress(bytes) {
+  const ds = new DecompressionStream('deflate-raw');
+  const w = ds.writable.getWriter(); w.write(bytes); w.close();
+  return new Response(ds.readable).arrayBuffer().then(b => new Uint8Array(b));
+}
+function _xCompress(bytes) {
+  const cs = new CompressionStream('deflate-raw');
+  const w = cs.writable.getWriter(); w.write(bytes); w.close();
+  return new Response(cs.readable).arrayBuffer().then(b => new Uint8Array(b));
+}
+let _crcTab = null;
+function _crc32(bytes) {
+  if (!_crcTab) {
+    _crcTab = new Uint32Array(256);
+    for (let i = 0; i < 256; i++) { let c = i; for (let k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1); _crcTab[i] = c >>> 0; }
+  }
+  let crc = 0xFFFFFFFF;
+  for (let i = 0; i < bytes.length; i++) crc = _crcTab[(crc ^ bytes[i]) & 0xFF] ^ (crc >>> 8);
+  return (crc ^ 0xFFFFFFFF) >>> 0;
+}
+// 读 ZIP → Map<name, Uint8Array>
+async function xlsmUnzip(buf) {
+  const dv = new DataView(buf);
+  const u8 = new Uint8Array(buf);
+  let eocd = -1;
+  for (let i = buf.byteLength - 22; i >= Math.max(0, buf.byteLength - 65558); i--) {
+    if (dv.getUint32(i, true) === 0x06054b50) { eocd = i; break; }
+  }
+  if (eocd < 0) throw new Error('不是有效的 Excel 文件（.xlsm/.xlsx）');
+  const count = dv.getUint16(eocd + 10, true);
+  let off = dv.getUint32(eocd + 16, true);
+  const map = new Map();
+  const order = [];
+  for (let k = 0; k < count; k++) {
+    if (dv.getUint32(off, true) !== 0x02014b50) break;
+    const method = dv.getUint16(off + 10, true);
+    const compSize = dv.getUint32(off + 20, true);
+    const nameLen = dv.getUint16(off + 28, true);
+    const extraLen = dv.getUint16(off + 30, true);
+    const cmtLen = dv.getUint16(off + 32, true);
+    const localOff = dv.getUint32(off + 42, true);
+    const name = _xdec.decode(u8.subarray(off + 46, off + 46 + nameLen));
+    const lNameLen = dv.getUint16(localOff + 26, true);
+    const lExtraLen = dv.getUint16(localOff + 28, true);
+    const dataStart = localOff + 30 + lNameLen + lExtraLen;
+    const raw = u8.subarray(dataStart, dataStart + compSize);
+    const data = method === 0 ? raw.slice() : await _xDecompress(raw);
+    map.set(name.replace(/^\//, ''), data);
+    order.push({ name: name.replace(/^\//, ''), data });
+    off += 46 + nameLen + extraLen + cmtLen;
+  }
+  return { map, order };
+}
+function xlsmZip(entries) {
+  return (async () => {
+    const parts = [], central = [];
+    let offset = 0;
+    for (const e of entries) {
+      const nameBytes = _xenc.encode(e.name);
+      const crc = _crc32(e.data);
+      let payload = e.data, method = 0;
+      const comp = await _xCompress(e.data);
+      if (comp.length < e.data.length) { payload = comp; method = 8; }
+      const local = new Uint8Array(30 + nameBytes.length);
+      const ldv = new DataView(local.buffer);
+      ldv.setUint32(0, 0x04034b50, true); ldv.setUint16(4, 20, true); ldv.setUint16(6, 0x0800, true);
+      ldv.setUint16(8, method, true); ldv.setUint16(12, 0x21, true);
+      ldv.setUint32(14, crc, true); ldv.setUint32(18, payload.length, true); ldv.setUint32(22, e.data.length, true);
+      ldv.setUint16(26, nameBytes.length, true);
+      local.set(nameBytes, 30);
+      parts.push(local, payload);
+      const cen = new Uint8Array(46 + nameBytes.length);
+      const cdv = new DataView(cen.buffer);
+      cdv.setUint32(0, 0x02014b50, true); cdv.setUint16(4, 20, true); cdv.setUint16(6, 20, true);
+      cdv.setUint16(8, 0x0800, true); cdv.setUint16(10, method, true); cdv.setUint16(14, 0x21, true);
+      cdv.setUint32(16, crc, true); cdv.setUint32(20, payload.length, true); cdv.setUint32(24, e.data.length, true);
+      cdv.setUint16(28, nameBytes.length, true); cdv.setUint32(42, offset, true);
+      cen.set(nameBytes, 46);
+      central.push(cen);
+      offset += local.length + payload.length;
+    }
+    const cenSize = central.reduce((a, b) => a + b.length, 0);
+    const eocd = new Uint8Array(22);
+    const edv = new DataView(eocd.buffer);
+    edv.setUint32(0, 0x06054b50, true);
+    edv.setUint16(8, entries.length, true); edv.setUint16(10, entries.length, true);
+    edv.setUint32(12, cenSize, true); edv.setUint32(16, offset, true);
+    const all = [...parts, ...central, eocd];
+    const res = new Uint8Array(all.reduce((a, b) => a + b.length, 0));
+    let p = 0;
+    for (const a of all) { res.set(a, p); p += a.length; }
+    return res;
+  })();
+}
+function _xEsc(s) {
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+function _xUnesc(s) {
+  return String(s).replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&amp;/g, '&');
+}
+function _xColName(n) {
+  let s = '';
+  while (n > 0) { const m = (n - 1) % 26; s = String.fromCharCode(65 + m) + s; n = Math.floor((n - 1) / 26); }
+  return s;
+}
+// ISO 日期 → Excel 序列号（1900 日期系统）
+function _xSerial(iso) {
+  const [y, m, d] = String(iso).split('-').map(Number);
+  if (!y || !m || !d) return null;
+  return Math.floor((Date.UTC(y, m - 1, d) - Date.UTC(1899, 11, 30)) / 86400000);
+}
+// 序列号 → ISO
+function _xFromSerial(n) {
+  const days = Number(n);
+  if (!isFinite(days)) return '';
+  const t = Date.UTC(1899, 11, 30) + days * 86400000;
+  const d = new Date(t);
+  return d.getUTCFullYear() + '-' + String(d.getUTCMonth() + 1).padStart(2, '0') + '-' + String(d.getUTCDate()).padStart(2, '0');
+}
+function _xShared(map) {
+  const out = [];
+  const ss = map.get('xl/sharedStrings.xml');
+  if (!ss) return out;
+  const x = _xdec.decode(ss);
+  const re = /<si>([\s\S]*?)<\/si>/g;
+  let m;
+  while ((m = re.exec(x))) {
+    let t = '';
+    const tr = /<t[^>]*>([\s\S]*?)<\/t>/g;
+    let tm;
+    while ((tm = tr.exec(m[1]))) t += tm[1];
+    out.push(_xUnesc(t));
+  }
+  return out;
+}
+// 解析一张 sheet → { rows: Map<rowNum, [{col, v, s}]>, xml }
+function _xParseSheet(xml, shared) {
+  const rows = new Map();
+  const re = /<row r="(\d+)"[^>]*>([\s\S]*?)<\/row>/g;
+  let m;
+  while ((m = re.exec(xml))) {
+    const r = parseInt(m[1], 10);
+    const cells = [];
+    const cre = /<c r="([A-Z]+)(\d+)"([^>]*?)(?:\/>|>([\s\S]*?)<\/c>)/g;
+    let cm;
+    while ((cm = cre.exec(m[2]))) {
+      const col = cm[1], attrs = cm[3] || '', body = cm[4] || '';
+      const tm2 = /t="([^"]+)"/.exec(attrs);
+      const t = tm2 ? tm2[1] : 'n';
+      let val = '';
+      if (t === 's') { const v = /<v>(\d+)<\/v>/.exec(body); if (v) val = shared[+v[1]] ?? ''; }
+      else if (t === 'inlineStr') { let s2 = ''; const tr = /<t[^>]*>([\s\S]*?)<\/t>/g; let x2; while ((x2 = tr.exec(body))) s2 += x2[1]; val = _xUnesc(s2); }
+      else { const v = /<v>([^<]*)<\/v>/.exec(body); if (v) val = v[1]; }
+      const sm = /s="(\d+)"/.exec(attrs);
+      cells.push({ col, v: val, s: sm ? +sm[1] : null, type: t });
+    }
+    rows.set(r, cells);
+  }
+  return rows;
+}
+// 重写 sheetData：保留 keepThrough 之前的行，之后换成 newRows
+function _xRebuild(xml, keepThrough, newRows, styleFor) {
+  const iOpen = xml.indexOf('<sheetData');
+  const iStart = xml.indexOf('>', iOpen) + 1;
+  const iEnd = xml.indexOf('</sheetData>');
+  if (iOpen < 0 || iEnd < 0) throw new Error('工作表结构异常');
+  const head = xml.slice(0, iStart), tail = xml.slice(iEnd);
+  const body = xml.slice(iStart, iEnd);
+  const keep = [];
+  const re = /<row r="(\d+)"[^>]*>[\s\S]*?<\/row>/g;
+  let m;
+  while ((m = re.exec(body))) {
+    const r = parseInt(m[1], 10);
+    if (r <= keepThrough) keep.push(m[0]);
+  }
+  const gen = [];
+  newRows.forEach((cells, i) => {
+    const r = keepThrough + 1 + i;
+    const parts = [];
+    cells.forEach(([colIdx, val, isNum]) => {
+      if (val === '' || val == null) return;
+      const ref = _xColName(colIdx) + r;
+      const s = styleFor ? styleFor(colIdx) : null;
+      const sAttr = s == null ? '' : ' s="' + s + '"';
+      if (isNum) parts.push('<c r="' + ref + '"' + sAttr + '><v>' + val + '</v></c>');
+      else parts.push('<c r="' + ref + '"' + sAttr + ' t="inlineStr"><is><t xml:space="preserve">' + _xEsc(val) + '</t></is></c>');
+    });
+    if (parts.length) gen.push('<row r="' + r + '">' + parts.join('') + '</row>');
+  });
+  return head + keep.join('') + gen.join('') + tail;
+}
+// 找出名为「流水」「汇总」的 sheet 路径
+function _xFindSheets(map) {
+  const wb = map.get('xl/workbook.xml'), rels = map.get('xl/_rels/workbook.xml.rels');
+  if (!wb || !rels) throw new Error('缺少 workbook 结构');
+  const relMap = new Map();
+  const rx = _xdec.decode(rels);
+  const re = /<Relationship([^>]*)\/>/g;
+  let m;
+  while ((m = re.exec(rx))) {
+    const a = m[1];
+    const id = (/Id="([^"]+)"/.exec(a) || [])[1];
+    let target = (/Target="([^"]+)"/.exec(a) || [])[1] || '';
+    target = target.replace(/^\.\.\//, '').replace(/^\//, '');
+    if (!/^xl\//.test(target)) target = 'xl/' + target;
+    if (id) relMap.set(id, target.replace(/\/+/g, '/'));
+  }
+  const out = {};
+  const wx = _xdec.decode(wb);
+  const sre = /<sheet\s[^>]*\/>/g;
+  while ((m = sre.exec(wx))) {
+    const tag = m[0];
+    const name = (/name="([^"]*)"/.exec(tag) || [])[1];
+    const rid = (/r:id="([^"]+)"/.exec(tag) || [])[1];
+    if (!name || !rid) continue;
+    if (name.trim() === XLSM_SHEET_FLOW) out.flow = relMap.get(rid);
+    if (name.trim() === XLSM_SHEET_SUM) out.sum = relMap.get(rid);
+  }
+  if (!out.flow || !out.sum) throw new Error('模板里必须有两个工作表：「流水」和「汇总」');
+  return out;
+}
+// 模板存取
+function getXlsmTemplate() { return localStorage.getItem(XLSM_KEY) || ''; }
+function saveXlsmTemplate(b64) { localStorage.setItem(XLSM_KEY, b64); }
+function _b64ToBytes(b64) {
+  const bin = atob(b64);
+  const u8 = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+  return u8;
+}
+function _bytesToB64(bytes) {
+  let s = '';
+  const CH = 0x8000;
+  for (let i = 0; i < bytes.length; i += CH) s += String.fromCharCode.apply(null, bytes.subarray(i, i + CH));
+  return btoa(s);
+}
 function parseBookTXT(text) {
   text = String(text).replace(/\r\n?/g, '\n');
   const txs = [], accs = [];
@@ -2614,6 +2868,218 @@ async function applySyncCode(code) {
   return { accounts: state.accounts.length, transactions: state.transactions.length, installments: state.installments.length };
 }
 
+
+// ===== 导出：把当前数据填进模板，保留 VBA =====
+async function exportXLSM() {
+  const b64 = getXlsmTemplate();
+  if (!b64) { toast('还没有 Excel 模板，请先在「Excel」里上传一次 .xlsm 模板', { type: 'error', duration: 5000 }); return; }
+  const bin = _b64ToBytes(b64);
+  const { map, order } = await xlsmUnzip(bin.buffer.slice(bin.byteOffset, bin.byteOffset + bin.byteLength));
+  const shared = _xShared(map);
+  const paths = _xFindSheets(map);
+
+  // --- 流水表：保留 r1（标题）r2（表头），r3 起写数据 ---
+  const flowXml = _xdec.decode(map.get(paths.flow));
+  const flowRows = _xParseSheet(flowXml, shared);
+  const flowStyle = (col) => {
+    const base = flowRows.get(3) || [];
+    const cn = _xColName(col);
+    const hit = base.find(c => c.col === cn);
+    return hit ? hit.s : null;
+  };
+  const flowData = state.transactions.slice().sort((a, b) => (a.seq || 0) - (b.seq || 0)).map((t, i) => {
+    const ser = t.date ? _xSerial(t.date) : null;
+    return [
+      [1, String(i + 1), true],
+      [2, ser == null ? '' : String(ser), true],
+      [3, t.from || '', false],
+      [4, t.to || '', false],
+      [5, t.amount === '' || t.amount == null ? '' : Number(t.amount).toFixed(2), true],
+      [6, t.note || '', false]
+    ];
+  });
+  const newFlowXml = _xRebuild(flowXml, 2, flowData, flowStyle);
+
+  // --- 汇总表：保留 r1（起止日期/标题）r2（表头），r3 起写账户 ---
+  const sumXml = _xdec.decode(map.get(paths.sum));
+  const sumRows = _xParseSheet(sumXml, shared);
+  const sumStyle = (col) => {
+    const base = sumRows.get(3) || [];
+    const cn = _xColName(col);
+    const hit = base.find(c => c.col === cn);
+    return hit ? hit.s : null;
+  };
+  const accData = state.accounts.map((a, i) => {
+    const isDebt = (a.cat || '') === '负债类';
+    const row = [
+      [1, String(i + 1), true],
+      [2, a.cat || '', false],
+      [3, a.code || '', false],
+      [4, a.name || '', false],
+      [10, String(Number(a.opening || 0).toFixed(2)), true]
+    ];
+    if (isDebt) { row.push([12, a.billDay || '', false]); row.push([13, a.repayDay || '', false]); }
+    return row;
+  });
+  // 把 r1 里的年/月也更新成本次导出的
+  let sumHead = sumXml;
+  const newSumXml = _xRebuild(sumHead, 2, accData, sumStyle);
+
+  // --- 重新打包：替换两张表 + 强制重算 ---
+  const outEntries = order.map(e => {
+    if (e.name === paths.flow) return { name: e.name, data: _xenc.encode(newFlowXml) };
+    if (e.name === paths.sum) return { name: e.name, data: _xenc.encode(newSumXml) };
+    if (e.name === 'xl/workbook.xml') {
+      let wb = _xdec.decode(e.data);
+      if (!/fullCalcOnLoad/.test(wb)) wb = wb.replace(/<calcPr([^>]*)\/>/, '<calcPr$1 fullCalcOnLoad="1"/>');
+      return { name: e.name, data: _xenc.encode(wb) };
+    }
+    return e;
+  });
+  const out = await xlsmZip(outEntries);
+  const name = '流水账_' + todayISO() + '.xlsm';
+  const blob = new Blob([out], { type: 'application/vnd.ms-excel.sheet.macroEnabled.12' });
+  try {
+    const file = new File([blob], name, { type: blob.type });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({ files: [file], title: name });
+      toast('已生成 .xlsm（含 VBA），通过系统分享保存');
+      return;
+    }
+  } catch (e) { if (e && e.name === 'AbortError') return; }
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+  toast('已导出 ' + name + '（含 VBA）');
+}
+
+// ===== 导入：读 .xlsm → 覆盖当前数据 =====
+async function readXLSMFile(file) {
+  const bin = new Uint8Array(await file.arrayBuffer());
+  const { map } = await xlsmUnzip(bin.buffer.slice(bin.byteOffset, bin.byteOffset + bin.byteLength));
+  const shared = _xShared(map);
+  const paths = _xFindSheets(map);
+
+  // 汇总表 → 账户。表头在 r2，数据从 r3 起；遇到空行（A 列没有序号）就跳过
+  const sumRows = _xParseSheet(_xdec.decode(map.get(paths.sum)), shared);
+  const accs = [];
+  const colOf = (cells, name) => {
+    const idx = (sumHeader || []).indexOf(name);
+    return idx < 0 ? null : (cells.find(c => c.col === _xColName(idx + 1)) || {}).v;
+  };
+  const sumHeader = [];
+  (sumRows.get(2) || []).forEach(c => {
+    let i = 0, n = 0;
+    for (const ch of c.col) n = n * 26 + (ch.charCodeAt(0) - 64);
+    i = n - 1;
+    sumHeader[i] = c.v;
+  });
+  for (const [r, cells] of [...sumRows.entries()].sort((a, b) => a[0] - b[0])) {
+    if (r <= 2) continue;
+    const name = colOf(cells, '账户名称');
+    if (!name) continue;
+    accs.push({
+      id: 'a' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+      cat: colOf(cells, '分类') || '',
+      code: colOf(cells, '简码') || '',
+      name,
+      opening: colOf(cells, '期初') || '',
+      billDay: colOf(cells, '账单日') || '',
+      repayDay: colOf(cells, '还款日') || ''
+    });
+  }
+
+  // 流水表 → 交易。表头在 r2，数据从 r3 起
+  const flowRows = _xParseSheet(_xdec.decode(map.get(paths.flow)), shared);
+  const flowHeader = [];
+  (flowRows.get(2) || []).forEach(c => {
+    let n = 0;
+    for (const ch of c.col) n = n * 26 + (ch.charCodeAt(0) - 64);
+    flowHeader[n - 1] = c.v;
+  });
+  const tx = [];
+  let seq = 0;
+  for (const [r, cells] of [...flowRows.entries()].sort((a, b) => a[0] - b[0])) {
+    if (r <= 2) continue;
+    const val = (name) => {
+      const idx = flowHeader.indexOf(name);
+      if (idx < 0) return '';
+      const hit = cells.find(c => c.col === _xColName(idx + 1));
+      return hit ? hit.v : '';
+    };
+    const dateRaw = val('日期'), from = val('转出账户'), to = val('转入账户'), amt = val('金额'), note = val('备注');
+    if (!dateRaw && !from && !to && !amt && !note) continue;
+    seq++;
+    tx.push({
+      id: 't' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+      seq,
+      date: dateRaw ? (/^\d+(\.\d+)?$/.test(dateRaw) ? _xFromSerial(dateRaw) : dateRaw) : '',
+      from, to,
+      amount: amt === '' ? '' : Number(amt),
+      note
+    });
+  }
+  return { accounts: accs, transactions: tx };
+}
+
+function openXlsmDialog() {
+  const has = !!getXlsmTemplate();
+  const mask = document.createElement('div');
+  mask.className = 'confirm-mask';
+  mask.innerHTML = `
+    <div class="sync-box">
+      <div class="sync-title">Excel（.xlsm · 保留 VBA）</div>
+      <div class="sync-hint">${has ? '已保存模板，可直接导出带宏的 Excel 文件。' : '第一次使用请先上传一次 <b>.xlsm 模板</b>（含你的 VBA 脚本、名为「流水」和「汇总」两张工作表）。'}</div>
+      <div class="sync-block">
+        <button type="button" class="ghost" id="x-pick">${has ? '更换模板…' : '选择模板 .xlsm…'}</button>
+        <input type="file" id="x-file" accept=".xlsm,.xlsx" style="display:none">
+        <div class="sync-or">— 导出 / 导入 —</div>
+        <button type="button" id="x-export" ${has ? '' : 'disabled'}>导出 .xlsm（含 VBA）</button>
+        <button type="button" class="ghost" id="x-import">从 .xlsm 导入数据</button>
+        <input type="file" id="x-ifile" accept=".xlsm,.xlsx" style="display:none">
+      </div>
+      <div class="sync-actions"><button type="button" data-act="close">关闭</button></div>
+    </div>`;
+  document.body.appendChild(mask);
+  const close = () => mask.remove();
+  mask.addEventListener('click', e => {
+    if (e.target === mask || (e.target.dataset && e.target.dataset.act === 'close')) close();
+  });
+  mask.querySelector('#x-pick').onclick = () => mask.querySelector('#x-file').click();
+  mask.querySelector('#x-file').onchange = async (e) => {
+    const f = e.target.files && e.target.files[0];
+    if (!f) return;
+    try {
+      const bin = new Uint8Array(await f.arrayBuffer());
+      const { map } = await xlsmUnzip(bin.buffer.slice(bin.byteOffset, bin.byteOffset + bin.byteLength));
+      _xFindSheets(map);   // 提前校验：必须含「流水」「汇总」
+      saveXlsmTemplate(_bytesToB64(bin));
+      toast('模板已保存（' + Math.round(bin.length / 1024) + ' KB）');
+      close(); openXlsmDialog();
+    } catch (err) { toast('模板读取失败：' + err.message, { type: 'error', duration: 6000 }); }
+  };
+  mask.querySelector('#x-export').onclick = async () => {
+    try { close(); await exportXLSM(); }
+    catch (err) { toast('导出失败：' + err.message, { type: 'error', duration: 6000 }); }
+  };
+  mask.querySelector('#x-import').onclick = () => mask.querySelector('#x-ifile').click();
+  mask.querySelector('#x-ifile').onchange = (e) => {
+    const f = e.target.files && e.target.files[0];
+    if (!f) return;
+    askConfirm('导入 .xlsm 会<b>替换</b>当前全部账户和流水，确定吗？', async () => {
+      try {
+        const data = await readXLSMFile(f);
+        if (!data.accounts.length && !data.transactions.length) { toast('这个文件里没读到数据', { type: 'error' }); return; }
+        state.accounts = data.accounts;
+        state.transactions = data.transactions;
+        state.installments = state.installments || [];
+        reseq(); save(); render(); close();
+        toast('已导入：账户 ' + data.accounts.length + ' 个、流水 ' + data.transactions.length + ' 笔');
+      } catch (err) { toast('导入失败：' + err.message, { type: 'error', duration: 6000 }); }
+    });
+  };
+}
 function openSyncDialog() {
   const mask = document.createElement('div');
   mask.className = 'confirm-mask';
