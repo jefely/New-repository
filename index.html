@@ -275,7 +275,9 @@ table.install-table th.col-name, table.install-table td.col-name { width: 87px; 
 /* 账户名称列固定在左侧：横向滚动看月份时不跟着滚走 */
 table.install-table thead th.col-name { position: sticky; left: 0; z-index: 5; }
 table.install-table tbody td.col-name { position: sticky; left: 0; z-index: 2; background: #fff; }
-table.install-table th.col-day, table.install-table td.col-day { width: 56px; min-width: 56px; }
+table.install-table th.col-day, table.install-table td.col-day { width: 34px; min-width: 34px; padding: 0 1px; }
+/* 账单日/还款日表头缩到 34px 后要分三行才放得下 */
+table.install-table thead th.col-day { font-size: 10.5px; line-height: 1.4; }
 table.install-table th.col-sum, table.install-table td.col-sum { width: 96px; min-width: 96px; text-align: right; padding-right: 6px; position: relative; }
 table.install-table .col-month { width: 78px; min-width: 78px; }
 /* 表头文字一律居中（要压过下面 th.col-name 的左对齐） */
@@ -305,7 +307,10 @@ table.install-table tbody tr.inst-i td { border-bottom: 2px solid var(--border);
 table.install-table tr.inst-p td.col-name { background: #364760; }
 table.install-table tr.inst-p td.col-name input { color: #fff; font-weight: 700; }
 /* 名称列收窄到 87px 后，13px 字号会把「招行信1007」截断，降一档到 11px 刚好完整 */
+/* 名称列收窄到 87px 后，13px 字号会把「招行信1007」截断，降一档到 11px 刚好；两行都居中 */
 table.install-table tbody td.col-name input { font-size: 11px; text-align: center; }
+/* 分期金额那一行左侧给删除按钮留出位置 */
+table.install-table tr.inst-i td.col-name input { padding-left: 16px; }
 table.install-table td.col-name { position: relative; }
 table.install-table td.col-name input { width: 100%; height: 30px; border: none; background: transparent; font-size: 13px; outline: none; padding: 0 2px; }
 table.install-table td.col-name input:focus { background: rgba(255, 255, 255, .16); }
@@ -765,8 +770,10 @@ function parseRangeInput(v, side) {
     if (b >= 1 && b <= 12 && a >= 0 && a <= 99) { y = 2000 + a; m = b; }
     else { const n = parseInt(cleaned, 10); if (n < 1900 || n > 2999) return null; y = n; }
   } else if (L === 6) {
+    // 6 位有两种可能：YYMMDD（260801 = 2026-08-01）或 YYYYMM（202610）。
+    // 只有「前四位当成公历年」合理时（1900–2099）才按 YYYYMM 解，否则一律当 YYMMDD。
     const yM = parseInt(cleaned.slice(0, 4), 10), mM = parseInt(cleaned.slice(4, 6), 10);
-    if (yM >= 1900 && yM <= 2999 && mM >= 1 && mM <= 12) { y = yM; m = mM; }
+    if (yM >= 1900 && yM <= 2099 && mM >= 1 && mM <= 12) { y = yM; m = mM; }
     else {
       const yy = parseInt(cleaned.slice(0, 2), 10), mm = parseInt(cleaned.slice(2, 4), 10), dd = parseInt(cleaned.slice(4, 6), 10);
       if (mm < 1 || mm > 12 || dd < 1 || dd > 31) return null;
@@ -1285,9 +1292,9 @@ function renderSummary(main, footer) {
   bar2.className = 'toolbar bar2';
   if (summaryMode === 'range') {
     bar2.innerHTML = `
-      <input id="r-start" class="grow" placeholder="起始 2608" inputmode="numeric" title="起始日期：可输 2026 / 2608 / 260801" value="${esc(summaryRange.start)}">
+      <input id="r-start" class="grow" placeholder="起始 2608" inputmode="numeric" title="起始：YY / YYMM / YYMMDD，例如 26 / 2608 / 260801" value="${esc(summaryRange.start)}">
       <span class="tilde">~</span>
-      <input id="r-end" class="grow" placeholder="结束 2608" inputmode="numeric" title="结束日期：可输 2026 / 2608 / 260801" value="${esc(summaryRange.end)}">
+      <input id="r-end" class="grow" placeholder="结束 2608" inputmode="numeric" title="结束：YY / YYMM / YYMMDD，例如 26 / 2608 / 260801" value="${esc(summaryRange.end)}">
     `;
   } else {
     bar2.innerHTML = `<div class="month-row" id="month-row">${monthBtns}</div>`;
@@ -1925,7 +1932,7 @@ function renderInstall(main, footer) {
     <thead>
       <tr>
         <th rowspan="2" class="col-name">账户名称<br>/ 分期金额</th>
-        <th rowspan="2" class="col-day">账单日<br>/ 还款日</th>
+        <th rowspan="2" class="col-day">账单日<br>/<br>还款日</th>
         <th rowspan="2" class="col-sum">每月合计<br>/ 本息余计</th>
         ${head1}
       </tr>
@@ -1949,6 +1956,16 @@ function renderInstall(main, footer) {
     inpName.dataset.id = inst.id;
     inpName.value = kind === 'p' ? (inst.name || '') : (inst.principal || '');
     tdName.appendChild(inpName);
+    // 删除按钮放在「分期金额」这一行（第二行）的左侧，不占用「账户名称」那一格
+    if (kind === 'i') {
+      const del = document.createElement('button');
+      del.type = 'button'; del.className = 'inst-del'; del.textContent = '×'; del.title = '删除这个分期';
+      del.addEventListener('click', () => {
+        state.installments = state.installments.filter(x => x.id !== inst.id);
+        save(); render();
+      });
+      tdName.appendChild(del);
+    }
     tr.appendChild(tdName);
 
     const tdDay = document.createElement('td');
@@ -1958,21 +1975,10 @@ function renderInstall(main, footer) {
 
     const tdSum = document.createElement('td');
     tdSum.className = 'col-sum';
-    // 文字放在内部 span 里，删除按钮挂在旁边。
-    // 合计更新时只改 span 的 textContent —— 直接写 td.textContent 会把按钮一起清掉。
+    // 文字放在内部 span 里，合计更新时只改 span 的 textContent
     const sumText = document.createElement('span');
     sumText.className = 'sum-text';
     tdSum.appendChild(sumText);
-    // 删除按钮靠左：金额是右对齐的，左边本来就空着，这样账户名称列不用给它留位置。
-    if (kind === 'p') {
-      const del = document.createElement('button');
-      del.type = 'button'; del.className = 'inst-del'; del.textContent = '×'; del.title = '删除这个分期';
-      del.addEventListener('click', () => {
-        state.installments = state.installments.filter(x => x.id !== inst.id);
-        save(); render();
-      });
-      tdSum.appendChild(del);
-    }
     tr.appendChild(tdSum);
 
     months.forEach(ym => {
