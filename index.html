@@ -117,6 +117,9 @@ table#summary-table thead th.col-name { z-index: 6; }
 
 /* 简码重复警告 */
 table.grid td.col-code input.dup { color: var(--danger); font-weight: 700; background: #fee2e2; }
+/* 数据体检：账户名重复、流水里引用了不存在的账户，都标红 */
+table.grid td input.bad { color: var(--danger); font-weight: 700; background: #fee2e2; }
+table#summary-table td.col-name input.dup { color: var(--danger); font-weight: 700; background: #fee2e2; }
 
 /* 分类分组条：浅灰底、中灰字，只提示分组，不抢视线。
    分类名左对齐；右侧六列是该分类的合计（当前结余/转出/转入/转出历史/转入历史/期初），
@@ -685,7 +688,53 @@ function saveInstallState() {
 }
 
 let saveTimer = null;
-function save() { try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch (e) {} }
+// ---------- 全局撤销：每次 save 都把「上一状态」压栈 ----------
+const UNDO_MAX = 20;
+const _undoStack = [];
+let _lastSaved = null;      // 上一次写盘的数据快照
+let _undoLock = false;      // 撤销/恢复过程中不要继续压栈
+
+function save() {
+  let json;
+  try { json = JSON.stringify(state); } catch (e) { return; }
+  if (!_undoLock && _lastSaved && json !== _lastSaved) {
+    _undoStack.push(_lastSaved);
+    if (_undoStack.length > UNDO_MAX) _undoStack.shift();
+  }
+  _lastSaved = json;
+  try { localStorage.setItem(LS_KEY, json); } catch (e) {}
+}
+
+function undo() {
+  const snap = _undoStack.pop();
+  if (!snap) { toast('没有可撤销的操作'); return; }
+  try {
+    const d = JSON.parse(snap);
+    _undoLock = true;
+    state.accounts = d.accounts || [];
+    state.transactions = d.transactions || [];
+    state.installments = d.installments || [];
+    if (d.fixed) state.fixed = d.fixed;
+    _lastSaved = snap;
+    reseq();
+    render();
+    try { localStorage.setItem(LS_KEY, snap); } catch (e) {}
+    _undoLock = false;
+    toast('已撤销，还剩 ' + _undoStack.length + ' 步可退');
+  } catch (e) {
+    _undoLock = false;
+    toast('撤销失败：' + e.message, { type: 'error' });
+  }
+}
+window.addEventListener('keydown', (e) => {
+  if ((e.ctrlKey || e.metaKey) && !e.shiftKey && String(e.key).toLowerCase() === 'z') {
+    // 正在输入框里编辑时不抢 Ctrl+Z，交给浏览器处理输入框自己的撤销
+    const tag = (e.target && e.target.tagName) || '';
+    if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+    e.preventDefault();
+    undo();
+  }
+});
 function scheduleSave() { clearTimeout(saveTimer); saveTimer = setTimeout(save, 400); }
 // 防抖窗口内关页面 / 切到后台会丢最后一笔，离开前强制落盘
 function flushSave() { clearTimeout(saveTimer); save(); }
@@ -889,6 +938,11 @@ function render() {
   else if (currentTab === 'summary') renderSummary(main, footer);
   else if (currentTab === 'install') renderInstall(main, footer);
   else if (currentTab === 'query') renderQuery(main, footer);
+
+  // 数据体检：标红重复/异常项（flow 和 summary 页才有可标的地方）
+  if (currentTab === 'flow' || currentTab === 'summary') {
+    try { applyDataIssues(); } catch (e) {}
+  }
 }
 
 // 页脚文字统一入口
@@ -2779,6 +2833,65 @@ async function addFlowFromTXT(e, footer) {
   reseq(); save(); render();
   e.target.value = '';
   toast('已添加 ' + added + ' 笔流水；账户 ' + state.accounts.length + ' 个', { duration: 5000 });
+}
+
+// ---------- 数据体检：返回各类问题的集合，供渲染时标红 ----------
+function dataIssues() {
+  const out = {
+    dupName: new Set(),      // 重复的账户名
+    dupCode: new Set(),      // 重复的简码
+    names: new Set(),        // 合法账户名
+    orphanFrom: new Set(),   // 流水里引用了不存在的「转出」
+    orphanTo: new Set(),
+    badDate: new Set(),      // 日期异常
+    count: 0
+  };
+  const nameCount = new Map(), codeCount = new Map();
+  for (const a of state.accounts) {
+    const n = String(a.name || '').trim();
+    const c = String(a.code || '').trim().toUpperCase();
+    if (n) { nameCount.set(n, (nameCount.get(n) || 0) + 1); out.names.add(n); }
+    if (c) codeCount.set(c, (codeCount.get(c) || 0) + 1);
+  }
+  for (const [n, k] of nameCount) if (k > 1) out.dupName.add(n);
+  for (const [c, k] of codeCount) if (k > 1) out.dupCode.add(c);
+
+  const today = todayISO();
+  for (const t of state.transactions) {
+    const f = String(t.from || '').trim();
+    const to = String(t.to || '').trim();
+    if (f && !out.names.has(f)) out.orphanFrom.add(f);
+    if (to && !out.names.has(to)) out.orphanTo.add(to);
+    if (t.date) {
+      if (t.date > today || t.date < '2000-01-01') out.badDate.add(t.date);
+    }
+  }
+  out.count = out.dupName.size + out.dupCode.size + out.orphanFrom.size + out.orphanTo.size + out.badDate.size;
+  return out;
+}
+
+// 把体检结果标到界面上：账户名/简码重复、流水里引用了不存在的账户
+function applyDataIssues() {
+  const issues = dataIssues();
+  document.querySelectorAll('#summary-table tbody tr[data-id]').forEach(tr => {
+    const acc = state.accounts.find(a => a.id === tr.dataset.id);
+    if (!acc) return;
+    const nameInp = tr.querySelector('td.col-name input');
+    const codeInp = tr.querySelector('td.col-code input');
+    if (nameInp) nameInp.classList.toggle('dup', issues.dupName.has(String(acc.name || '').trim()));
+    if (codeInp) codeInp.classList.toggle('dup', issues.dupCode.has(String(acc.code || '').trim().toUpperCase()));
+  });
+  document.querySelectorAll('#flow-table tbody tr').forEach(tr => {
+    const f = tr.querySelector('input[data-field="from"]');
+    const t = tr.querySelector('input[data-field="to"]');
+    if (f) f.classList.toggle('bad', !!f.value.trim() && issues.orphanFrom.has(f.value.trim()));
+    if (t) t.classList.toggle('bad', !!t.value.trim() && issues.orphanTo.has(t.value.trim()));
+  });
+  // 页脚追加一句问题提示
+  if (issues.count > 0) {
+    const el = document.getElementById('footer-text');
+    if (el && !/^⚠/.test(el.textContent)) el.textContent = '⚠ ' + issues.count + ' 处问题 · ' + el.textContent;
+  }
 }
 
 function parseBookTXT(text) {
