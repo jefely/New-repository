@@ -66,7 +66,7 @@
   --bar-text: #ffffff;
   --bar-text-dim: #c8c8c8;
   /* 分期账户名的深暗蓝 */
-  --deep-blue: #1e3a8a;
+  --deep-blue: #2e1065;
 }
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; font-family: var(--font-sys); }
@@ -169,6 +169,65 @@ table#flow-table tbody td.col-note > .row-del { right: 18px; width: 18px; font-s
 .fixed-bar .fixed-sum b.in { color: var(--success); }
 .fixed-bar .fixed-sum b.out { color: var(--danger); }
 
+/* ---- 暗色补丁（第二批）：输入框、选中态、冻结列、查询标题行 ---- */
+[data-theme="dark"] {
+  --cell-hover: #202020;
+  --cell-active: #2b2b2b;
+}
+/* 输入框看起来和按钮同一套：深底 + 描边 + 圆角，只是字号小一号 */
+[data-theme="dark"] input, [data-theme="dark"] select, [data-theme="dark"] textarea {
+  background-color: #1a1a1a !important;
+  border: 1px solid #333333 !important;
+  border-radius: 4px !important;
+  color: #ffffff !important;
+  font-size: 12px !important;
+}
+[data-theme="dark"] input:focus, [data-theme="dark"] textarea:focus {
+  background-color: var(--cell-active) !important;
+  border-color: #5a5a5a !important;
+  color: #ffffff !important;
+  outline: none !important;
+}
+/* 选中的单元格：深灰底 + 纯白字 */
+[data-theme="dark"] td:focus-within,
+[data-theme="dark"] .cell-active { background-color: var(--cell-active) !important; }
+[data-theme="dark"] td:focus-within input,
+[data-theme="dark"] .cell-active input { color: #ffffff !important; }
+/* 冻结列必须有实心深色背景，否则横向滚动时后面的文字会透出来 */
+[data-theme="dark"] table.grid thead th.col-seq,
+[data-theme="dark"] table.grid tbody td.col-seq,
+[data-theme="dark"] table#summary-table thead th.col-name,
+[data-theme="dark"] table#summary-table tbody td.col-name,
+[data-theme="dark"] table.query-table thead th.col-seq,
+[data-theme="dark"] table.query-table tbody td.col-seq {
+  background-color: #0d0d0d !important;
+  color: var(--text-main) !important;
+  box-shadow: 1px 0 0 #333333 !important;
+}
+[data-theme="dark"] table.grid tbody tr:nth-child(even) td.col-seq,
+[data-theme="dark"] table#summary-table tbody tr:nth-child(even) td.col-name {
+  background-color: #171717 !important;
+}
+/* 查询页：三行标题（含「清空」那行）全部压深 */
+[data-theme="dark"] table.query-table thead th,
+[data-theme="dark"] table.query-table tr.q-title-row th,
+[data-theme="dark"] table.query-table tr.q-filter-row th,
+[data-theme="dark"] table.query-table tr.q-head-row th {
+  background-color: #141414 !important;
+  border-color: #2c2c2c !important;
+}
+[data-theme="dark"] .q-title-inner { background: transparent !important; }
+[data-theme="dark"] .q-title { color: #ffffff !important; }
+[data-theme="dark"] .q-total { color: var(--money-in) !important; }
+/* 查询表空白提示 / 结果行 */
+[data-theme="dark"] table.query-table tbody td { background-color: transparent !important; color: var(--text-main) !important; }
+[data-theme="dark"] .query-empty { background: #141414 !important; color: var(--text-muted) !important; }
+/* 分期表整块深色，去掉残留白底 */
+[data-theme="dark"] table.install-table { background-color: #0a0a0a !important; }
+[data-theme="dark"] table.install-table thead th.inst-total,
+[data-theme="dark"] table.install-table thead th { background-color: #141414 !important; color: var(--text-muted) !important; }
+[data-theme="dark"] table.install-table tbody tr.inst-i td.col-name { background: #171717 !important; }
+
 /* 暗色下：页脚、分类分组条、分期账户名统一深底白字，不留浅色块 */
 [data-theme="dark"] footer { background: var(--bar-bg) !important; color: var(--bar-text-dim) !important; }
 /* 分组行必须排在「tbody td 透明」之后，否则会被抹掉 */
@@ -251,7 +310,7 @@ table.grid thead th, table.query-table thead th, table.install-table thead th {
 }
 /* 查询表的筛选输入行也统一成小一号灰字 */
 table.query-table thead th input {
-  font-size: 13px !important;
+  font-size: 12px !important;
   color: #64748b !important;
 }
 table.query-table thead th input:focus { color: #0f172a !important; }
