@@ -1248,6 +1248,32 @@ table.subsum-table th { padding: 7px 8px !important; font-size: 13px !important;
 table.subsum-table td.num, table.subsum-table th.num { text-align: right !important; }
 table.subsum-table td.center, table.subsum-table th.center { text-align: center !important; }
 table.subsum-table tbody td:nth-child(2) { text-align: left !important; }
+/* 汇总表新增「分类」列：和「类型」列同款 */
+table#summary-table th.col-sub, table#summary-table td.col-sub {
+  width: 84px; min-width: 64px;
+  text-align: center;
+}
+table#summary-table th.col-sub { text-align: center; }
+table#summary-table td.col-sub input { text-align: center; }
+/* 类型列略窄一点 */
+table#summary-table th.col-cat, table#summary-table td.col-cat { width: 84px; min-width: 64px; }
+/* 汇总表 13 列：给序号和简码留够宽度，避免被自动压缩截断 */
+table#summary-table th.col-seq, table#summary-table td.col-seq {
+  width: 44px !important; min-width: 44px !important; max-width: 44px !important;
+}
+table#summary-table th.col-code, table#summary-table td.col-code {
+  width: 62px !important; min-width: 62px !important;
+}
+table#summary-table th.col-cat, table#summary-table td.col-cat {
+  width: 84px !important; min-width: 84px !important;
+}
+table#summary-table th.col-sub, table#summary-table td.col-sub {
+  width: 84px !important; min-width: 84px !important;
+}
+table#summary-table th.col-name, table#summary-table td.col-name {
+  min-width: 96px !important;
+}
+table#summary-table { min-width: 920px; }
 </style>
 </head>
 <body>
@@ -1348,7 +1374,7 @@ function toggleTheme() {
   toast(theme === 'dark' ? '已切换到反色主题' : '已切换到浅色主题');
 }
 
-const APP_VER = 'v7.44';
+const APP_VER = 'v7.46';
 const LS_KEY = 'flow_grid_v5';
 const SUMMARY_STATE_KEY = 'flow_summary_state_v3';
 // 流水表默认铺多少行空行。像 Excel 一样随手往下填，不用先点「新增」。
@@ -2628,7 +2654,8 @@ function renderSummary(main, footer) {
   table.innerHTML = `
     <thead><tr>
       <th class="col-seq">序号</th>
-      <th class="col-cat">分类</th>
+      <th class="col-cat">类型</th>
+      <th class="col-sub">分类</th>
       <th class="col-code">简码</th>
       <th class="col-name">账户名称</th>
       <th class="col-bal">当前结余</th>
@@ -2683,6 +2710,7 @@ function renderSummary(main, footer) {
       // 拆成独立格子（而不是 colspan=4）：这样「账户名称」那格也是真实单元格，
       // 它会跟着 sticky，分组行滚过来时不会露出透明的空洞。
       `<td class="col-cat"></td>` +
+      `<td class="col-sub"></td>` +
       `<td class="col-code"></td>` +
       `<td class="col-name"></td>` +
       `<td class="cat-sum col-bal">${money(s.bal)}</td>` +
@@ -2843,8 +2871,9 @@ function makeSummaryRow(acc, idx, range) {
     td.appendChild(input); return td;
   };
 
-  // 分类列是普通文本框，不再挂下拉建议列表
+  // 「类型」= cat（资产类/负债类/…，算账用）；「分类」= sub（储蓄/现金/生活…，统计用）
   tr.appendChild(mkInputCell('cat', 'text', 'col-cat'));
+  tr.appendChild(mkInputCell('sub', 'text', 'col-sub'));
   tr.appendChild(mkInputCell('code', 'text', 'col-code'));
   tr.appendChild(mkInputCell('name', 'text', 'col-name'));
 
