@@ -1494,13 +1494,12 @@ document.addEventListener('visibilitychange', () => { if (document.visibilitySta
 const pad2 = n => String(n).padStart(2, '0');
 const uid = () => Math.random().toString(36).slice(2, 10);
 const todayISO = () => { const d = new Date(); return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); };
-// 日期显示：窄屏用 MM-DD（5 字符）省地方，宽屏回退到 YYMMDD（6 字符）
+// 日期统一显示成 YYMMDD（如 261005），窄屏宽屏一致
 const toYYMMDD = iso => {
   if (!iso) return '';
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
   if (!m) return iso;
-  const narrow = (typeof window !== 'undefined') && window.innerWidth < 768;
-  return narrow ? (m[2] + '-' + m[3]) : (m[1].slice(2) + m[2] + m[3]);
+  return m[1].slice(2) + m[2] + m[3];
 };
 
 const parseDateInput = v => {
@@ -4995,8 +4994,9 @@ function showExportDone(name, size, url, dataUrl, info) {
         <span style="color:#dc2626">如果下面点了没反应，请长按按钮选「链接另存为」，<br>或者换系统浏览器打开这个页面再导出。</span>
       </div>
       <div class="sync-block" style="gap:8px">
+        <button type="button" id="x-copy-file" style="width:100%">复制文件到剪贴板</button>
         <a href="${dataUrl}" download="${esc(name)}" style="display:block;text-decoration:none">
-          <button type="button" style="width:100%">点我保存（推荐）</button>
+          <button type="button" class="ghost" style="width:100%">点我保存</button>
         </a>
         <a href="${url}" download="${esc(name)}" target="_blank" rel="noopener" style="display:block;text-decoration:none">
           <button type="button" class="ghost" style="width:100%">换个方式再试</button>
@@ -5012,6 +5012,22 @@ function showExportDone(name, size, url, dataUrl, info) {
   mask.addEventListener('click', e => {
     if (e.target === mask || (e.target.dataset && e.target.dataset.act === 'close')) close();
   });
+  // 「复制文件到剪贴板」：华为浏览器唯一能走通的路 —— 复制后去微信/邮件里粘贴
+  const copyBtn = mask.querySelector('#x-copy-file');
+  if (copyBtn) {
+    copyBtn.onclick = async () => {
+      try {
+        if (!navigator.clipboard || !window.ClipboardItem) throw new Error('这个浏览器不支持复制文件');
+        const blob = await (await fetch(dataUrl)).blob();
+        await navigator.clipboard.write([new ClipboardItem({ [blob.type]: blob })]);
+        copyBtn.textContent = '已复制，去微信里粘贴发送';
+        toast('文件已复制到剪贴板，打开微信对话框长按粘贴即可');
+      } catch (err) {
+        copyBtn.textContent = '复制失败：' + err.message;
+        copyBtn.disabled = true;
+      }
+    };
+  }
 }
 async function openXlsmDialog() {
   const has = !!(await idbGet(XLSX_TPL_IDB));
