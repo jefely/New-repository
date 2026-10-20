@@ -1394,7 +1394,7 @@ function toggleTheme() {
   toast(theme === 'dark' ? '已切换到反色主题' : '已切换到浅色主题');
 }
 
-const APP_VER = 'v7.48';
+const APP_VER = 'v7.49';
 const LS_KEY = 'flow_grid_v5';
 const SUMMARY_STATE_KEY = 'flow_summary_state_v3';
 // 流水表默认铺多少行空行。像 Excel 一样随手往下填，不用先点「新增」。
@@ -1403,6 +1403,8 @@ const FLOW_BATCH = 150;        // 每次渲染/追加的流水行数
 let flowShown = FLOW_BATCH;    // 当前已渲染多少行
 // 可编辑的列顺序，粘贴时按这个映射
 const FLOW_FIELDS = ['date', 'from', 'to', 'amount', 'note'];
+// 汇总表的可编辑列顺序（和表头一一对应）：类型、分类、简码、名称、期初、账单日、还款日
+const SUMMARY_FIELDS = ['cat', 'sub', 'code', 'name', 'opening', 'billDay', 'repayDay'];
 
 let state = (() => {
   try {
@@ -2747,6 +2749,24 @@ function renderSummary(main, footer) {
   wrap.appendChild(table);
   main.appendChild(wrap);
 
+  // ---- Excel/WPS 多格粘贴：和流水表同一套逻辑 ----
+  tbody.addEventListener('paste', e => {
+    const input = e.target && e.target.closest ? e.target.closest('input') : null;
+    if (!input || !input.dataset.field) return;
+    const clip = e.clipboardData || window.clipboardData;
+    const text = clip ? (clip.getData('text/plain') || clip.getData('text') || '') : '';
+    if (!text) return;
+    const matrix = parseClipboardMatrix(text);
+    if (!matrix) return;              // 单个格子：交给浏览器默认粘贴
+    e.preventDefault();
+    const tr = input.closest('tr');
+    // 分组行（cat-row）不参与，算成「第 0 条数据行」
+    const dataRows = Array.from(tbody.children).filter(r => r.dataset.id && r.dataset.id !== '__new__');
+    const rowIdx = dataRows.indexOf(tr);
+    const colIdx = Math.max(0, SUMMARY_FIELDS.indexOf(input.dataset.field));
+    applySummaryPaste(matrix, rowIdx < 0 ? 0 : rowIdx, colIdx);
+  });
+
   initColResize(table, 'summary');
 // 汇总表前四列（序号 / 分类 / 简码 / 账户名称）横向滚动时固定在左侧。
 // 列宽是百分比，left 必须按实际渲染宽度累加，所以每次渲染/改宽后重算一次。
@@ -2863,6 +2883,76 @@ function syncGridRight() {
 // 年份框改成固定宽度（CSS：桌面 96px、窄屏 72px），不再按月份按钮实时测量。
 // 保留这个空函数，是因为 resize 与首次渲染里都还有调用点。
 function syncYearWidth() {}
+
+// 汇总表粘贴：按行覆盖已有账户，多出来的行新建账户
+function applySummaryPaste(matrix, startRow, startCol) {
+  try {
+    const ae = document.activeElement;
+    if (ae && ae.tagName === 'INPUT' && typeof ae.blur === 'function') ae.blur();
+  } catch (e) {}
+
+  const tbody = document.querySelector('#summary-table tbody');
+  if (!tbody) return;
+  const dataRows = Array.from(tbody.children).filter(r => r.dataset.id && r.dataset.id !== '__new__');
+  const wrapEl = tbody.closest('.grid-wrap');
+  const keepTop = wrapEl ? wrapEl.scrollTop : 0;
+
+  let updated = 0, added = 0;
+  matrix.forEach((cells, ri) => {
+    const tr = dataRows[startRow + ri];
+    const targetId = tr && tr.dataset.new === '0' ? tr.dataset.id : null;
+    const existing = targetId ? state.accounts.find(a => a.id === targetId) : null;
+    const draft = existing
+      ? { cat: existing.cat, sub: existing.sub, code: existing.code, name: existing.name,
+          opening: existing.opening, billDay: existing.billDay, repayDay: existing.repayDay }
+      : {};
+
+    cells.forEach((rawCell, ci) => {
+      const col = startCol + ci;
+      if (col >= SUMMARY_FIELDS.length) return;
+      const v = String(rawCell == null ? '' : rawCell).trim();
+      if (!v) return;
+      const f = SUMMARY_FIELDS[col];
+      if (f === 'opening') { const n = normalizeAmount(v); if (n !== '') draft.opening = n; }
+      else draft[f] = v;
+    });
+
+    // 至少要有个名字，否则当作空行跳过
+    if (!draft.name && !draft.code) return;
+
+    if (existing) {
+      existing.cat = draft.cat || '';
+      existing.sub = draft.sub || '';
+      existing.code = draft.code || '';
+      existing.name = draft.name || '';
+      existing.opening = draft.opening === undefined ? 0 : (Number(draft.opening) || 0);
+      existing.billDay = draft.billDay || '';
+      existing.repayDay = draft.repayDay || '';
+      updated++;
+    } else {
+      state.accounts.push({
+        id: uid(),
+        cat: draft.cat || '资产类',
+        sub: draft.sub || '',
+        code: draft.code || '',
+        name: draft.name || '',
+        opening: Number(draft.opening) || 0,
+        billDay: draft.billDay || '',
+        repayDay: draft.repayDay || ''
+      });
+      added++;
+    }
+  });
+
+  save();
+  render();
+  try {
+    const w = document.querySelector('#summary-table tbody');
+    const wrap2 = w && w.closest('.grid-wrap');
+    if (wrap2) wrap2.scrollTop = keepTop;
+  } catch (e) {}
+  toast(`已粘贴：更新 ${updated} 个账户${added ? '，新增 ' + added + ' 个' : ''}`, { duration: 4000 });
+}
 
 function makeSummaryRow(acc, idx, range) {
   const isNew = !acc;
