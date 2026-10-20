@@ -35,6 +35,10 @@
   --success: #10b981;
   --radius: 6px;
   --font-sys: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  --bar-bg: #1e293b;
+  --bar-text: #ffffff;
+  --bar-text-dim: #cbd5e1;
+  --deep-blue: #364760;
 }
 
 /* 反色（暗色）主题：只换变量，其余样式自动跟随 */
@@ -57,6 +61,12 @@
   --success: #5ee9a4;
   --money-in: #5ee9a4;
   --money-out: #ff9d9d;
+  /* 分类分组行 / 页脚这类「深底条」在暗色下用深灰而不是纯白 */
+  --bar-bg: #232323;
+  --bar-text: #ffffff;
+  --bar-text-dim: #c8c8c8;
+  /* 分期账户名的深暗蓝 */
+  --deep-blue: #1e3a8a;
 }
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; font-family: var(--font-sys); }
@@ -73,7 +83,7 @@ body { display: flex; flex-direction: column; height: 100vh; height: 100dvh; }
 .tabbar button.active { color: #ffffff; background: var(--primary); border-bottom-color: #1e40af; }
 
 main { flex: 1; min-height: 0; display: flex; flex-direction: column; background: var(--bg-main); overflow: hidden; }
-footer { flex-shrink: 0; background: var(--bg-dark); color: var(--text-light); padding: 8px 12px; padding-bottom: max(8px, env(safe-area-inset-bottom)); font-size: 12px; text-align: center; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+footer { flex-shrink: 0; background: var(--bar-bg); color: var(--bar-text-dim); padding: 8px 12px; padding-bottom: max(8px, env(safe-area-inset-bottom)); font-size: 12px; text-align: center; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 .grid-wrap { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; background: var(--bg-main); }
 
@@ -158,6 +168,35 @@ table#flow-table tbody td.col-note > .row-del { right: 18px; width: 18px; font-s
 .fixed-bar .fixed-sum b { font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; text-align: left; display: inline-block; }
 .fixed-bar .fixed-sum b.in { color: var(--success); }
 .fixed-bar .fixed-sum b.out { color: var(--danger); }
+
+/* 暗色下：页脚、分类分组条、分期账户名统一深底白字，不留浅色块 */
+[data-theme="dark"] footer { background: var(--bar-bg) !important; color: var(--bar-text-dim) !important; }
+/* 分组行必须排在「tbody td 透明」之后，否则会被抹掉 */
+[data-theme="dark"] table.grid .cat-row td,
+[data-theme="dark"] .cat-row td { background: var(--bar-bg) !important; color: var(--bar-text) !important; }
+[data-theme="dark"] table#summary-table .cat-row td.col-bill,
+[data-theme="dark"] table#summary-table .cat-row td.col-repay { color: var(--bar-text-dim) !important; }
+[data-theme="dark"] table.install-table tr.inst-p td.col-name { background: var(--deep-blue) !important; }
+[data-theme="dark"] table.install-table tr.inst-p td.col-name input { color: #ffffff !important; }
+/* 分期利息行别留白底 */
+[data-theme="dark"] table.install-table tr.inst-i td,
+[data-theme="dark"] table.install-table tr.inst-i td.col-name { background: var(--bg-gray) !important; color: var(--text-main) !important; }
+[data-theme="dark"] table.install-table tbody td,
+[data-theme="dark"] table.grid tbody td,
+[data-theme="dark"] table.query-table tbody td { background-color: transparent !important; }
+[data-theme="dark"] table.install-table thead th,
+[data-theme="dark"] table.install-table th { background: var(--bg-gray-light) !important; color: var(--text-muted) !important; }
+[data-theme="dark"] .grid-wrap { background: var(--bg-gray) !important; }
+/* 汇总「当前结余」在暗色下用亮白加粗，确保看清 */
+[data-theme="dark"] table#summary-table td.col-bal,
+[data-theme="dark"] table#summary-table td.col-bal input { color: #ffffff !important; font-weight: 700; }
+[data-theme="dark"] table#summary-table td.col-bal input { color: #ffffff !important; }
+/* 查询表金额列同样处理 */
+[data-theme="dark"] table.query-table td.col-amount { color: #ffffff !important; }
+/* 拖拽手柄、空提示等细节也别是浅色 */
+[data-theme="dark"] .grid-wrap, [data-theme="dark"] .query-section { background: var(--bg-gray) !important; }
+[data-theme="dark"] .sync-box { background: var(--bg-gray-light) !important; color: var(--text-main) !important; }
+[data-theme="dark"] .toast { background: #2a2a2a !important; color: #ffffff !important; }
 
 /* 可编辑的输入框用纯黑字，只读内容用灰字 —— 一眼能看出哪里能改 */
 input, select, textarea { color: #000000 !important; }
@@ -332,18 +371,18 @@ table#summary-table td.col-name input.dup { color: var(--danger); font-weight: 7
    各自落在对应列上。账单日/还款日两格留空，但保留列网格线。
    背景必须带 !important —— table.grid tbody td 的特异性比 .cat-row td 高。 */
 /* 分类分组行：整行深色底 + 白字，比浅灰底醒目得多 */
-.cat-row td { background: var(--bg-dark)!important; color: #fff; font-weight: 700; font-size: 12px; padding: 7.5px 10px!important; text-align: left; border-bottom: 1px solid var(--bg-dark); }
+.cat-row td { background: var(--bar-bg)!important; color: var(--bar-text); font-weight: 700; font-size: 12px; padding: 7.5px 10px!important; text-align: left; border-bottom: 1px solid var(--bar-bg); }
 /* 账单日 / 还款日那两格保持原样：浅色底 + 深色字，不参与分组行的深色填充 */
 table#summary-table .cat-row td.col-bill,
 table#summary-table .cat-row td.col-repay { background: transparent !important; color: var(--text-muted); }
-.cat-row td .cat-col { color: var(--text-main); }
+.cat-row td .cat-col { color: var(--bar-text); }
 /* 分组行的合计金额在深底上也要白字（否则沿用默认的深灰，看不清） */
-.cat-row td.cat-sum { color: #fff; }
+.cat-row td.cat-sum { color: var(--bar-text); }
 /* 标签格只有 32px，去掉内边距和字距，"资产"两个字才放得下 */
 table#summary-table .cat-row td.cat-tag { padding: 0; letter-spacing: 0; }
 .cat-row .cat-name { padding-left: 12px!important; }
 /* 分组标签放进固定的序号格里：两个字、小字号，横向滚动时一直能看到 */
-table#summary-table .cat-row td.cat-tag { font-size: 12px; font-weight: 700; color: #fff; padding: 0; white-space: nowrap; letter-spacing: -0.5px; }
+table#summary-table .cat-row td.cat-tag { font-size: 12px; font-weight: 700; color: var(--bar-text); padding: 0; white-space: nowrap; letter-spacing: -0.5px; }
 .cat-row .cat-sum { text-align: right; font-variant-numeric: tabular-nums; padding-right: 6px!important; color: #475569; }
 /* 分组行的期初右边框：所有行都有，和下面的数据行连成一条 */
 table#summary-table .cat-row td.col-open { border-right: 1px solid var(--border-light); }
@@ -539,8 +578,8 @@ table.install-table tbody tr.inst-i td { border-bottom: 2px solid var(--border);
    剩下的空间放 13px 会截断「招行信1007」。 */
 /* 账户名称列：本金行深色底白字，利息行普通字；两行都居中 */
 /* 账户名称列：本金行蓝底黑字（和标签栏同色），利息行普通字 */
-table.install-table tr.inst-p td.col-name { background: var(--primary); }
-table.install-table tr.inst-p td.col-name input { color: #0f172a !important; font-weight: 700; }
+table.install-table tr.inst-p td.col-name { background: var(--deep-blue); }
+table.install-table tr.inst-p td.col-name input { color: var(--bar-text) !important; font-weight: 700; }
 /* 名称列收窄到 87px 后，13px 字号会把「招行信1007」截断，降一档到 11px 刚好完整 */
 /* 名称字号和其它单元格一致（13px），列宽相应放宽到 100px */
 table.install-table tbody td.col-name input { text-align: center; }
@@ -985,7 +1024,14 @@ document.addEventListener('visibilitychange', () => { if (document.visibilitySta
 const pad2 = n => String(n).padStart(2, '0');
 const uid = () => Math.random().toString(36).slice(2, 10);
 const todayISO = () => { const d = new Date(); return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); };
-const toYYMMDD = iso => { if (!iso) return ''; const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso); return m ? m[1].slice(2) + m[2] + m[3] : iso; };
+// 日期显示：窄屏用 MM-DD（5 字符）省地方，宽屏回退到 YYMMDD（6 字符）
+const toYYMMDD = iso => {
+  if (!iso) return '';
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
+  if (!m) return iso;
+  const narrow = (typeof window !== 'undefined') && window.innerWidth < 768;
+  return narrow ? (m[2] + '-' + m[3]) : (m[1].slice(2) + m[2] + m[3]);
+};
 
 const parseDateInput = v => {
   v = String(v || '').trim().replace(/[\/\.]/g, '-');
