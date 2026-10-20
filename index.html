@@ -1079,6 +1079,73 @@ table.query-table tbody tr > td:focus-within {
   background-color: #f3f1fb !important;
   box-shadow: inset 0 0 0 1px #b9a6ff;
 }
+/* ============================================================
+   汇总页：年份框 / 区间日期框 和按钮同一套外观
+   ============================================================ */
+.toolbar.bar1 .year-input,
+.toolbar.bar2 .year-input,
+.toolbar.bar2 .grow {
+  background-color: var(--bg-main);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  height: 26px;
+  box-sizing: border-box;
+  font-size: 13px;
+  text-align: center;
+  padding: 0 6px;
+  color: var(--text-main);
+}
+.toolbar.bar1 .year-input:focus,
+.toolbar.bar2 .year-input:focus,
+.toolbar.bar2 .grow:focus {
+  border-color: var(--primary);
+  outline: none;
+}
+/* 暗色下按钮是 #1a1a1a 深底 + #333 描边，输入框照抄 */
+[data-theme="dark"] .toolbar.bar1 .year-input,
+[data-theme="dark"] .toolbar.bar2 .year-input,
+[data-theme="dark"] .toolbar.bar2 .grow {
+  background-color: #1a1a1a !important;
+  border: 1px solid #333333 !important;
+  border-radius: 4px !important;
+  color: #ffffff !important;
+  font-size: 13px !important;
+}
+[data-theme="dark"] .toolbar.bar1 .year-input:focus,
+[data-theme="dark"] .toolbar.bar2 .year-input:focus,
+[data-theme="dark"] .toolbar.bar2 .grow:focus {
+  border-color: var(--primary) !important;
+}
+/* ============================================================
+   查询表「表头筛选行」的输入框：和按钮同一套外观
+   ============================================================ */
+table.query-table thead th input,
+table.query-table tr.q-filter-row input {
+  background-color: var(--bg-main);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  height: 26px;
+  box-sizing: border-box;
+  font-size: 13px;
+  text-align: center;
+  padding: 0 4px;
+  color: var(--text-main);
+  width: 100%;
+}
+table.query-table thead th input:focus { border-color: var(--primary); outline: none; }
+/* 暗色：照抄按钮的 #1a1a1a 底 + #333 描边 */
+[data-theme="dark"] table.query-table thead th input,
+[data-theme="dark"] table.query-table tr.q-filter-row input {
+  background-color: #1a1a1a !important;
+  border: 1px solid #333333 !important;
+  border-radius: 4px !important;
+  color: #ffffff !important;
+  font-size: 13px !important;
+}
+[data-theme="dark"] table.query-table thead th input:focus {
+  border-color: var(--primary) !important;
+  background-color: #262626 !important;
+}
 </style>
 </head>
 <body>
