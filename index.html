@@ -37,6 +37,23 @@
   --font-sys: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif;
 }
 
+/* 反色（暗色）主题：只换变量，其余样式自动跟随 */
+[data-theme="dark"] {
+  --primary: #7fb0ff;
+  --primary-dark: #679df8;
+  --bg-main: #0f172a;
+  --bg-gray: #111c2e;
+  --bg-gray-light: #16233a;
+  --bg-dark: #e2e8f0;
+  --text-main: #e6edf7;
+  --text-muted: #9fb0c6;
+  --text-light: #6b7d94;
+  --border: #2c3d55;
+  --border-light: #1f2d42;
+  --danger: #f87171;
+  --success: #34d399;
+}
+
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; font-family: var(--font-sys); }
 html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; overscroll-behavior: none; background: var(--bg-gray); color: var(--text-main); font-size: 14px; }
 body { display: flex; flex-direction: column; height: 100vh; height: 100dvh; }
@@ -45,8 +62,8 @@ body { display: flex; flex-direction: column; height: 100vh; height: 100dvh; }
    2. 布局与导航
    ========================================== */
 /* 标签栏高度同其它行统一为 32px（含 3px 的选中下划线） */
-.tabbar { flex-shrink: 0; display: flex; height: 40px; background: #f1f5f9; overflow-x: auto; border-bottom: 2px solid var(--primary); }
-.tabbar button { flex: 1 1 0; min-width: 0; height: 100%; box-sizing: border-box; background: none; border: none; border-left: 1px solid #e2e8f0; color: #475569; padding: 0 2px; font-size: 15px; font-weight: 700; cursor: pointer; border-bottom: 3px solid transparent; transition: all 0.2s; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tabbar { flex-shrink: 0; display: flex; height: 40px; background: var(--bg-gray); overflow-x: auto; border-bottom: 2px solid var(--primary); }
+.tabbar button { flex: 1 1 0; min-width: 0; height: 100%; box-sizing: border-box; background: none; border: none; border-left: 1px solid var(--border-light); color: var(--text-muted); padding: 0 2px; font-size: 15px; font-weight: 700; cursor: pointer; border-bottom: 3px solid transparent; transition: all 0.2s; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .tabbar button:first-child { border-left: none; }
 .tabbar button.active { color: #ffffff; background: var(--primary); border-bottom-color: #1e40af; }
 
@@ -67,7 +84,7 @@ table.grid tbody tr:hover td { background: #eff6ff; } /* 悬停高亮，增加�
 /* 序号列固定 */
 table.grid thead th.col-seq { left: 0; z-index: 4; text-align: center; }
 table.grid tbody td.col-seq { position: sticky; left: 0; z-index: 2; background: var(--bg-gray); text-align: center; color: var(--text-muted); font-size: 12px; font-variant-numeric: tabular-nums; }
-table.grid tbody tr:nth-child(even) td.col-seq { background: #e2e8f0; }
+table.grid tbody tr:nth-child(even) td.col-seq { background: var(--bg-gray-light); }
 
 /* 输入框样式（行高统一为 32px：内容 19 + 上下 6 + 边框 1） */
 table.grid input { width: 100%; border: none; background: transparent; padding: 6px; font-size: 14px; color: var(--text-main); outline: none; border-radius: 0; transition: background 0.2s; }
@@ -115,7 +132,7 @@ table#flow-table tbody td.col-note > .row-del { right: 18px; width: 18px; font-s
   padding-left: 0;
   font-size: 14px;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--text-main);
   white-space: nowrap;
 }
 /* 流水 / 分期：标题后跟按钮，留 4 个字符的间距 */
@@ -130,12 +147,57 @@ table#flow-table tbody td.col-note > .row-del { right: 18px; width: 18px; font-s
 .fixed-bar { gap: 12px; }
 /* 「收入合计」金额和下一个标签之间多留半个汉字 */
 .fixed-bar .fixed-sum + .fixed-sum { margin-left: 7px; }
-.fixed-bar .fixed-title { font-size: 14px; font-weight: 700; color: #0f172a; flex: 0 0 auto; }
+.fixed-bar .fixed-title { font-size: 14px; font-weight: 700; color: var(--text-main); flex: 0 0 auto; }
 .fixed-bar .fixed-sum { display: inline-flex; align-items: baseline; gap: 4px; flex: 0 0 auto; }
 .fixed-bar .fixed-sum i { font-style: normal; font-size: 12px; color: #64748b; }
 .fixed-bar .fixed-sum b { font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; text-align: left; display: inline-block; }
 .fixed-bar .fixed-sum b.in { color: #059669; }
 .fixed-bar .fixed-sum b.out { color: #dc2626; }
+
+/* 可编辑的输入框用纯黑字，只读内容用灰字 —— 一眼能看出哪里能改 */
+input, select, textarea { color: #000000 !important; }
+table.query-table thead th input { color: #000000 !important; }
+input::placeholder, textarea::placeholder { color: #9aa7b8 !important; }
+table.grid tbody td, table.query-table tbody td, table.install-table tbody td { color: var(--text-muted); }
+/* 反色主题下可编辑内容用亮白，和暗底形成对比 */
+[data-theme="dark"] input, [data-theme="dark"] select, [data-theme="dark"] textarea { color: #f8fafc !important; }
+/* 暗色下按钮 / 卡片底色 */
+[data-theme="dark"] .toolbar, [data-theme="dark"] .tabbar,
+[data-theme="dark"] .grid-wrap, [data-theme="dark"] table.grid,
+[data-theme="dark"] table.query-table, [data-theme="dark"] table.install-table {
+  background-color: var(--bg-gray-light);
+  color: var(--text-main);
+}
+/* 暗色下按钮：深底 + 亮边 + 亮字，别再是白块 */
+[data-theme="dark"] button, [data-theme="dark"] button.ghost {
+  background-color: #1c2a42 !important;
+  color: var(--text-main) !important;
+  border: 1px solid var(--border) !important;
+}
+[data-theme="dark"] button.active, [data-theme="dark"] button[data-active="true"] {
+  background-color: var(--primary) !important;
+  color: #0f172a !important;
+  border-color: var(--primary) !important;
+}
+/* 标签栏按钮不要额外边框 */
+[data-theme="dark"] .tabbar button {
+  background-color: transparent !important;
+  border: none !important;
+  border-left: 1px solid var(--border-light) !important;
+  color: var(--text-muted) !important;
+}
+[data-theme="dark"] .tabbar button.active {
+  background-color: var(--primary) !important;
+  color: #0f172a !important;
+}
+[data-theme="dark"] .tabbar button:first-child { border-left: none !important; }
+[data-theme="dark"] .toolbar { background-color: var(--bg-main); }
+[data-theme="dark"] .fixed-bar { background-color: var(--bg-main); }
+[data-theme="dark"] td, [data-theme="dark"] th { border-color: var(--border-light) !important; }
+[data-theme="dark"] table.grid tbody td { background: transparent; }
+[data-theme="dark"] table.grid tbody td.col-seq { background: var(--bg-gray); }
+[data-theme="dark"] table.grid tbody tr:nth-child(even) td.col-seq { background: var(--bg-gray-light); }
+[data-theme="dark"] input::placeholder { color: #64748b !important; }
 
 /* 表头统一：字号加大到 14px（颜色沿用各表原有的灰色，不改） */
 table.grid thead th, table.query-table thead th, table.install-table thead th {
@@ -153,7 +215,7 @@ table.query-table thead th input:focus { color: #0f172a !important; }
 button { font-size: 14px !important; color: #0f172a !important; }
 button.ghost { color: #0f172a !important; }
 /* 深色底上的标签栏按钮保持白字 */
-.tabbar button { font-size: 15px !important; color: #475569 !important; }
+.tabbar button { font-size: 15px !important; color: var(--text-muted) !important; }
 .tabbar button.active { color: #ffffff !important; }
 /* 危险操作（删除）保持原有浅色，hover/active 由 .row-del 自己控制 */
 button.row-del { color: var(--border) !important; }
@@ -166,7 +228,7 @@ table.grid tbody td input { height: 30px; box-sizing: border-box; }
 table#summary-table tbody td input { height: 30px; }
 
 /* 输入框：字号小一号、灰字 */
-input, select, textarea { font-size: 13px !important; color: #64748b !important; }
+input, select, textarea { font-size: 13px !important; }
 input::placeholder, textarea::placeholder { color: #94a3b8 !important; }
 /* 聚焦时文字加深，便于看清正在改什么 */
 input:focus, textarea:focus { color: #0f172a !important; }
@@ -741,6 +803,20 @@ const defaultAccounts = ACC_RAW.map((r, i) => ({
   id: 'a' + (i + 1), cat: r[0], code: r[1], name: r[2], opening: r[3], billDay: r[4], repayDay: r[5]
 }));
 
+// ---------- 主题 ----------
+const THEME_KEY = 'flow_theme_v1';
+let theme = (() => { try { return localStorage.getItem(THEME_KEY) === 'dark' ? 'dark' : 'light'; } catch (e) { return 'light'; } })();
+function applyTheme() {
+  document.documentElement.dataset.theme = theme;
+  document.documentElement.style.colorScheme = theme === 'dark' ? 'dark' : 'light';
+}
+function toggleTheme() {
+  theme = theme === 'dark' ? 'light' : 'dark';
+  try { localStorage.setItem(THEME_KEY, theme); } catch (e) {}
+  applyTheme();
+  toast(theme === 'dark' ? '已切换到反色主题' : '已切换到浅色主题');
+}
+
 const LS_KEY = 'flow_grid_v5';
 const SUMMARY_STATE_KEY = 'flow_summary_state_v3';
 // 流水表默认铺多少行空行。像 Excel 一样随手往下填，不用先点「新增」。
@@ -1127,6 +1203,7 @@ function renderFlow(main, footer) {
     <button class="ghost" id="f-print">打印</button>
     <input type="file" id="f-addfile" accept=".txt,text/plain" style="display:none">
     <span style="flex:1"></span>
+    <button class="ghost" id="f-theme" title="切换反色主题">主题</button>
   `;
   main.appendChild(bar);
 
@@ -1135,6 +1212,7 @@ function renderFlow(main, footer) {
   document.getElementById('f-sync').onclick = () => openSyncDialog();
   document.getElementById('f-exp').onclick = () => openXlsmDialog();
   document.getElementById('f-print').onclick = () => printMonthlyReport();
+  document.getElementById('f-theme').onclick = () => toggleTheme();
 
   // 3. 表格主体
   const wrap = document.createElement('div');
@@ -4722,6 +4800,7 @@ try {
   if (nFixed > 0) setTimeout(() => toast("已自动记入 " + nFixed + " 笔固定支出", { duration: 5000 }), 600);
 } catch (e) {}
 
+applyTheme();
 render();
 </script>
 <div id="print-area"></div>
