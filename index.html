@@ -2762,13 +2762,20 @@ async function addFlowFromTXT(e, footer) {
     e.target.value = '';
     return;
   }
+  // 去重用「计数」而不是「存在性」：
+  // 账本里同一签名的流水有几笔，就只能抵消文件里的几笔；
+  // 这样「同一天、同账户、同金额」连续发生两次时，第二笔仍会被正确追加。
   const sig = (t) => [t.date || '', t.from || '', t.to || '', Number(t.amount) || 0, t.note || ''].join('\u0001');
-  const seen = new Set(state.transactions.map(sig));
+  const pool = new Map();
+  state.transactions.forEach(t => {
+    const k = sig(t);
+    pool.set(k, (pool.get(k) || 0) + 1);
+  });
   let added = 0, dup = 0;
   for (const t of parsed.txs) {
-    const k = sig(t);
-    if (seen.has(k)) { dup++; continue; }
-    seen.add(k);
+    const k = sig({ ...t, from: resolveCode(t.from || ''), to: resolveCode(t.to || '') });
+    const have = pool.get(k) || 0;
+    if (have > 0) { pool.set(k, have - 1); dup++; continue; }
     // 转出 / 转入 支持简码：XJ → 现金（账户已经在上面替换过了，这里能查到）
     state.transactions.push({
       id: 't' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
@@ -2783,7 +2790,7 @@ async function addFlowFromTXT(e, footer) {
   if (parsed.accs.length) state.accounts = parsed.accs;
   reseq(); save(); render();
   e.target.value = '';
-  toast('已添加 ' + added + ' 笔流水' + (dup ? '，跳过 ' + dup + ' 笔重复' : '') +
+  toast('已添加 ' + added + ' 笔流水' + (dup ? '，抵消 ' + dup + ' 笔账本里已有的' : '') +
     '；账户 ' + state.accounts.length + ' 个', { duration: 5000 });
 }
 
@@ -3735,17 +3742,18 @@ async function openXlsmDialog() {
         if (data.accounts.length) state.accounts = data.accounts;
         // 流水：追加 + 去重（日期/转出/转入/金额/备注 全相同视为同一笔）
         const sig = (t) => [t.date || '', t.from || '', t.to || '', Number(t.amount) || 0, t.note || ''].join('\u0001');
-        const seen = new Set(state.transactions.map(sig));
+        const pool = new Map();
+        state.transactions.forEach(t => { const k = sig(t); pool.set(k, (pool.get(k) || 0) + 1); });
         let added = 0, dup = 0;
         for (const t of data.transactions) {
           const k = sig(t);
-          if (seen.has(k)) { dup++; continue; }
-          seen.add(k);
+          const have = pool.get(k) || 0;
+          if (have > 0) { pool.set(k, have - 1); dup++; continue; }
           state.transactions.push(t);
           added++;
         }
         reseq(); save(); render(); close();
-        toast('已追加 ' + added + ' 笔流水' + (dup ? '，跳过 ' + dup + ' 笔重复' : '') + '；账户 ' + state.accounts.length + ' 个', { duration: 5000 });
+        toast('已追加 ' + added + ' 笔流水' + (dup ? '，抵消 ' + dup + ' 笔账本里已有的' : '') + '；账户 ' + state.accounts.length + ' 个', { duration: 5000 });
       } catch (err) { toast('导入失败：' + err.message, { type: 'error', duration: 6000 }); }
     });
   };
