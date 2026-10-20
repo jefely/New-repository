@@ -2706,8 +2706,10 @@ function _xFindSheets(map) {
     const name = (/name="([^"]*)"/.exec(tag) || [])[1];
     const rid = (/r:id="([^"]+)"/.exec(tag) || [])[1];
     if (!name || !rid) continue;
-    if (name.trim() === XLSM_SHEET_FLOW) out.flow = relMap.get(rid);
-    if (name.trim() === XLSM_SHEET_SUM) out.sum = relMap.get(rid);
+    const nm = name.trim();
+    if (nm === XLSM_SHEET_FLOW) out.flow = relMap.get(rid);
+    if (nm === XLSM_SHEET_SUM) out.sum = relMap.get(rid);
+    if (nm === '分期') out.inst = relMap.get(rid);
   }
   if (!out.flow || !out.sum) throw new Error('模板里必须有两个工作表：「流水」和「汇总」');
   return out;
@@ -3369,9 +3371,206 @@ async function buildXlsxBytes() {
   return await xlsmZip(files);
 }
 
-// 导出并下载 .xlsx
+
+/* ============================================================
+   Excel 模板法导出：用你提供的 流水账V3.0.xlsx 当底版，只换内容
+   ------------------------------------------------------------
+   · 模板存 IndexedDB（localStorage 装不下 2MB+）
+   · 保留：样式、列宽、合并单元格、冻结窗格、查询表公式、分期表布局
+   · 只重写三张表的数据区：流水 r3+ / 汇总 r3+ / 分期 r3+
+   ============================================================ */
+const XLSX_TPL_IDB = 'flow_xlsx_template_v2';
+
+function _idbOpen() {
+  return new Promise((res, rej) => {
+    const rq = indexedDB.open('ledger_files', 1);
+    rq.onupgradeneeded = () => { const db = rq.result; if (!db.objectStoreNames.contains('files')) db.createObjectStore('files'); };
+    rq.onsuccess = () => res(rq.result);
+    rq.onerror = () => rej(rq.error);
+  });
+}
+async function idbPut(key, value) {
+  const db = await _idbOpen();
+  return new Promise((res, rej) => {
+    const tx = db.transaction('files', 'readwrite');
+    tx.objectStore('files').put(value, key);
+    tx.oncomplete = () => res();
+    tx.onerror = () => rej(tx.error);
+  });
+}
+async function idbGet(key) {
+  const db = await _idbOpen();
+  return new Promise((res, rej) => {
+    const tx = db.transaction('files', 'readonly');
+    const rq = tx.objectStore('files').get(key);
+    rq.onsuccess = () => res(rq.result || null);
+    rq.onerror = () => rej(rq.error);
+  });
+}
+
+// 用模板 + 当前数据生成 .xlsx
+async function buildXlsxFromTemplate(tplBytes) {
+  const { map, order } = await xlsmUnzip(tplBytes.buffer.slice(tplBytes.byteOffset, tplBytes.byteOffset + tplBytes.byteLength));
+  const shared = _xShared(map);
+  const paths = _xFindSheets(map);
+  const today = todayISO();
+  const endD = new Date(today + 'T00:00:00');
+  const startD = new Date(endD.getFullYear() - 1, endD.getMonth(), endD.getDate());
+  const startIso = startD.getFullYear() + '-' + pad2(startD.getMonth() + 1) + '-' + pad2(startD.getDate());
+  const range = { start: startIso, end: today };
+
+  // ---------- 流水 ----------
+  const flowXml = _xdec.decode(map.get(paths.flow));
+  const flowRows = _xParseSheet(flowXml, shared);
+  const styleAt = (rows, rowNum) => (col) => {
+    const base = rows.get(rowNum) || [];
+    const cn = _xColName(col);
+    const hit = base.find(c => c.col === cn);
+    return hit ? hit.s : null;
+  };
+  const flowStyle = styleAt(flowRows, 3);
+  const flowData = state.transactions.slice().sort((a, b) => (a.seq || 0) - (b.seq || 0)).map((t, i) => {
+    const ser = t.date ? _xSerial(t.date) : null;
+    return [
+      [1, String(i + 1), true],
+      [2, ser == null ? '' : String(ser), true],
+      [3, t.from || '', false],
+      [4, t.to || '', false],
+      [5, t.amount === '' || t.amount == null ? '' : Number(t.amount).toFixed(2), true],
+      [6, t.note || '', false]
+    ];
+  });
+  let newFlow = _xRebuild(flowXml, 2, flowData, flowStyle);
+  // 模板里流水表冻结了很多行，重置成「前两行」（标题 + 表头）
+  newFlow = newFlow.replace(/<pane[^>]*\/>/, '<pane ySplit="2" topLeftCell="A3" activePane="bottomLeft" state="frozen"/>');
+
+  // ---------- 汇总：保留 r1（起止日期/标题）r2（表头），只改 B1/D1 的日期 + r3 起数据 ----------
+  let sumXml = _xdec.decode(map.get(paths.sum));
+  const sumRows = _xParseSheet(sumXml, shared);
+  const sumStyle = styleAt(sumRows, 3);
+  // 更新 r1 的起始/结束日期（B1 / D1）
+  const s1 = _xSerial(startIso), s2 = _xSerial(today);
+  if (s1 != null && s2 != null) {
+    sumXml = sumXml
+      .replace(/(<c r="B1"[^>]*>)<v>[^<]*<\/v>/,
+        '$1<v>' + s1 + '</v>')
+      .replace(/(<c r="D1"[^>]*>)<v>[^<]*<\/v>/,
+        '$1<v>' + s2 + '</v>');
+  }
+  const accData = state.accounts.map((a, i) => {
+    const st = computeStats(a, range);
+    const isDebt = (a.cat || '') === '负债类';
+    const row = [
+      [1, String(i + 1), true],
+      [2, a.cat || '', false],
+      [3, a.code || '', false],
+      [4, a.name || '', false],
+      [5, Number(st.balance).toFixed(2), true],
+      [6, Number(st.mOut).toFixed(2), true],
+      [7, Number(st.mIn).toFixed(2), true],
+      [8, Number(st.hOut).toFixed(2), true],
+      [9, Number(st.hIn).toFixed(2), true],
+      [10, Number(a.opening || 0).toFixed(2), true]
+    ];
+    if (isDebt) { row.push([12, a.billDay || '', false]); row.push([13, a.repayDay || '', false]); }
+    return row;
+  });
+  const newSum = _xRebuild(sumXml, 2, accData, sumStyle);
+
+  // ---------- 分期：保留 r1（表头）r2（月份），r3 起每分期两行 ----------
+  const instXml = _xdec.decode(map.get(paths.inst));
+  const instRows = _xParseSheet(instXml, shared);
+  const instStyleP = styleAt(instRows, 3);
+  const instStyleI = styleAt(instRows, 4);
+  const months = installMonths();
+  // 2 行表头之后：本金行 + 利息行交替
+  const instData = [];
+  (state.installments || []).forEach(inst => {
+    let sumP = 0, sumI = 0;
+    months.forEach(ym => { const cc = inst.cells && inst.cells[ym]; if (cc) { sumP += Number(cc.p) || 0; sumI += Number(cc.i) || 0; } });
+    const pRow = [
+      [1, inst.name || '', false],
+      [2, inst.billDay || '', false],
+      [3, sumP ? sumP.toFixed(2) : '', true]
+    ];
+    const iRow = [
+      [1, inst.principal || '', true],
+      [2, inst.repayDay || '', false],
+      [3, sumI ? sumI.toFixed(2) : '', true]
+    ];
+    months.forEach((ym, k) => {
+      const cc = inst.cells && inst.cells[ym];
+      const colP = 4 + k;
+      pRow.push([colP, cc && cc.p !== '' && cc.p != null ? cc.p : '', true]);
+      iRow.push([colP, cc && cc.i !== '' && cc.i != null ? cc.i : '', true]);
+    });
+    instData.push(pRow);
+    instData.push(iRow);
+  });
+  // 分期两张行样式不同：奇数行用 r3 的样式，偶数行用 r4 的
+  // 表头两行也要重写：r1 的旧合计值清空、r2 的月份换成当前区间的月份
+  let instHead = instXml;
+  const h1 = instRows.get(1) || [];
+  const h2 = instRows.get(2) || [];
+  const headCells = [];
+  const pushCell = (cells, col, val, isNum) => {
+    const cn = _xColName(col);
+    const hit = cells.find(c => c.col === cn);
+    const s = hit ? hit.s : null;
+    const sAttr = s == null ? '' : ' s="' + s + '"';
+    const ref = cn + '3';
+    if (val === '' || val == null) return;
+    headCells.push('<c r="' + ref + '"' + sAttr + (isNum ? '><v>' + val + '</v></c>' : ' t="inlineStr"><is><t xml:space="preserve">' + _xEsc(String(val)) + '</t></is></c>'));
+  };
+  // r1 只保留前三格的标题，后面的旧数值清掉
+  const h1Row = h1.map(c => {
+    if (c.v && c.v.trim()) {
+      const sAttr = c.s == null ? '' : ' s="' + c.s + '"';
+      return '<c r="' + c.col + '1"' + sAttr + ' t="inlineStr"><is><t xml:space="preserve">' + _xEsc(c.v) + '</t></is></c>';
+    }
+    return c.s == null ? '' : '<c r="' + c.col + '1" s="' + c.s + '"/>';
+  }).filter(Boolean).join('');
+  // r2 的月份：前 3 格留空，第 4 格起写月份日期
+  const h2Parts = [];
+  [1, 2, 3].forEach(col => {
+    const hit = h2.find(c => c.col === _xColName(col));
+    if (hit && hit.s != null) h2Parts.push('<c r="' + _xColName(col) + '2" s="' + hit.s + '"/>');
+  });
+  months.forEach((ym, k) => {
+    const col = 4 + k, cn = _xColName(col);
+    const hit = h2.find(c => c.col === cn);
+    const s = hit ? hit.s : null;
+    const sAttr = s == null ? '' : ' s="' + s + '"';
+    const yy = Math.floor(ym / 100), mm = ym % 100;
+    const ser = _xSerial(yy + '-' + pad2(mm) + '-01');
+    h2Parts.push('<c r="' + cn + '2"' + sAttr + '><v>' + ser + '</v></c>');
+  });
+  instHead = instHead
+    .replace(/<row r="1"[^>]*>[\s\S]*?<\/row>/, (mm2) => mm2.replace(/>[\s\S]*<\/row>$/, '>' + h1Row + '</row>'))
+    .replace(/<row r="2"[^>]*>[\s\S]*?<\/row>/, (mm2) => mm2.replace(/>[\s\S]*<\/row>$/, '>' + h2Parts.join('') + '</row>'));
+  const newInst = _xRebuild(instHead, 2, instData, (col) => instStyleP(col));
+
+  // ---------- 打包 ----------
+  const outEntries = order.map(e => {
+    if (e.name === paths.flow) return { name: e.name, data: _xenc.encode(newFlow) };
+    if (e.name === paths.sum) return { name: e.name, data: _xenc.encode(newSum) };
+    if (e.name === paths.inst) return { name: e.name, data: _xenc.encode(newInst) };
+    if (e.name === 'xl/workbook.xml') {
+      let wb = _xdec.decode(e.data);
+      if (!/fullCalcOnLoad/.test(wb)) wb = wb.replace(/<calcPr([^>]*?)\/>/, '<calcPr$1 fullCalcOnLoad="1"/>');
+      return { name: e.name, data: _xenc.encode(wb) };
+    }
+    return e;
+  });
+  return await xlsmZip(outEntries);
+}
+
+// 「Excel」按钮：有模板就走模板，没有就提示选文件
 async function exportXLSX() {
-  const bytes = await buildXlsxBytes();
+  let tpl = null;
+  try { tpl = await idbGet(XLSX_TPL_IDB); } catch (e) { /* 忽略 */ }
+  if (!tpl) { openXlsmDialog(); return; }
+  const bytes = await buildXlsxFromTemplate(tpl);
   const name = '流水账_' + todayISO() + '.xlsx';
   const type = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
   const blob = new Blob([bytes], { type });
@@ -3388,22 +3587,21 @@ async function exportXLSX() {
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 4000);
 }
-
-function openXlsmDialog() {
-  const has = !!getXlsmTemplate();
+async function openXlsmDialog() {
+  const has = !!(await idbGet(XLSX_TPL_IDB));
   const mask = document.createElement('div');
   mask.className = 'confirm-mask';
   mask.innerHTML = `
     <div class="sync-box">
-      <div class="sync-title">Excel（.xlsm · 保留 VBA）</div>
-      <div class="sync-hint">${has ? '已保存模板，可直接导出带宏的 Excel 文件。' : '第一次使用请先上传一次 <b>.xlsm 模板</b>（含你的 VBA 脚本、名为「流水」和「汇总」两张工作表）。'}</div>
+      <div class="sync-title">Excel 模板</div>
+      <div class="sync-hint">${has ? '已保存模板，点导出即可套用这套格式生成新文件。' : '第一次使用请上传一次 <b>.xlsx 模板</b>（流水账V3.0.xlsx 这类，含「流水」「汇总」「分期」三张工作表）。'}</div>
       <div class="sync-block">
-        <button type="button" class="ghost" id="x-pick">${has ? '更换模板…' : '选择模板 .xlsm…'}</button>
-        <input type="file" id="x-file" accept=".xlsm,.xlsx" style="display:none">
+        <button type="button" class="ghost" id="x-pick">${has ? '更换模板…' : '选择模板 .xlsx…'}</button>
+        <input type="file" id="x-file" accept=".xlsx,.xlsm" style="display:none">
         <div class="sync-or">— 导出 / 导入 —</div>
-        <button type="button" id="x-export" ${has ? '' : 'disabled'}>导出 .xlsm（含 VBA）</button>
-        <button type="button" class="ghost" id="x-import">从 .xlsm 导入数据</button>
-        <input type="file" id="x-ifile" accept=".xlsm,.xlsx" style="display:none">
+        <button type="button" id="x-export" ${has ? '' : 'disabled'}>导出 .xlsx</button>
+        <button type="button" class="ghost" id="x-import">从 Excel 导入数据</button>
+        <input type="file" id="x-ifile" accept=".xlsx,.xlsm" style="display:none">
       </div>
       <div class="sync-actions"><button type="button" data-act="close">关闭</button></div>
     </div>`;
@@ -3419,14 +3617,15 @@ function openXlsmDialog() {
     try {
       const bin = new Uint8Array(await f.arrayBuffer());
       const { map } = await xlsmUnzip(bin.buffer.slice(bin.byteOffset, bin.byteOffset + bin.byteLength));
-      _xFindSheets(map);   // 提前校验：必须含「流水」「汇总」
-      saveXlsmTemplate(_bytesToB64(bin));
+      const paths = _xFindSheets(map);
+      if (!paths.inst) throw new Error('模板里还需要一张名为「分期」的工作表');
+      await idbPut(XLSX_TPL_IDB, bin);
       toast('模板已保存（' + Math.round(bin.length / 1024) + ' KB）');
-      close(); openXlsmDialog();
+      close(); await openXlsmDialog();
     } catch (err) { toast('模板读取失败：' + err.message, { type: 'error', duration: 6000 }); }
   };
   mask.querySelector('#x-export').onclick = async () => {
-    try { close(); await exportXLSM(); }
+    try { close(); await exportXLSX(); }
     catch (err) { toast('导出失败：' + err.message, { type: 'error', duration: 6000 }); }
   };
   mask.querySelector('#x-import').onclick = () => mask.querySelector('#x-ifile').click();
