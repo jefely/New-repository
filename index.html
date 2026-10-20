@@ -1146,6 +1146,30 @@ table.query-table thead th input:focus { border-color: var(--primary); outline: 
   border-color: var(--primary) !important;
   background-color: #262626 !important;
 }
+/* ============================================================
+   汇总 / 分期：按钮间距减半，标题到第一个按钮合计 4ch
+   ============================================================ */
+/* 间距减半：原来 4px → 2px */
+.toolbar.bar1,
+.toolbar.bar2,
+.toolbar.install-bar {
+  gap: 2px !important;
+}
+.toolbar.bar1 .month-row,
+.toolbar.bar2 .month-row { gap: 2px !important; }
+/* 分期工具栏里的「起 / 止」标签与输入框保持 4px 内距，别被上面的 2px 带偏 */
+.toolbar.install-bar .inst-label { gap: 4px !important; }
+/* 标题到第一个按钮：gap(2px) + margin-right = 4ch(32px)，所以 margin 用 calc */
+.toolbar.install-bar .bar-title,
+.toolbar.flow-bar .bar-title {
+  margin-right: calc(4ch - 2px) !important;
+}
+/* 汇总页没有标题元素（第一行直接是「月份」按钮），月份按钮本身当作起点，
+   这里不需要额外 margin */
+@media (max-width: 767px) {
+  .toolbar.bar1, .toolbar.bar2, .toolbar.install-bar { gap: 2px !important; }
+  .toolbar.install-bar .bar-title { margin-right: calc(4ch - 2px) !important; }
+}
 </style>
 </head>
 <body>
