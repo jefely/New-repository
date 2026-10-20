@@ -3601,6 +3601,24 @@ async function exportXLSX() {
   const type = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
   const blob = new Blob([bytes], { type });
   toast('已生成 Excel（' + Math.round(bytes.length / 1024) + ' KB）：流水 ' + state.transactions.length + ' 笔、账户 ' + state.accounts.length + ' 个、分期 ' + (state.installments || []).length + ' 个', { duration: 5000 });
+  // 1) 桌面 Chrome / Edge：弹系统「另存为」，自己选目录和文件名
+  if (window.showSaveFilePicker) {
+    try {
+      const handle = await window.showSaveFilePicker({
+        suggestedName: name,
+        types: [{ description: 'Excel 工作簿', accept: { [type]: ['.xlsx'] } }]
+      });
+      const w = await handle.createWritable();
+      await w.write(bytes);
+      await w.close();
+      toast('已保存：' + handle.name);
+      return;
+    } catch (e) {
+      if (e && e.name === 'AbortError') return;   // 用户取消
+      // 其他错误就继续往下走
+    }
+  }
+  // 2) 手机：系统分享面板（可选「保存到文件」「微信」「网盘」等）
   try {
     const file = new File([blob], name, { type });
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
@@ -3608,6 +3626,7 @@ async function exportXLSX() {
       return;
     }
   } catch (e) { if (e && e.name === 'AbortError') return; }
+  // 3) 兜底：浏览器默认下载目录
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a'); a.href = url; a.download = name;
   document.body.appendChild(a); a.click(); a.remove();
@@ -3626,7 +3645,7 @@ async function openXlsmDialog() {
         <input type="file" id="x-file" accept=".xlsx,.xlsm" style="display:none">
         <div class="sync-or">— 导出 / 导入 —</div>
         <button type="button" id="x-export" ${has ? '' : 'disabled'}>导出 .xlsx</button>
-        <button type="button" class="ghost" id="x-import">从 Excel 导入数据</button>
+        <button type="button" class="ghost" id="x-import">从 Excel 添加流水</button>
         <input type="file" id="x-ifile" accept=".xlsx,.xlsm" style="display:none">
       </div>
       <div class="sync-actions"><button type="button" data-act="close">关闭</button></div>
@@ -3658,15 +3677,25 @@ async function openXlsmDialog() {
   mask.querySelector('#x-ifile').onchange = (e) => {
     const f = e.target.files && e.target.files[0];
     if (!f) return;
-    askConfirm('导入 .xlsm 会<b>替换</b>当前全部账户和流水，确定吗？', async () => {
+    askConfirm('把文件里的流水<b>追加</b>到当前账本？<br>账户按文件内容替换，重复的流水会自动跳过。', async () => {
       try {
         const data = await readXLSMFile(f);
         if (!data.accounts.length && !data.transactions.length) { toast('这个文件里没读到数据', { type: 'error' }); return; }
-        state.accounts = data.accounts;
-        state.transactions = data.transactions;
-        state.installments = state.installments || [];
+        // 账户：按文件替换（和最初的 TXT 导入规则一致）
+        if (data.accounts.length) state.accounts = data.accounts;
+        // 流水：追加 + 去重（日期/转出/转入/金额/备注 全相同视为同一笔）
+        const sig = (t) => [t.date || '', t.from || '', t.to || '', Number(t.amount) || 0, t.note || ''].join('\u0001');
+        const seen = new Set(state.transactions.map(sig));
+        let added = 0, dup = 0;
+        for (const t of data.transactions) {
+          const k = sig(t);
+          if (seen.has(k)) { dup++; continue; }
+          seen.add(k);
+          state.transactions.push(t);
+          added++;
+        }
         reseq(); save(); render(); close();
-        toast('已导入：账户 ' + data.accounts.length + ' 个、流水 ' + data.transactions.length + ' 笔');
+        toast('已追加 ' + added + ' 笔流水' + (dup ? '，跳过 ' + dup + ' 笔重复' : '') + '；账户 ' + state.accounts.length + ' 个', { duration: 5000 });
       } catch (err) { toast('导入失败：' + err.message, { type: 'error', duration: 6000 }); }
     });
   };
