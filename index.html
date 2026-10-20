@@ -2004,6 +2004,15 @@ function doQuery(idx, footer) {
   const q = { date: sec.querySelector('.qf-date').value.trim(), from: sec.querySelector('.qf-from').value.trim(), to: sec.querySelector('.qf-to').value.trim(), amount: sec.querySelector('.qf-amount').value.trim(), note: sec.querySelector('.qf-note').value.trim() };
   queryForm[idx] = q;
 
+  // 条件全空 → 直接空表，不做过滤也不建 DOM。
+  // 查询页有 3 个面板，每个面板都铺全量流水的话是 3×N 行，N 上百就明显卡。
+  if (!q.date && !q.from && !q.to && !q.amount && !q.note) {
+    tbody.innerHTML = '<tr><td colspan="6" class="query-empty">设置上方任一条件后显示结果</td></tr>';
+    if (sec._totalEl) sec._totalEl.textContent = fmtMoney(0);
+    sec.dataset.hits = 0; sec.dataset.total = 0;
+    return;
+  }
+
   const hits = state.transactions.filter(t => {
     if (q.date && !qIsDateMatch(t.date, q.date)) return false;
     if (q.from && (t.from || '') !== q.from) return false;
