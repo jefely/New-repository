@@ -103,8 +103,10 @@ table.grid tbody td.col-bill { position: relative; padding-left: 30px; }
 .row-del { position: absolute; right: 0; top: 0; bottom: 0; width: 30px; padding: 0; background: none; border: none; color: var(--border); font-size: 19px; line-height: 1; cursor: pointer; transition: color 0.2s; }
 table.grid tbody td.col-bill > .row-del { right: auto; left: 0; }
 .row-del:active { color: var(--danger); background: #fee2e2; }
-/* 固定支出勾选框：放在删除按钮右侧（删除按钮让出 22px），尺寸压到 13px 不撑列 */
-table#flow-table tbody td.col-note > .row-del { right: 22px; width: 22px; }
+/* 备注格：不换行、超出裁掉，避免列窄时文字顶到按钮上 */
+table#flow-table tbody td.col-note { white-space: nowrap; overflow: hidden; }
+/* 删除按钮收窄到 18px（原来 22px），勾选框 12px，合计占位从 45px 降到 33px */
+table#flow-table tbody td.col-note > .row-del { right: 18px; width: 18px; font-size: 17px; }
 /* 固定表对齐：金额靠右、备注靠左、其余居中 */
 table#fixed-table tbody td { text-align: center; }
 table#fixed-table tbody td.col-amount { text-align: right; padding-right: 10px; }
@@ -116,14 +118,14 @@ table#fixed-table thead th { text-align: center !important; padding-left: 6px !i
 table#flow-table tbody td.col-note input.fixed-chk,
 .fixed-chk {
   position: absolute !important;
-  right: 5px !important;
+  right: 4px !important;
   left: auto !important;
   top: 50% !important;
   transform: translateY(-50%) !important;
-  width: 13px !important;
+  width: 12px !important;
   min-width: 0 !important;
-  max-width: 13px !important;
-  height: 13px !important;
+  max-width: 12px !important;
+  height: 12px !important;
   margin: 0 !important;
   padding: 0 !important;
   border-radius: 2px;
@@ -131,7 +133,7 @@ table#flow-table tbody td.col-note input.fixed-chk,
   accent-color: var(--primary);
 }
 /* 备注输入框给右边两个按钮留出位置，文字不会被压住 */
-table#flow-table tbody td.col-note > input:not(.fixed-chk) { padding-right: 46px; }
+table#flow-table tbody td.col-note > input:not(.fixed-chk) { padding-right: 38px; }
 
 /* 空行：默认铺 100 行，整行高亮太吵，只把序号淡化以区分「还没落库的行」 */
 table.grid tbody tr[data-new="1"] td.col-seq { color: var(--text-light); font-weight: 400; }
