@@ -908,21 +908,19 @@ function renderFlow(main, footer) {
   const bar = document.createElement('div');
   bar.className = 'toolbar flow-bar';
   bar.innerHTML = `
-    <button class="ghost" id="f-exp">导出</button>
-    <button class="ghost" id="f-imp">导入</button>
+    <button class="ghost" id="f-add">添加</button>
     <button class="ghost" id="f-sync">同步</button>
-    <button class="ghost" id="f-xlsm">Excel</button>
-    <input type="file" id="f-impfile" accept=".txt,text/plain" style="display:none">
+    <button class="ghost" id="f-exp">导出</button>
+    <input type="file" id="f-addfile" accept=".txt,text/plain" style="display:none">
     <span class="flow-title">流水记录</span>
     <span style="flex:1"></span>
   `;
   main.appendChild(bar);
 
-  document.getElementById('f-exp').onclick = () => exportAllTXT();
-  document.getElementById('f-imp').onclick = () => document.getElementById('f-impfile').click();
-  document.getElementById('f-impfile').onchange = (e) => importAllTXT(e, footer);
+  document.getElementById('f-add').onclick = () => document.getElementById('f-addfile').click();
+  document.getElementById('f-addfile').onchange = (e) => addFlowFromTXT(e, footer);
   document.getElementById('f-sync').onclick = () => openSyncDialog();
-  document.getElementById('f-xlsm').onclick = () => exportXLSX().catch(e => toast('导出失败：' + e.message, { type: 'error', duration: 6000 }));
+  document.getElementById('f-exp').onclick = () => openXlsmDialog();
 
   // 3. 表格主体
   const wrap = document.createElement('div');
@@ -2426,19 +2424,7 @@ function splitEscaped(line, sep) {
 // 所以优先走系统分享面板，退而求其次才用下载，最后再兜底复制到剪贴板。
 async function downloadTXT(filename, text) {
   const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
-
-  // 1) 支持分享文件的浏览器（Android Chrome / Safari 15+）：直接弹系统分享
-  try {
-    const file = new File([blob], filename, { type: 'text/plain' });
-    if (navigator.canShare && navigator.canShare({ files: [file] })) {
-      await navigator.share({ files: [file], title: filename });
-      return;
-    }
-  } catch (e) {
-    if (e && e.name === 'AbortError') return;   // 用户主动取消，不算失败
-  }
-
-  // 2) 常规下载
+  // 常规下载
   try {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -2729,6 +2715,41 @@ function _bytesToB64(bytes) {
   for (let i = 0; i < bytes.length; i += CH) s += String.fromCharCode.apply(null, bytes.subarray(i, i + CH));
   return btoa(s);
 }
+
+/* 「添加」：读 TXT，把里面的流水追加到当前账本（账户按文件内容替换）。
+   和 Excel 的「添加流水」语义一致：账户替换、流水追加并去重。 */
+async function addFlowFromTXT(e, footer) {
+  const f = e.target.files && e.target.files[0];
+  if (!f) return;
+  const text = await f.text();
+  const parsed = parseBookTXT(text);
+  if (!parsed.accs.length && !parsed.txs.length) {
+    toast('这个文件里没读到数据', { type: 'error' });
+    e.target.value = '';
+    return;
+  }
+  const sig = (t) => [t.date || '', t.from || '', t.to || '', Number(t.amount) || 0, t.note || ''].join('\u0001');
+  const seen = new Set(state.transactions.map(sig));
+  let added = 0, dup = 0;
+  for (const t of parsed.txs) {
+    const k = sig(t);
+    if (seen.has(k)) { dup++; continue; }
+    seen.add(k);
+    state.transactions.push({
+      id: 't' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+      seq: 0, date: t.date || '', from: t.from || '', to: t.to || '',
+      amount: t.amount === '' || t.amount == null ? '' : t.amount,
+      note: t.note || ''
+    });
+    added++;
+  }
+  if (parsed.accs.length) state.accounts = parsed.accs;
+  reseq(); save(); render();
+  e.target.value = '';
+  toast('已添加 ' + added + ' 笔流水' + (dup ? '，跳过 ' + dup + ' 笔重复' : '') +
+    '；账户 ' + state.accounts.length + ' 个', { duration: 5000 });
+}
+
 function parseBookTXT(text) {
   text = String(text).replace(/\r\n?/g, '\n');
   const txs = [], accs = [];
@@ -3618,15 +3639,7 @@ async function exportXLSX() {
       // 其他错误就继续往下走
     }
   }
-  // 2) 手机：系统分享面板（可选「保存到文件」「微信」「网盘」等）
-  try {
-    const file = new File([blob], name, { type });
-    if (navigator.canShare && navigator.canShare({ files: [file] })) {
-      await navigator.share({ files: [file], title: name });
-      return;
-    }
-  } catch (e) { if (e && e.name === 'AbortError') return; }
-  // 3) 兜底：浏览器默认下载目录
+  // 2) 兜底：浏览器默认下载目录（分享 API 在手机上常被拦截，已去掉）
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a'); a.href = url; a.download = name;
   document.body.appendChild(a); a.click(); a.remove();
@@ -3638,13 +3651,13 @@ async function openXlsmDialog() {
   mask.className = 'confirm-mask';
   mask.innerHTML = `
     <div class="sync-box">
-      <div class="sync-title">Excel 模板</div>
-      <div class="sync-hint">${has ? '已保存模板，点导出即可套用这套格式生成新文件。' : '第一次使用请上传一次 <b>.xlsx 模板</b>（流水账V3.0.xlsx 这类，含「流水」「汇总」「分期」三张工作表）。'}</div>
+      <div class="sync-title">导出 Excel</div>
+      <div class="sync-hint">${has ? '已保存模板。点下方按钮导出，会先让你选保存位置。' : '第一次使用请先选一次 <b>.xlsx 模板</b>（流水账V3.0.xlsx 这类，含「流水」「汇总」「分期」三张表）。以后每次导出都会套用它。'}</div>
       <div class="sync-block">
         <button type="button" class="ghost" id="x-pick">${has ? '更换模板…' : '选择模板 .xlsx…'}</button>
         <input type="file" id="x-file" accept=".xlsx,.xlsm" style="display:none">
-        <div class="sync-or">— 导出 / 导入 —</div>
-        <button type="button" id="x-export" ${has ? '' : 'disabled'}>导出 .xlsx</button>
+        <div class="sync-or">— 模板 / 导出 —</div>
+        <button type="button" id="x-export" ${has ? '' : 'disabled'}>导出 .xlsx（选保存位置）</button>
         <button type="button" class="ghost" id="x-import">从 Excel 添加流水</button>
         <input type="file" id="x-ifile" accept=".xlsx,.xlsm" style="display:none">
       </div>
