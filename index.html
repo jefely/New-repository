@@ -1249,51 +1249,77 @@ table.subsum-table td.num, table.subsum-table th.num { text-align: right !import
 table.subsum-table td.center, table.subsum-table th.center { text-align: center !important; }
 table.subsum-table tbody td:nth-child(2) { text-align: left !important; }
 /* 汇总表新增「分类」列：和「类型」列同款 */
-table#summary-table th.col-sub, table#summary-table td.col-sub {
-  width: 84px; min-width: 64px;
-  text-align: center;
-}
+table#summary-table th.col-sub, table#summary-table td.col-sub { text-align: center; }
 table#summary-table th.col-sub { text-align: center; }
 table#summary-table td.col-sub input { text-align: center; }
-/* 类型列略窄一点 */
-table#summary-table th.col-cat, table#summary-table td.col-cat { width: 84px; min-width: 64px; }
-/* 汇总表 13 列：给序号和简码留够宽度，避免被自动压缩截断 */
+table#summary-table th.col-cat, table#summary-table td.col-cat { text-align: center; }
+/* 汇总表 13 列：紧凑排列，前五列在 390px 屏幕上刚好铺满，其余横向滚动 */
+table#summary-table { min-width: 720px !important; }
 table#summary-table th.col-seq, table#summary-table td.col-seq {
-  width: 44px !important; min-width: 44px !important; max-width: 44px !important;
-}
-table#summary-table th.col-code, table#summary-table td.col-code {
-  width: 62px !important; min-width: 62px !important;
+  width: 40px !important; min-width: 40px !important; max-width: 40px !important;
 }
 table#summary-table th.col-cat, table#summary-table td.col-cat {
-  width: 84px !important; min-width: 84px !important;
+  width: 62px !important; min-width: 62px !important;
 }
 table#summary-table th.col-sub, table#summary-table td.col-sub {
-  width: 84px !important; min-width: 84px !important;
+  width: 62px !important; min-width: 62px !important;
+}
+table#summary-table th.col-code, table#summary-table td.col-code {
+  width: 52px !important; min-width: 52px !important;
 }
 table#summary-table th.col-name, table#summary-table td.col-name {
-  min-width: 96px !important;
+  width: 78px !important; min-width: 78px !important;
 }
-table#summary-table { min-width: 920px; }
-/* 分类页「月」模式：年份框不被压扁，12 个月份按钮分两行 */
+table#summary-table th, table#summary-table td { padding-left: 4px !important; padding-right: 4px !important; }
+table#summary-table td input { padding-left: 4px !important; padding-right: 4px !important; }
+/* 分类页「月」模式：两行 × 六列，用 grid 保证不错位 */
 .toolbar.bar2 > input.year-input {
   flex: 0 0 auto !important;
-  width: 56px !important;
-  min-width: 56px !important;
-  max-width: 56px !important;
+  width: 58px !important;
+  min-width: 58px !important;
+  max-width: 58px !important;
 }
 .toolbar.bar2 .month-row {
-  display: flex !important;
-  flex-wrap: wrap !important;
+  display: grid !important;
+  grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
   gap: 2px !important;
   flex: 1 1 auto !important;
   min-width: 0 !important;
+  width: 100% !important;
 }
 .toolbar.bar2 .month-row .m-btn {
-  flex: 1 1 calc(16.66% - 2px) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 100% !important;
   min-width: 0 !important;
+  height: 28px !important;
+  padding: 0 !important;
+  box-sizing: border-box !important;
+  font-size: 14px !important;
 }
+.toolbar.bar2 .month-row .m-btn .m-num, .toolbar.bar2 .month-row .m-btn .m-suf { display: inline; }
 /* 表格：去掉账户数后不用那么宽 */
 table.subsum-table { min-width: 470px !important; }
+/* 汇总表金额列：给足宽度，避免 ¥1,234.56 被截成 ¥1,234.... */
+table#summary-table th.col-bal, table#summary-table td.col-bal,
+table#summary-table th.col-out, table#summary-table td.col-out,
+table#summary-table th.col-in, table#summary-table td.col-in,
+table#summary-table th.col-hout, table#summary-table td.col-hout,
+table#summary-table th.col-hin, table#summary-table td.col-hin,
+table#summary-table th.col-open, table#summary-table td.col-open {
+  width: 88px !important; min-width: 88px !important; white-space: nowrap !important;
+}
+table#summary-table th.col-bill, table#summary-table td.col-bill,
+table#summary-table th.col-repay, table#summary-table td.col-repay {
+  width: 48px !important; min-width: 48px !important;
+}
+/* 账户名称列稍宽，长名字用省略号而不是硬切 */
+table#summary-table th.col-name, table#summary-table td.col-name {
+  width: 92px !important; min-width: 92px !important;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+table#summary-table { min-width: 800px !important; }
 </style>
 </head>
 <body>
@@ -1394,7 +1420,7 @@ function toggleTheme() {
   toast(theme === 'dark' ? '已切换到反色主题' : '已切换到浅色主题');
 }
 
-const APP_VER = 'v7.50';
+const APP_VER = 'v7.53';
 const LS_KEY = 'flow_grid_v5';
 const SUMMARY_STATE_KEY = 'flow_summary_state_v3';
 // 流水表默认铺多少行空行。像 Excel 一样随手往下填，不用先点「新增」。
