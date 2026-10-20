@@ -3296,6 +3296,13 @@ function renderFixed(main, footer) {
   }
   wrap.appendChild(table);
   main.appendChild(wrap);
+
+  // 列宽拖拽（和流水/汇总同一套机制）
+  if (!Array.isArray(colWidths.fixed) || colWidths.fixed.length !== 8) {
+    colWidths.fixed = [56, 76, 150, 150, 108, 150, 84, 64];
+    saveColWidths();
+  }
+  initColResize(table, 'fixed');
   setFooterText('共 ' + list.length + ' 条固定支出 · 每天 5:00 后首次打开时，到期的自动写入流水');
 }
 
@@ -4515,7 +4522,11 @@ function initColResize(table, key) {
         grip.removeEventListener('pointerup', onUp);
         grip.removeEventListener('pointercancel', onUp);
         grip.classList.remove('dragging');
-        if (moved) { saveColWidths(); syncFlowTitleWidth(); syncGridRight(); applySummarySticky(); }
+        if (moved) {
+          saveColWidths(); syncFlowTitleWidth(); syncGridRight();
+          // applySummarySticky 是 renderSummary 内部的局部函数，非汇总页时不存在
+          if (typeof applySummarySticky === 'function') { try { applySummarySticky(); } catch (e) {} }
+        }
       };
       grip.addEventListener('pointermove', onMove);
       grip.addEventListener('pointerup', onUp);
