@@ -100,13 +100,44 @@ table#summary-table td.col-name input { text-align: center; }
    流水表挂在行尾「备注」格；汇总表挂在「账单日」格左端，也就是期初列后面。 */
 table.grid tbody td.col-note { position: relative; padding-right: 30px; }
 table.grid tbody td.col-bill { position: relative; padding-left: 30px; }
-.row-del { position: absolute; right: 0; top: 0; bottom: 0; width: 30px; padding: 0; background: none; border: none; color: var(--border); font-size: 19px; line-height: 1; cursor: pointer; transition: color 0.2s; }
+.row-del { position: absolute; right: 0; top: 0; bottom: 0; width: 30px; padding: 0; background: none; border: none; color: var(--border); font-size: 13px; line-height: 1; cursor: pointer; transition: color 0.2s; }
 table.grid tbody td.col-bill > .row-del { right: auto; left: 0; }
 .row-del:active { color: var(--danger); background: #fee2e2; }
 /* 备注格：不换行、超出裁掉，避免列窄时文字顶到按钮上 */
 table#flow-table tbody td.col-note { white-space: nowrap; overflow: hidden; }
 /* 删除按钮收窄到 18px（原来 22px），勾选框 12px，合计占位从 45px 降到 33px */
-table#flow-table tbody td.col-note > .row-del { right: 18px; width: 18px; font-size: 17px; }
+table#flow-table tbody td.col-note > .row-del { right: 18px; width: 18px; font-size: 13px; }
+/* 固定页顶部：标题 + 收入/支出合计 */
+.fixed-bar { gap: 12px; }
+.fixed-bar .fixed-title { font-size: 14px; font-weight: 700; color: #0f172a; flex: 0 0 auto; }
+.fixed-bar .fixed-sum { display: inline-flex; align-items: baseline; gap: 4px; flex: 0 0 auto; }
+.fixed-bar .fixed-sum i { font-style: normal; font-size: 12px; color: #64748b; }
+.fixed-bar .fixed-sum b { font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; text-align: right; min-width: 82px; display: inline-block; }
+.fixed-bar .fixed-sum b.in { color: #059669; }
+.fixed-bar .fixed-sum b.out { color: #dc2626; }
+
+/* 统一按钮：字号一致、黑字（放最后 + !important，压过前面各页的局部规则） */
+button { font-size: 13px !important; color: #0f172a !important; }
+button.ghost { color: #0f172a !important; }
+/* 深色底上的标签栏按钮保持白字 */
+.tabbar button { font-size: 15px !important; color: var(--text-light) !important; }
+.tabbar button.active { color: #ffffff !important; }
+/* 危险操作（删除）保持原有浅色，hover/active 由 .row-del 自己控制 */
+button.row-del { color: var(--border) !important; }
+button.row-del:active { color: var(--danger) !important; }
+/* 月份小按钮字号跟着统一，仍然 44px 宽放得下「12月」 */
+.toolbar .m-btn { font-size: 13px !important; }
+
+/* 字号变小后行高会跟着缩，给输入框一个固定高度把行高锁在 32px */
+table.grid tbody td input { height: 30px; box-sizing: border-box; }
+table#summary-table tbody td input { height: 30px; }
+
+/* 输入框：字号小一号、灰字 */
+input, select, textarea { font-size: 12px !important; color: #64748b !important; }
+input::placeholder, textarea::placeholder { color: #94a3b8 !important; }
+/* 聚焦时文字加深，便于看清正在改什么 */
+input:focus, textarea:focus { color: #0f172a !important; }
+
 /* 流水「加载更多」行 */
 tr.flow-more td.flow-more-td { padding: 10px; text-align: center; color: var(--primary); font-size: 12px; cursor: pointer; background: var(--bg-gray-light); }
 tr.flow-more td.flow-more-td:hover { background: #eff6ff; }
@@ -3286,10 +3317,23 @@ function runFixedExpenses() {
 // 固定支出列表页
 function renderFixed(main, footer) {
   const list = (state.fixed || []).slice().sort((a, b) => (a.day || 1) - (b.day || 1));
+  // 收入/支出合计：按 from 账户的分类判断 —— from 属于收入类算收入，其余算支出
+  const catOf = (name) => {
+    const a = state.accounts.find(x => (x.name || '').trim() === String(name || '').trim());
+    return a ? String(a.cat || '') : '';
+  };
+  let sumIn = 0, sumOut = 0;
+  for (const f of list) {
+    const amt = Number(f.amount) || 0;
+    if (catOf(f.from) === '收入类') sumIn += amt; else sumOut += amt;
+  }
+
   const bar = document.createElement('div');
-  bar.className = 'toolbar flow-bar';
+  bar.className = 'toolbar flow-bar fixed-bar';
   bar.innerHTML = `
-    <span class="flow-title" style="position:static;transform:none;width:auto;text-align:left;padding-left:0">固定支出</span>
+    <span class="fixed-title">固定收支</span>
+    <span class="fixed-sum"><i>收入合计</i><b class="in">${fmtMoney(sumIn)}</b></span>
+    <span class="fixed-sum"><i>支出合计</i><b class="out">${fmtMoney(sumOut)}</b></span>
   `;
   main.appendChild(bar);
 
