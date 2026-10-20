@@ -3522,14 +3522,31 @@ async function buildXlsxFromTemplate(tplBytes) {
     if (val === '' || val == null) return;
     headCells.push('<c r="' + ref + '"' + sAttr + (isNum ? '><v>' + val + '</v></c>' : ' t="inlineStr"><is><t xml:space="preserve">' + _xEsc(String(val)) + '</t></is></c>'));
   };
-  // r1 只保留前三格的标题，后面的旧数值清掉
-  const h1Row = h1.map(c => {
-    if (c.v && c.v.trim()) {
-      const sAttr = c.s == null ? '' : ' s="' + c.s + '"';
-      return '<c r="' + c.col + '1"' + sAttr + ' t="inlineStr"><is><t xml:space="preserve">' + _xEsc(c.v) + '</t></is></c>';
+  // r1：A/B/C 是合并表头，D 列起是「该月所有分期的本金合计」，按当前数据重算
+  const h1Parts = [];
+  ['A', 'B', 'C'].forEach(cn => {
+    const hit = h1.find(c => c.col === cn);
+    if (!hit) return;
+    const sAttr = hit.s == null ? '' : ' s="' + hit.s + '"';
+    if (hit.v && hit.v.trim()) {
+      h1Parts.push('<c r="' + cn + '1"' + sAttr + ' t="inlineStr"><is><t xml:space="preserve">' + _xEsc(hit.v) + '</t></is></c>');
+    } else if (hit.s != null) {
+      h1Parts.push('<c r="' + cn + '1" s="' + hit.s + '"/>');
     }
-    return c.s == null ? '' : '<c r="' + c.col + '1" s="' + c.s + '"/>';
-  }).filter(Boolean).join('');
+  });
+  months.forEach((ym, k) => {
+    const cn = _xColName(4 + k);
+    const hit = h1.find(c => c.col === cn);
+    const sAttr = hit && hit.s != null ? ' s="' + hit.s + '"' : '';
+    let total = 0;
+    (state.installments || []).forEach(inst => {
+      const cc = inst.cells && inst.cells[ym];
+      if (cc) total += Number(cc.p) || 0;
+    });
+    h1Parts.push(total ? '<c r="' + cn + '1"' + sAttr + '><v>' + total.toFixed(2) + '</v></c>'
+      : '<c r="' + cn + '1"' + sAttr + '/>');
+  });
+  const h1Row = h1Parts.join('');
   // r2 的月份：前 3 格留空，第 4 格起写月份日期
   const h2Parts = [];
   [1, 2, 3].forEach(col => {
