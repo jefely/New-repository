@@ -1320,6 +1320,146 @@ table#summary-table th.col-name, table#summary-table td.col-name {
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 table#summary-table { min-width: 800px !important; }
+/* ============================================================
+   统一工具栏布局 —— 和顶部 tabbar 同一套思路：flex 均分，不算像素
+   ------------------------------------------------------------
+   规则：
+   · 工具栏是 flex 容器，有 gap
+   · 标题（流水记录/分类统计/分期统计/固定收支）= flex:0 0 auto，不参与均分
+   · 按钮 = flex:1 1 0，自动等分剩余空间，永不溢出、永不错位
+   · 输入框/标签 = flex:0 0 固定宽
+   ============================================================ */
+.toolbar.flow-bar,
+.toolbar.bar1,
+.toolbar.bar2,
+.toolbar.install-bar {
+  display: flex !important;
+  align-items: center !important;
+  flex-wrap: nowrap !important;
+  gap: 6px !important;
+  padding: 4px 6px !important;
+  box-sizing: border-box !important;
+  width: 100% !important;
+  min-width: 0 !important;
+}
+
+/* 标题：不参与均分 */
+.toolbar.flow-bar > .flow-title,
+.toolbar.flow-bar > .bar-title,
+.toolbar.install-bar > .bar-title,
+.toolbar.install-bar > .fixed-title {
+  flex: 0 0 auto !important;
+  margin: 0 !important;
+  white-space: nowrap !important;
+}
+
+/* 按钮：等分 */
+.toolbar.flow-bar > button,
+.toolbar.bar1 > button,
+.toolbar.bar2 > button,
+.toolbar.install-bar > button {
+  flex: 1 1 0 !important;
+  min-width: 0 !important;
+  width: auto !important;
+  max-width: none !important;
+  padding: 0 2px !important;
+  white-space: nowrap !important;
+  box-sizing: border-box !important;
+  text-align: center !important;
+}
+
+/* 月份格子容器：撑满剩余空间 */
+.toolbar.bar1 > .month-row,
+.toolbar.bar2 > .month-row {
+  flex: 1 1 0 !important;
+  min-width: 0 !important;
+  display: grid !important;
+  grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
+  gap: 2px !important;
+}
+
+/* 输入框：固定宽，不参与均分 */
+.toolbar.bar1 > input.year-input,
+.toolbar.bar2 > input.year-input {
+  flex: 0 0 58px !important;
+  width: 58px !important;
+  min-width: 58px !important;
+  max-width: 58px !important;
+}
+.toolbar.bar2 > input.grow {
+  flex: 1 1 0 !important;
+  min-width: 0 !important;
+  width: auto !important;
+}
+.toolbar.bar2 > .tilde {
+  flex: 0 0 auto !important;
+}
+
+/* 分期页：起/止 标签 + 数字框 */
+.toolbar.install-bar > .inst-label {
+  flex: 0 0 auto !important;
+  margin: 0 !important;
+  white-space: nowrap !important;
+}
+.toolbar.install-bar > input {
+  flex: 0 0 58px !important;
+  width: 58px !important;
+  min-width: 58px !important;
+  padding: 0 4px !important;
+  text-align: center !important;
+}
+
+/* 固定页的合计文字：吃掉剩余宽度，靠左 */
+.toolbar.install-bar > .fixed-sum {
+  flex: 0 0 auto !important;
+  white-space: nowrap !important;
+}
+
+/* 窄屏再压一点间距 */
+@media (max-width: 420px) {
+  .toolbar.flow-bar, .toolbar.bar1, .toolbar.bar2, .toolbar.install-bar { gap: 4px !important; padding: 4px 4px !important; }
+  .toolbar.flow-bar > button, .toolbar.bar1 > button, .toolbar.bar2 > button, .toolbar.install-bar > button {
+    font-size: 13px !important;
+  }
+}
+/* 汇总页：模式切换按钮（月份/区间）不参与均分，固定宽度 */
+.toolbar.bar1 > #mode-month,
+.toolbar.bar1 > #mode-range,
+.toolbar.bar2 > #mode-month,
+.toolbar.bar2 > #mode-range {
+  flex: 0 0 auto !important;
+  width: auto !important;
+  min-width: 0 !important;
+  padding: 0 10px !important;
+}
+/* 清空按钮同理 */
+.toolbar.bar2 > #range-clear,
+.toolbar.bar2 > .q-clear {
+  flex: 0 0 auto !important;
+  padding: 0 10px !important;
+}
+/* 月份格子：内容不换行，字号小一号 */
+.toolbar.bar1 .month-row .m-btn,
+.toolbar.bar2 .month-row .m-btn {
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  font-size: 13px !important;
+  height: 26px !important;
+  padding: 0 !important;
+}
+.toolbar.bar1 .month-row,
+.toolbar.bar2 .month-row {
+  grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
+}
+/* 分期页 起/止：标签固定，数字框固定，不参与均分 */
+.toolbar.install-bar > .inst-label,
+.toolbar.install-bar label,
+.toolbar.install-bar > span {
+  flex: 0 0 auto !important;
+  width: auto !important;
+  padding: 0 2px !important;
+  white-space: nowrap !important;
+}
 </style>
 </head>
 <body>
@@ -1420,7 +1560,7 @@ function toggleTheme() {
   toast(theme === 'dark' ? '已切换到反色主题' : '已切换到浅色主题');
 }
 
-const APP_VER = 'v7.53';
+const APP_VER = 'v7.55';
 const LS_KEY = 'flow_grid_v5';
 const SUMMARY_STATE_KEY = 'flow_summary_state_v3';
 // 流水表默认铺多少行空行。像 Excel 一样随手往下填，不用先点「新增」。
