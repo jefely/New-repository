@@ -1342,7 +1342,7 @@ function toggleTheme() {
   toast(theme === 'dark' ? '已切换到反色主题' : '已切换到浅色主题');
 }
 
-const APP_VER = 'v7.35';
+const APP_VER = 'v7.37';
 const LS_KEY = 'flow_grid_v5';
 const SUMMARY_STATE_KEY = 'flow_summary_state_v3';
 // 流水表默认铺多少行空行。像 Excel 一样随手往下填，不用先点「新增」。
@@ -3527,10 +3527,14 @@ function _xRebuild(xml, keepThrough, newRows, styleFor) {
     const r = keepThrough + 1 + i;
     const parts = [];
     cells.forEach(([colIdx, val, isNum]) => {
-      if (val === '' || val == null) return;
       const ref = _xColName(colIdx) + r;
       const s = styleFor ? styleFor(colIdx) : null;
       const sAttr = s == null ? '' : ' s="' + s + '"';
+      // 值为空但有样式的列，仍写一个带样式的空单元格 —— 否则边框会缺一块
+      if (val === '' || val == null) {
+        if (s != null) parts.push('<c r="' + ref + '"' + sAttr + '/>');
+        return;
+      }
       if (isNum) parts.push('<c r="' + ref + '"' + sAttr + '><v>' + val + '</v></c>');
       else parts.push('<c r="' + ref + '"' + sAttr + ' t="inlineStr"><is><t xml:space="preserve">' + _xEsc(val) + '</t></is></c>');
     });
@@ -4763,7 +4767,18 @@ async function buildXlsxFromTemplate(tplBytes) {
     const hit = base.find(c => c.col === cn);
     return hit ? hit.s : null;
   };
-  const flowStyle = styleAt(flowRows, 3);
+  const flowStyleRaw = styleAt(flowRows, 3);
+  // 模板里备注列（F）没有样式 → 没有边框。这里让 F 沿用 E 的样式补上，
+  // 否则打印/查看时右侧会缺一条框线。
+  const flowStyle = (col) => {
+    const own = flowStyleRaw(col);
+    if (own != null) return own;
+    for (let back = col - 1; back >= 1; back--) {
+      const s = flowStyleRaw(back);
+      if (s != null) return s;
+    }
+    return null;
+  };
   const flowData = state.transactions.slice().sort((a, b) => (a.seq || 0) - (b.seq || 0)).map((t, i) => {
     const ser = t.date ? _xSerial(t.date) : null;
     return [
@@ -4782,7 +4797,16 @@ async function buildXlsxFromTemplate(tplBytes) {
   // ---------- 汇总：保留 r1（起止日期/标题）r2（表头），只改 B1/D1 的日期 + r3 起数据 ----------
   let sumXml = _xdec.decode(map.get(paths.sum));
   const sumRows = _xParseSheet(sumXml, shared);
-  const sumStyle = styleAt(sumRows, 3);
+  const sumStyleRaw = styleAt(sumRows, 3);
+  const sumStyle = (col) => {
+    const own = sumStyleRaw(col);
+    if (own != null) return own;
+    for (let back = col - 1; back >= 1; back--) {
+      const s = sumStyleRaw(back);
+      if (s != null) return s;
+    }
+    return null;
+  };
   // 更新 r1 的起始/结束日期（B1 / D1）
   const s1 = _xSerial(startIso), s2 = _xSerial(today);
   if (s1 != null && s2 != null) {
