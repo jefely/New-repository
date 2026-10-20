@@ -293,7 +293,7 @@ table#flow-table tbody td.col-note > .row-del { right: 18px; width: 18px; font-s
   background-color: #1a1a1a !important;
 }
 /* 分期：本金行/利息行不再各用一套底色，交给上面的斑马纹 */
-[data-theme="dark"] table.install-table tr.inst-p td.col-name input { color: #ffffff !important; }
+[data-theme="dark"] table.install-table tr.inst-p td.col-name input { color: #b9a6ff !important; font-weight: 700; }
 
 /* 暗色下：页脚、分类分组条、分期账户名统一深底白字，不留浅色块 */
 [data-theme="dark"] footer { background: var(--bar-bg) !important; color: var(--bar-text-dim) !important; }
@@ -302,7 +302,7 @@ table#flow-table tbody td.col-note > .row-del { right: 18px; width: 18px; font-s
 [data-theme="dark"] .cat-row td { background: var(--bar-bg) !important; color: var(--bar-text) !important; }
 [data-theme="dark"] table#summary-table .cat-row td.col-bill,
 [data-theme="dark"] table#summary-table .cat-row td.col-repay { color: var(--bar-text-dim) !important; }
-[data-theme="dark"] table.install-table tr.inst-p td.col-name { background: var(--deep-blue) !important; }
+[data-theme="dark"] table.install-table tr.inst-p td.col-name { background: inherit !important; }
 [data-theme="dark"] table.install-table tr.inst-i td.col-name { background: inherit !important; }
 [data-theme="dark"] table.install-table tbody tr.inst-i:nth-child(odd) td.col-name { background: #0d0d0d !important; }
 [data-theme="dark"] table.install-table tbody tr.inst-i:nth-child(even) td.col-name { background: #1a1a1a !important; }
@@ -707,8 +707,8 @@ table.install-table tbody tr.inst-i td { border-bottom: 2px solid var(--border);
    剩下的空间放 13px 会截断「招行信1007」。 */
 /* 账户名称列：本金行深色底白字，利息行普通字；两行都居中 */
 /* 账户名称列：本金行蓝底黑字（和标签栏同色），利息行普通字 */
-table.install-table tr.inst-p td.col-name { background: var(--deep-blue); }
-table.install-table tr.inst-p td.col-name input { color: var(--bar-text) !important; font-weight: 700; }
+table.install-table tr.inst-p td.col-name { background: transparent; }
+table.install-table tr.inst-p td.col-name input { color: #7c5cff !important; font-weight: 700; }
 /* 名称列收窄到 87px 后，13px 字号会把「招行信1007」截断，降一档到 11px 刚好完整 */
 /* 名称字号和其它单元格一致（13px），列宽相应放宽到 100px */
 table.install-table tbody td.col-name input { text-align: center; }
@@ -950,6 +950,17 @@ html[data-theme="dark"] table.grid tbody tr.cat-row:nth-child(even) > td {
 [data-theme="dark"] table.install-table tbody tr.inst-i:nth-child(even) > td.col-name {
   background-color: #1a1a1a !important;
 }
+/* 分期「账户名称」列：底色完全跟随所在行，不再单独着色；文字用亮紫区分本金/利息 */
+[data-theme="dark"] table.install-table tr.inst-p > td.col-name,
+[data-theme="dark"] table.install-table tr.inst-p:nth-child(odd) > td.col-name { background-color: #0d0d0d !important; }
+[data-theme="dark"] table.install-table tr.inst-p:nth-child(even) > td.col-name { background-color: #1a1a1a !important; }
+[data-theme="dark"] table.install-table tr.inst-p > td.col-name input,
+[data-theme="dark"] table.install-table tr.inst-p > td.col-name input:focus { color: #b9a6ff !important; font-weight: 700; }
+[data-theme="dark"] table.install-table tr.inst-i > td.col-name input,
+[data-theme="dark"] table.install-table tr.inst-i > td.col-name input:focus { color: #ffffff !important; }
+/* 浅色主题：同一列用深一点的紫，保证可读 */
+table.install-table tr.inst-p > td.col-name,
+table.install-table tr.inst-p > td.col-name input { background-color: transparent !important; color: #6b4fe0 !important; font-weight: 700; }
 </style>
 </head>
 <body>
