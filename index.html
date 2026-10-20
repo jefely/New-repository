@@ -466,40 +466,7 @@ table#summary-table thead th.col-name { z-index: 6; }
 /* 简码重复警告 */
 table.grid td.col-code input.dup { color: var(--danger); font-weight: 700; background: #fee2e2; }
 
-/* ==========================================
-   打印
-   ------------------------------------------------------------
-   屏幕上隐藏打印区；打印时只显示它，其余全部隐藏。
-   深色表头打印会糊成黑块，所以打印态一律白底黑框。
-   ========================================== */
-#print-area { display: none; }
-@media print {
-  @page { size: A4 portrait; margin: 12mm 10mm; }
-  /* 高度必须放开，否则只出一页（body/html 默认 100% 高） */
-  html, body { background: #fff !important; height: auto !important; max-height: none !important; overflow: visible !important; }
-  #print-area { overflow: visible !important; height: auto !important; max-height: none !important; }
-  .tabbar, .toolbar, #footer, #print-area { }
-  .tabbar, .toolbar, #footer, .toast, .confirm-mask, .sync-box { display: none !important; }
-  #app, #main { overflow: visible !important; height: auto !important; max-height: none !important; }
-  body > *:not(#print-area) { display: none !important; }
-  #print-area { display: block !important; color: #000; font-size: 11pt; }
-  #print-area h1 { font-size: 17pt; margin: 0 0 2mm; font-weight: 700; }
-  #print-area .meta { font-size: 9pt; color: #444; margin-bottom: 4mm; }
-  #print-area h2 { font-size: 12pt; margin: 5mm 0 2mm; padding-bottom: 1mm; border-bottom: 1.5pt solid #000; }
-  #print-area table { width: 100%; border-collapse: collapse; font-size: 9.5pt; }
-  #print-area th, #print-area td { border: 0.5pt solid #999; padding: 1.2mm 1.5mm; }
-  #print-area thead th { background: #eee !important; color: #000 !important; font-weight: 700; text-align: center; }
-  #print-area thead { display: table-header-group; }
-  #print-area tr { page-break-inside: avoid; }
-  #print-area td.num { text-align: right; }
-  #print-area td.center { text-align: center; }
-  #print-area .kv { display: flex; flex-wrap: wrap; gap: 2mm 8mm; margin: 2mm 0 0; }
-  #print-area .kv div { font-size: 10pt; }
-  #print-area .kv b { font-size: 12pt; display: block; }
-  #print-area .total-row td { font-weight: 700; background: #f2f2f2 !important; }
-  #print-area .foot { margin-top: 6mm; font-size: 8pt; color: #666; text-align: right; }
-  #print-area .neg { color: #000; }
-}
+
 
 /* 数据体检：账户名重复、流水里引用了不存在的账户，都标红 */
 table.grid td input.bad { color: var(--danger); font-weight: 700; background: #fee2e2; }
@@ -1374,7 +1341,7 @@ function toggleTheme() {
   toast(theme === 'dark' ? '已切换到反色主题' : '已切换到浅色主题');
 }
 
-const APP_VER = 'v7.38';
+const APP_VER = 'v7.39';
 const LS_KEY = 'flow_grid_v5';
 const SUMMARY_STATE_KEY = 'flow_summary_state_v3';
 // 流水表默认铺多少行空行。像 Excel 一样随手往下填，不用先点「新增」。
@@ -1769,7 +1736,6 @@ function renderFlow(main, footer) {
     <button class="ghost" id="f-add">添加</button>
     <button class="ghost" id="f-sync">同步</button>
     <button class="ghost" id="f-exp">导出</button>
-    <button class="ghost" id="f-print">打印</button>
     <button class="ghost" id="f-theme" title="切换反色主题">主题</button>
     <input type="file" id="f-addfile" accept=".txt,text/plain" style="display:none">
   `;
@@ -1779,7 +1745,6 @@ function renderFlow(main, footer) {
   document.getElementById('f-addfile').onchange = (e) => addFlowFromTXT(e, footer);
   document.getElementById('f-sync').onclick = () => openSyncDialog();
   document.getElementById('f-exp').onclick = () => openXlsmDialog();
-  document.getElementById('f-print').onclick = () => printMonthlyReport();
   document.getElementById('f-theme').onclick = () => toggleTheme();
 
   // 3. 表格主体
@@ -2216,7 +2181,6 @@ function renderSummary(main, footer) {
   if (summaryMode === 'range') {
     bar2.innerHTML = `
       <button id="mode-range" class="ghost" data-active="true">区间</button>
-      <button id="s-print" class="ghost" title="打印账户余额表">打印</button>
       <input id="r-start" class="grow" placeholder="起始 YY/YYMM/YYMMDD" inputmode="numeric" title="起始：YY / YYMM / YYMMDD，例如 26 / 2608 / 260801" value="${esc(summaryRange.start)}">
       <span class="tilde">~</span>
       <input id="r-end" class="grow" placeholder="结束 YY/YYMM / YYMMDD" inputmode="numeric" title="结束：YY / YYMM / YYMMDD，例如 26 / 2608 / 260801" value="${esc(summaryRange.end)}">
@@ -2224,7 +2188,6 @@ function renderSummary(main, footer) {
   } else {
     bar2.innerHTML = `
       <button id="mode-range" class="ghost" data-active="false">区间</button>
-      <button id="s-print" class="ghost" title="打印账户余额表">打印</button>
       <div class="month-row" id="month-row">${monthsBottom}</div>
     `;
   }
@@ -2335,8 +2298,6 @@ function applySummarySticky() {
   // 绑定事件（导入导出统一在流水页，汇总页不再放这两个按钮）
   document.getElementById('mode-range').onclick = () => { if (summaryMode !== 'range') { summaryMode = 'range'; saveSummaryState(); render(); } };
   document.getElementById('mode-month').onclick = () => { if (summaryMode !== 'month') { summaryMode = 'month'; saveSummaryState(); render(); } };
-  const sPrint = document.getElementById('s-print');
-  if (sPrint) sPrint.onclick = () => printAccounts();
 
   function rangeUpdate() {
     return getCurrentRange();
@@ -3756,350 +3717,6 @@ function applyDataIssues() {
 }
 
 
-/* ============================================================
-   打印：月度报告 / 账户余额表
-   ============================================================ */
-function _prEsc(s) {
-  return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-}
-function _prMoney(v) {
-  const n = Number(v);
-  if (!isFinite(n)) return '';
-  return n.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
-function _prGo(html) {
-  const area = document.getElementById('print-area');
-  if (!area) return;
-  area.innerHTML = html;
-  // 等一拍让样式生效再唤起打印
-  setTimeout(() => { window.print(); }, 80);
-}
-
-// 一页 A4 的月度报告
-function printMonthlyReport() {
-  const r = getCurrentRange();
-  const [y, m] = (r.start || todayISO()).split('-').map(Number);
-  const period = summaryMode === 'month'
-    ? summaryMonth.year + ' 年 ' + summaryMonth.month + ' 月'
-    : r.start + ' ~ ' + r.end;
-
-  // 按分类汇总
-  const catsOrder = ['资产类', '负债类', '收入类', '权益类', '费用类'];
-  const byCat = {};
-  for (const a of state.accounts) {
-    const c = a.cat || '未分类';
-    (byCat[c] = byCat[c] || { n: 0, bal: 0, out: 0, inn: 0, open: 0 });
-    const st = computeStats(a, r);
-    byCat[c].n++;
-    byCat[c].bal += st.balance;
-    byCat[c].out += st.mOut;
-    byCat[c].inn += st.mIn;
-    byCat[c].open += Number(a.opening) || 0;
-  }
-  const cats = Object.keys(byCat).sort((a, b) => {
-    const ia = catsOrder.indexOf(a), ib = catsOrder.indexOf(b);
-    return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib);
-  });
-
-  let totIn = 0, totOut = 0, totAsset = 0, totDebt = 0;
-  for (const c of cats) {
-    const d = byCat[c];
-    totIn += d.inn; totOut += d.out;
-    if (c === '负债类') totDebt += d.bal; else totAsset += d.bal;
-  }
-  const net = totAsset - totDebt;
-
-  // 本期流水（限 60 笔，避免撑爆纸）
-  const txs = state.transactions
-    .filter(t => t.date && t.date >= r.start && t.date <= r.end)
-    .sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
-  const shown = txs.slice(0, 60);
-
-  const rows = cats.map(c => {
-    const d = byCat[c];
-    return '<tr><td>' + _prEsc(c) + '</td><td class="center">' + d.n + '</td>'
-      + '<td class="num">' + _prMoney(d.inn) + '</td>'
-      + '<td class="num">' + _prMoney(d.out) + '</td>'
-      + '<td class="num">' + _prMoney(d.bal) + '</td></tr>';
-  }).join('');
-
-  const txRows = shown.map((t, i) =>
-    '<tr><td class="center">' + (i + 1) + '</td><td class="center">' + _prEsc(toYYMMDD(t.date)) + '</td>'
-    + '<td>' + _prEsc(t.from) + '</td><td>' + _prEsc(t.to) + '</td>'
-    + '<td class="num">' + _prMoney(t.amount) + '</td><td>' + _prEsc(t.note) + '</td></tr>'
-  ).join('');
-
-  const html = '<h1>流水账 · 月度报告</h1>'
-    + '<div class="meta">统计区间：' + _prEsc(period) + '（' + _prEsc(r.start) + ' ~ ' + _prEsc(r.end) + '）'
-    + ' · 账户 ' + state.accounts.length + ' 个 · 本期流水 ' + txs.length + ' 笔</div>'
-
-    + '<h2>总览</h2>'
-    + '<div class="kv">'
-    + '<div>本期收入<b>' + _prMoney(totIn) + '</b></div>'
-    + '<div>本期支出<b>' + _prMoney(totOut) + '</b></div>'
-    + '<div>本期结余<b>' + _prMoney(totIn - totOut) + '</b></div>'
-    + '<div>资产<b>' + _prMoney(totAsset) + '</b></div>'
-    + '<div>负债<b>' + _prMoney(totDebt) + '</b></div>'
-    + '<div>净资产<b>' + _prMoney(net) + '</b></div>'
-    + '</div>'
-
-    + '<h2>分类汇总</h2>'
-    + '<table><thead><tr><th>分类</th><th>账户数</th><th>转入</th><th>转出</th><th>结余</th></tr></thead><tbody>'
-    + rows
-    + '<tr class="total-row"><td>合计</td><td class="center">' + state.accounts.length + '</td>'
-    + '<td class="num">' + _prMoney(totIn) + '</td><td class="num">' + _prMoney(totOut) + '</td>'
-    + '<td class="num">' + _prMoney(net) + '</td></tr>'
-    + '</tbody></table>'
-
-    + (shown.length ? ('<h2>本期流水' + (txs.length > shown.length ? '（前 ' + shown.length + ' 笔，共 ' + txs.length + ' 笔）' : '') + '</h2>'
-      + '<table><thead><tr><th>序号</th><th>日期</th><th>转出</th><th>转入</th><th>金额</th><th>备注</th></tr></thead><tbody>'
-      + txRows + '</tbody></table>') : '')
-
-    + '<div class="foot">打印时间 ' + new Date().toLocaleString('zh-CN') + '</div>';
-
-  _prGo(html);
-}
-
-// 账户余额表
-function printAccounts() {
-  const r = getCurrentRange();
-  const catsOrder = ['资产类', '负债类', '收入类', '权益类', '费用类'];
-  const byCat = {};
-  for (const a of state.accounts) {
-    const c = a.cat || '未分类';
-    (byCat[c] = byCat[c] || []).push(a);
-  }
-  const cats = Object.keys(byCat).sort((a, b) => {
-    const ia = catsOrder.indexOf(a), ib = catsOrder.indexOf(b);
-    return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib);
-  });
-  let idx = 1, grand = 0;
-  let body = '';
-  for (const c of cats) {
-    let sub = 0;
-    const rows = byCat[c].map(a => {
-      const st = computeStats(a, r);
-      sub += st.balance;
-      const isDebt = (a.cat || '') === '负债类';
-      return '<tr><td class="center">' + (idx++) + '</td><td>' + _prEsc(c) + '</td>'
-        + '<td class="center">' + _prEsc(a.code) + '</td><td>' + _prEsc(a.name) + '</td>'
-        + '<td class="num">' + _prMoney(st.balance) + '</td>'
-        + '<td class="num">' + _prMoney(a.opening) + '</td>'
-        + '<td class="center">' + (isDebt ? _prEsc(a.billDay) : '') + '</td>'
-        + '<td class="center">' + (isDebt ? _prEsc(a.repayDay) : '') + '</td></tr>';
-    }).join('');
-    body += rows;
-    body += '<tr class="total-row"><td colspan="4">' + _prEsc(c) + ' 合计</td>'
-      + '<td class="num">' + _prMoney(sub) + '</td><td colspan="3"></td></tr>';
-    grand += sub;
-  }
-  const html = '<h1>流水账 · 账户余额表</h1>'
-    + '<div class="meta">统计区间：' + _prEsc(summaryMode === 'month' ? (summaryMonth.year + ' 年 ' + summaryMonth.month + ' 月') : (r.start + ' ~ ' + r.end))
-    + ' · 账户 ' + state.accounts.length + ' 个</div>'
-    + '<table><thead><tr><th>序号</th><th>分类</th><th>简码</th><th>账户名称</th><th>当前结余</th><th>期初</th><th>账单日</th><th>还款日</th></tr></thead><tbody>'
-    + body
-    + '<tr class="total-row"><td colspan="4">全部合计</td><td class="num">' + _prMoney(grand) + '</td><td colspan="3"></td></tr>'
-    + '</tbody></table>'
-    + '<div class="foot">打印时间 ' + new Date().toLocaleString('zh-CN') + '</div>';
-  _prGo(html);
-}
-
-
-
-/* ============================================================
-   固定支出
-   ------------------------------------------------------------
-   数据：state.fixed = [{ id, day, from, to, amount, note, sourceTxId, lastMonth }]
-   · day        每月几号触发（取自添加时那笔流水的日）
-   · lastMonth  最近一次自动写入的月份（'YYYY-MM'），防止同月重复写
-   · sourceTxId 来源流水 id；取消勾选时按它找回
-   触发规则：当天 >= day，且 lastMonth 不是本月 → 写入一笔（日期用当天）
-   每天只在 5:00 之后检查一次（localStorage 记日期）
-   ============================================================ */
-const FIXED_RUN_KEY = 'flow_fixed_lastrun_v1';
-
-
-// 给一行流水挂上「固定支出」勾选框（幂等）
-function attachFixedCheckbox(tr) {
-  if (!tr || !tr.dataset.id) return;
-  const noteTd = tr.querySelector('td.col-note');
-  if (!noteTd || noteTd.querySelector('.fixed-chk')) return;
-  const chk = document.createElement('input');
-  chk.type = 'checkbox';
-  chk.className = 'fixed-chk';
-  chk.title = '加入固定支出（每月按这一天的金额自动记一笔）';
-  chk.checked = !!fixedBySource(tr.dataset.id);
-  chk.addEventListener('click', (ev) => {
-    ev.stopPropagation();
-    if (chk.checked) addFixedFromTx(tr.dataset.id);
-    else removeFixedBySource(tr.dataset.id);
-    save();
-    toast(chk.checked ? '已加入固定支出' : '已取消固定支出');
-  });
-  noteTd.appendChild(chk);
-}
-
-function fixedBySource(txId) {
-  return (state.fixed || []).find(f => f.sourceTxId === txId) || null;
-}
-
-// 从一笔流水创建固定支出（勾选）
-function addFixedFromTx(txId) {
-  const t = state.transactions.find(x => x.id === txId);
-  if (!t) return;
-  if (fixedBySource(txId)) return;
-  const day = t.date ? parseInt(t.date.slice(8, 10), 10) : 1;
-  state.fixed.push({
-    id: 'f' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
-    day: day || 1,
-    from: t.from || '',
-    to: t.to || '',
-    amount: t.amount === '' || t.amount == null ? '' : t.amount,
-    note: t.note || '',
-    sourceTxId: txId,
-    lastMonth: ''
-  });
-}
-
-// 取消勾选（按来源流水）
-function removeFixedBySource(txId) {
-  state.fixed = (state.fixed || []).filter(f => f.sourceTxId !== txId);
-}
-
-// 打开时自动写入：当天 >= day 且本月还没写过
-function runFixedExpenses() {
-  if (!state.fixed || !state.fixed.length) return 0;
-  const now = new Date();
-  const hh = now.getHours();
-  if (hh < 5) return 0;                       // 5:00 之前不触发
-  const today = todayISO();
-  const day = now.getDate();
-  const ym = today.slice(0, 7);               // '2026-10'
-
-  let ranToday = false;
-  try { ranToday = localStorage.getItem(FIXED_RUN_KEY) === today; } catch (e) {}
-  if (ranToday) return 0;                     // 今天已经跑过
-
-  let added = 0;
-  for (const f of state.fixed) {
-    if (day < (f.day || 1)) continue;         // 还没到这个月的那天
-    if (f.lastMonth === ym) continue;         // 本月已经写过
-    state.transactions.push({
-      id: 't' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6) + (added++),
-      seq: 0,
-      date: today,                            // 日期用当天
-      from: f.from || '',
-      to: f.to || '',
-      amount: f.amount === '' || f.amount == null ? '' : f.amount,
-      note: f.note || '',
-      fixedId: f.id
-    });
-    f.lastMonth = ym;
-  }
-  try { localStorage.setItem(FIXED_RUN_KEY, today); } catch (e) {}
-  if (added) { reseq(); save(); }
-  return added;
-}
-
-// 固定支出列表页
-function renderFixed(main, footer) {
-  const list = (state.fixed || []).slice().sort((a, b) => (a.day || 1) - (b.day || 1));
-  // 收入/支出合计：按 from 账户的分类判断 —— from 属于收入类算收入，其余算支出
-  const catOf = (name) => {
-    const a = state.accounts.find(x => (x.name || '').trim() === String(name || '').trim());
-    return a ? String(a.cat || '') : '';
-  };
-  let sumIn = 0, sumOut = 0;
-  for (const f of list) {
-    const amt = Number(f.amount) || 0;
-    if (catOf(f.from) === '收入类') sumIn += amt; else sumOut += amt;
-  }
-
-  const bar = document.createElement('div');
-  bar.className = 'toolbar flow-bar fixed-bar';
-  bar.innerHTML = `
-    <span class="fixed-title">固定收支</span>
-    <span class="fixed-sum"><i>收入合计：</i><b class="in">${fmtMoney(sumIn)}</b></span>
-    <span class="fixed-sum"><i>支出合计：</i><b class="out">${fmtMoney(sumOut)}</b></span>
-  `;
-  main.appendChild(bar);
-
-  const wrap = document.createElement('div');
-  wrap.className = 'grid-wrap';
-  const table = document.createElement('table');
-  table.className = 'grid';
-  table.id = 'fixed-table';
-  table.innerHTML = `
-    <thead><tr>
-      <th class="col-seq">序号</th>
-      <th class="col-day">每月</th>
-      <th class="col-from">转出</th>
-      <th class="col-to">转入</th>
-      <th class="col-amount">金额</th>
-      <th class="col-note">备注</th>
-      <th class="col-state">本月</th>
-      <th class="col-op">操作</th>
-    </tr></thead><tbody></tbody>`;
-  const tbody = table.querySelector('tbody');
-  const nowYm = todayISO().slice(0, 7);
-
-  if (!list.length) {
-    const tr = document.createElement('tr');
-    tr.innerHTML = '<td colspan="8" style="padding:18px;text-align:center;color:var(--text-muted)">还没有固定支出。到「流水」页勾选行尾的复选框即可添加。</td>';
-    tbody.appendChild(tr);
-  } else {
-    list.forEach((f, i) => {
-      const tr = document.createElement('tr');
-      tr.dataset.fid = f.id;
-      const done = f.lastMonth === nowYm;
-      const cells = [
-        { cls: 'col-seq', text: String(i + 1) },
-        { cls: 'col-day', text: (f.day || 1) + ' 号' },
-        { cls: 'col-from', text: f.from || '' },
-        { cls: 'col-to', text: f.to || '' },
-        { cls: 'col-amount', text: f.amount === '' || f.amount == null ? '' : fmtMoney(f.amount) },
-        { cls: 'col-note', text: f.note || '' },
-        { cls: 'col-state', text: done ? '已写入' : '待写入' }
-      ];
-      cells.forEach(c => {
-        const td = document.createElement('td');
-        td.className = c.cls;
-        td.textContent = c.text;
-        if (c.cls === 'col-state') td.style.color = done ? 'var(--success, #00b050)' : 'var(--text-muted)';
-        tr.appendChild(td);
-      });
-      const op = document.createElement('td');
-      op.className = 'col-op';
-      const del = document.createElement('button');
-      del.type = 'button';
-      del.className = 'row-del';
-      del.textContent = '×';
-      del.title = '取消这条固定支出（不影响已有流水）';
-      del.style.position = 'static';
-      del.style.width = 'auto';
-      del.style.padding = '0 8px';
-      del.onclick = () => {
-        removeFixedBySource(f.sourceTxId);
-        save(); render();
-        toast('已取消固定支出（原流水保留）');
-      };
-      op.appendChild(del);
-      tr.appendChild(op);
-      tbody.appendChild(tr);
-    });
-  }
-  wrap.appendChild(table);
-  main.appendChild(wrap);
-
-  // 列宽拖拽（和流水/汇总同一套机制）
-  if (!Array.isArray(colWidths.fixed) || colWidths.fixed.length !== 8) {
-    colWidths.fixed = [56, 76, 150, 150, 108, 150, 84, 64];
-    saveColWidths();
-  }
-  initColResize(table, 'fixed');
-  setFooterText('共 ' + list.length + ' 条固定支出 · 每天 5:00 后首次打开时，到期的自动写入流水');
-}
-
 function parseBookTXT(text) {
   text = String(text).replace(/\r\n?/g, '\n');
   const txs = [], accs = [];
@@ -5507,7 +5124,6 @@ applyTheme();
 try { document.getElementById('footer').dataset.ver = APP_VER; } catch (e) {}
 render();
 </script>
-<div id="print-area"></div>
 
 <script>
 if ('serviceWorker' in navigator) {
