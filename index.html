@@ -1342,7 +1342,7 @@ function toggleTheme() {
   toast(theme === 'dark' ? '已切换到反色主题' : '已切换到浅色主题');
 }
 
-const APP_VER = 'v7.34';
+const APP_VER = 'v7.35';
 const LS_KEY = 'flow_grid_v5';
 const SUMMARY_STATE_KEY = 'flow_summary_state_v3';
 // 流水表默认铺多少行空行。像 Excel 一样随手往下填，不用先点「新增」。
@@ -3566,6 +3566,7 @@ function _xFindSheets(map) {
     if (nm === XLSM_SHEET_FLOW) out.flow = relMap.get(rid);
     if (nm === XLSM_SHEET_SUM) out.sum = relMap.get(rid);
     if (nm === '分期') out.inst = relMap.get(rid);
+    if (nm === '查询') out.query = relMap.get(rid);
   }
   if (!out.flow || !out.sum) throw new Error('模板里必须有两个工作表：「流水」和「汇总」');
   return out;
@@ -4910,11 +4911,32 @@ async function buildXlsxFromTemplate(tplBytes) {
     .replace(new RegExp('<row r="' + monthRow + '"[^>]*>[\\s\\S]*?</row>'), (mm2) => mm2.replace(/>[\s\S]*<\/row>$/, '>' + h2Parts.join('') + '</row>'));
   const newInst = _xRebuild(instHead, dataStart - 1, instData, (col) => instStyleP(col));
 
+  // ---------- 查询表：清掉模板里的旧流水，只留表头和公式 ----------
+  let newQuery = null;
+  if (paths.query) {
+    const qXml = _xdec.decode(map.get(paths.query));
+    const qRows = _xParseSheet(qXml, shared);
+    const keepRows = 3;   // r1 标题 / r2 条件 / r3 表头
+    let q = qXml;
+    // 找出所有 row r="N"（N > 3）整段删掉
+    for (const rn of [...qRows.keys()].sort((a, b) => b - a)) {
+      if (rn <= keepRows) continue;
+      const re = new RegExp('<row r="' + rn + '"[^>]*>[\\s\\S]*?</row>', 'g');
+      q = q.replace(re, '');
+      const re2 = new RegExp('<row r="' + rn + '"[^>]*/>', 'g');
+      q = q.replace(re2, '');
+    }
+    // 顺便把 dimension 收到 A1:X3 附近，避免 Excel 停在巨大的空表上
+    q = q.replace(/<dimension ref="[^"]*"\/>/, '<dimension ref="A1:X3"/>');
+    newQuery = q;
+  }
+
   // ---------- 打包 ----------
   const outEntries = order.map(e => {
     if (e.name === paths.flow) return { name: e.name, data: _xenc.encode(newFlow) };
     if (e.name === paths.sum) return { name: e.name, data: _xenc.encode(newSum) };
     if (e.name === paths.inst) return { name: e.name, data: _xenc.encode(newInst) };
+    if (newQuery != null && e.name === paths.query) return { name: e.name, data: _xenc.encode(newQuery) };
     if (e.name === 'xl/workbook.xml') {
       let wb = _xdec.decode(e.data);
       if (!/fullCalcOnLoad/.test(wb)) wb = wb.replace(/<calcPr([^>]*?)\/>/, '<calcPr$1 fullCalcOnLoad="1"/>');
