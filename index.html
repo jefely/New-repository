@@ -2762,36 +2762,23 @@ async function addFlowFromTXT(e, footer) {
     e.target.value = '';
     return;
   }
-  // 去重用「计数」而不是「存在性」：
-  // 账本里同一签名的流水有几笔，就只能抵消文件里的几笔；
-  // 这样「同一天、同账户、同金额」连续发生两次时，第二笔仍会被正确追加。
-  const sig = (t) => [t.date || '', t.from || '', t.to || '', Number(t.amount) || 0, t.note || ''].join('\u0001');
-  const pool = new Map();
-  state.transactions.forEach(t => {
-    const k = sig(t);
-    pool.set(k, (pool.get(k) || 0) + 1);
-  });
-  let added = 0, dup = 0;
+  // 全部追加，不做重复判断：同一天同账户同金额的多笔本来就可能都是真交易
+  let added = 0;
   for (const t of parsed.txs) {
-    const k = sig({ ...t, from: resolveCode(t.from || ''), to: resolveCode(t.to || '') });
-    const have = pool.get(k) || 0;
-    if (have > 0) { pool.set(k, have - 1); dup++; continue; }
-    // 转出 / 转入 支持简码：XJ → 现金（账户已经在上面替换过了，这里能查到）
     state.transactions.push({
-      id: 't' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
-      seq: 0, date: t.date || '',
+      id: 't' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6) + (added++),
+      seq: 0,
+      date: t.date || '',
       from: resolveCode(t.from || ''),
       to: resolveCode(t.to || ''),
       amount: t.amount === '' || t.amount == null ? '' : t.amount,
       note: t.note || ''
     });
-    added++;
   }
   if (parsed.accs.length) state.accounts = parsed.accs;
   reseq(); save(); render();
   e.target.value = '';
-  toast('已添加 ' + added + ' 笔流水' + (dup ? '，抵消 ' + dup + ' 笔账本里已有的' : '') +
-    '；账户 ' + state.accounts.length + ' 个', { duration: 5000 });
+  toast('已添加 ' + added + ' 笔流水；账户 ' + state.accounts.length + ' 个', { duration: 5000 });
 }
 
 function parseBookTXT(text) {
@@ -3734,26 +3721,21 @@ async function openXlsmDialog() {
   mask.querySelector('#x-ifile').onchange = (e) => {
     const f = e.target.files && e.target.files[0];
     if (!f) return;
-    askConfirm('把文件里的流水<b>追加</b>到当前账本？<br>账户按文件内容替换，重复的流水会自动跳过。', async () => {
+    askConfirm('把文件里的流水<b>追加</b>到当前账本？<br>账户按文件内容替换，流水全部追加不做去重。', async () => {
       try {
         const data = await readXLSMFile(f);
         if (!data.accounts.length && !data.transactions.length) { toast('这个文件里没读到数据', { type: 'error' }); return; }
         // 账户：按文件替换（和最初的 TXT 导入规则一致）
         if (data.accounts.length) state.accounts = data.accounts;
         // 流水：追加 + 去重（日期/转出/转入/金额/备注 全相同视为同一笔）
-        const sig = (t) => [t.date || '', t.from || '', t.to || '', Number(t.amount) || 0, t.note || ''].join('\u0001');
-        const pool = new Map();
-        state.transactions.forEach(t => { const k = sig(t); pool.set(k, (pool.get(k) || 0) + 1); });
-        let added = 0, dup = 0;
+        // 全部追加，不做重复判断
+        let added = 0;
         for (const t of data.transactions) {
-          const k = sig(t);
-          const have = pool.get(k) || 0;
-          if (have > 0) { pool.set(k, have - 1); dup++; continue; }
           state.transactions.push(t);
           added++;
         }
         reseq(); save(); render(); close();
-        toast('已追加 ' + added + ' 笔流水' + (dup ? '，抵消 ' + dup + ' 笔账本里已有的' : '') + '；账户 ' + state.accounts.length + ' 个', { duration: 5000 });
+        toast('已追加 ' + added + ' 笔流水；账户 ' + state.accounts.length + ' 个', { duration: 5000 });
       } catch (err) { toast('导入失败：' + err.message, { type: 'error', duration: 6000 }); }
     });
   };
