@@ -1342,7 +1342,7 @@ function toggleTheme() {
   toast(theme === 'dark' ? '已切换到反色主题' : '已切换到浅色主题');
 }
 
-const APP_VER = 'v7.33';
+const APP_VER = 'v7.34';
 const LS_KEY = 'flow_grid_v5';
 const SUMMARY_STATE_KEY = 'flow_summary_state_v3';
 // 流水表默认铺多少行空行。像 Excel 一样随手往下填，不用先点「新增」。
@@ -5005,19 +5005,20 @@ function showExportDone(name, size, url, dataUrl, info) {
         大小：${Math.round(size / 1024)} KB
       </div>
       <div class="sync-hint" style="text-align:left;line-height:1.8">
-        <b>文件保存位置：内部存储 / Download</b><br>
-        打开手机自带的「<b>文件管理</b>」→「<b>内部存储</b>」→「<b>Download</b>」文件夹，<br>
-        文件名就是上面那个 <b>${esc(name)}</b>。<br>
+        <b>文件保存位置：内部存储 → Download → Browser</b><br>
+        华为浏览器默认把下载存在 <b>Download/Browser/</b> 子文件夹里，<br>
+        文件名如果显示成一串 uuid，就是下面这个 <b>${esc(name)}</b> 被浏览器改名了。<br>
+        <span style="color:#2563eb">想存到 Download 根目录：浏览器「设置 → 下载设置 → 下载路径」改成「内部存储/Download」</span><br>
         <span style="color:#dc2626">如果下面点了没反应，请长按按钮选「链接另存为」，<br>或者换系统浏览器打开这个页面再导出。</span>
       </div>
       <div class="sync-block" style="gap:8px">
-        <button type="button" id="x-copy-file" style="width:100%">复制文件到剪贴板</button>
+        <a href="${url}" download="${esc(name)}" id="x-save-a" style="display:block;text-decoration:none">
+          <button type="button" style="width:100%">保存为 ${esc(name)}</button>
+        </a>
         <a href="${dataUrl}" download="${esc(name)}" style="display:block;text-decoration:none">
-          <button type="button" class="ghost" style="width:100%">点我保存</button>
+          <button type="button" class="ghost" style="width:100%">换个方式保存</button>
         </a>
-        <a href="${url}" download="${esc(name)}" target="_blank" rel="noopener" style="display:block;text-decoration:none">
-          <button type="button" class="ghost" style="width:100%">换个方式再试</button>
-        </a>
+        <button type="button" id="x-copy-file" class="ghost" style="width:100%">复制文件到剪贴板</button>
       </div>
       <div class="sync-hint" style="text-align:left;font-size:12px;color:#64748b">
         长按上面任一按钮 →「链接另存为」也能保存
