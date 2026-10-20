@@ -117,6 +117,42 @@ table#summary-table thead th.col-name { z-index: 6; }
 
 /* 简码重复警告 */
 table.grid td.col-code input.dup { color: var(--danger); font-weight: 700; background: #fee2e2; }
+
+/* ==========================================
+   打印
+   ------------------------------------------------------------
+   屏幕上隐藏打印区；打印时只显示它，其余全部隐藏。
+   深色表头打印会糊成黑块，所以打印态一律白底黑框。
+   ========================================== */
+#print-area { display: none; }
+@media print {
+  @page { size: A4 portrait; margin: 12mm 10mm; }
+  /* 高度必须放开，否则只出一页（body/html 默认 100% 高） */
+  html, body { background: #fff !important; height: auto !important; max-height: none !important; overflow: visible !important; }
+  #print-area { overflow: visible !important; height: auto !important; max-height: none !important; }
+  .tabbar, .toolbar, #footer, #print-area { }
+  .tabbar, .toolbar, #footer, .toast, .confirm-mask, .sync-box { display: none !important; }
+  #app, #main { overflow: visible !important; height: auto !important; max-height: none !important; }
+  body > *:not(#print-area) { display: none !important; }
+  #print-area { display: block !important; color: #000; font-size: 11pt; }
+  #print-area h1 { font-size: 17pt; margin: 0 0 2mm; font-weight: 700; }
+  #print-area .meta { font-size: 9pt; color: #444; margin-bottom: 4mm; }
+  #print-area h2 { font-size: 12pt; margin: 5mm 0 2mm; padding-bottom: 1mm; border-bottom: 1.5pt solid #000; }
+  #print-area table { width: 100%; border-collapse: collapse; font-size: 9.5pt; }
+  #print-area th, #print-area td { border: 0.5pt solid #999; padding: 1.2mm 1.5mm; }
+  #print-area thead th { background: #eee !important; color: #000 !important; font-weight: 700; text-align: center; }
+  #print-area thead { display: table-header-group; }
+  #print-area tr { page-break-inside: avoid; }
+  #print-area td.num { text-align: right; }
+  #print-area td.center { text-align: center; }
+  #print-area .kv { display: flex; flex-wrap: wrap; gap: 2mm 8mm; margin: 2mm 0 0; }
+  #print-area .kv div { font-size: 10pt; }
+  #print-area .kv b { font-size: 12pt; display: block; }
+  #print-area .total-row td { font-weight: 700; background: #f2f2f2 !important; }
+  #print-area .foot { margin-top: 6mm; font-size: 8pt; color: #666; text-align: right; }
+  #print-area .neg { color: #000; }
+}
+
 /* 数据体检：账户名重复、流水里引用了不存在的账户，都标红 */
 table.grid td input.bad { color: var(--danger); font-weight: 700; background: #fee2e2; }
 table#summary-table td.col-name input.dup { color: var(--danger); font-weight: 700; background: #fee2e2; }
@@ -966,6 +1002,7 @@ function renderFlow(main, footer) {
     <button class="ghost" id="f-add">添加</button>
     <button class="ghost" id="f-sync">同步</button>
     <button class="ghost" id="f-exp">导出</button>
+    <button class="ghost" id="f-print">打印</button>
     <input type="file" id="f-addfile" accept=".txt,text/plain" style="display:none">
     <span class="flow-title">流水记录</span>
     <span style="flex:1"></span>
@@ -976,6 +1013,7 @@ function renderFlow(main, footer) {
   document.getElementById('f-addfile').onchange = (e) => addFlowFromTXT(e, footer);
   document.getElementById('f-sync').onclick = () => openSyncDialog();
   document.getElementById('f-exp').onclick = () => openXlsmDialog();
+  document.getElementById('f-print').onclick = () => printMonthlyReport();
 
   // 3. 表格主体
   const wrap = document.createElement('div');
@@ -1376,6 +1414,7 @@ function renderSummary(main, footer) {
   bar1.innerHTML = `
     <button id="mode-range" class="ghost" data-active="${summaryMode === 'range'}">区间</button>
     <button id="mode-month" class="ghost" data-active="${summaryMode === 'month'}">月份</button>
+    <button id="s-print" class="ghost" title="打印账户余额表">打印</button>
     ${monthsMode ? '' : '<button id="range-clear" class="ghost" title="清空起止日期">清空</button>'}
     ${monthsMode ? `<div class="month-row" id="month-row-top">${monthsTop}</div>` : ''}
   `;
@@ -1503,6 +1542,8 @@ function applySummarySticky() {
   // 绑定事件（导入导出统一在流水页，汇总页不再放这两个按钮）
   document.getElementById('mode-range').onclick = () => { if (summaryMode !== 'range') { summaryMode = 'range'; saveSummaryState(); render(); } };
   document.getElementById('mode-month').onclick = () => { if (summaryMode !== 'month') { summaryMode = 'month'; saveSummaryState(); render(); } };
+  const sPrint = document.getElementById('s-print');
+  if (sPrint) sPrint.onclick = () => printAccounts();
 
   function rangeUpdate() {
     return getCurrentRange();
@@ -2894,6 +2935,156 @@ function applyDataIssues() {
   }
 }
 
+
+/* ============================================================
+   打印：月度报告 / 账户余额表
+   ============================================================ */
+function _prEsc(s) {
+  return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+function _prMoney(v) {
+  const n = Number(v);
+  if (!isFinite(n)) return '';
+  return n.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+function _prGo(html) {
+  const area = document.getElementById('print-area');
+  if (!area) return;
+  area.innerHTML = html;
+  // 等一拍让样式生效再唤起打印
+  setTimeout(() => { window.print(); }, 80);
+}
+
+// 一页 A4 的月度报告
+function printMonthlyReport() {
+  const r = getCurrentRange();
+  const [y, m] = (r.start || todayISO()).split('-').map(Number);
+  const period = summaryMode === 'month'
+    ? summaryMonth.year + ' 年 ' + summaryMonth.month + ' 月'
+    : r.start + ' ~ ' + r.end;
+
+  // 按分类汇总
+  const catsOrder = ['资产类', '负债类', '收入类', '权益类', '费用类'];
+  const byCat = {};
+  for (const a of state.accounts) {
+    const c = a.cat || '未分类';
+    (byCat[c] = byCat[c] || { n: 0, bal: 0, out: 0, inn: 0, open: 0 });
+    const st = computeStats(a, r);
+    byCat[c].n++;
+    byCat[c].bal += st.balance;
+    byCat[c].out += st.mOut;
+    byCat[c].inn += st.mIn;
+    byCat[c].open += Number(a.opening) || 0;
+  }
+  const cats = Object.keys(byCat).sort((a, b) => {
+    const ia = catsOrder.indexOf(a), ib = catsOrder.indexOf(b);
+    return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib);
+  });
+
+  let totIn = 0, totOut = 0, totAsset = 0, totDebt = 0;
+  for (const c of cats) {
+    const d = byCat[c];
+    totIn += d.inn; totOut += d.out;
+    if (c === '负债类') totDebt += d.bal; else totAsset += d.bal;
+  }
+  const net = totAsset - totDebt;
+
+  // 本期流水（限 60 笔，避免撑爆纸）
+  const txs = state.transactions
+    .filter(t => t.date && t.date >= r.start && t.date <= r.end)
+    .sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
+  const shown = txs.slice(0, 60);
+
+  const rows = cats.map(c => {
+    const d = byCat[c];
+    return '<tr><td>' + _prEsc(c) + '</td><td class="center">' + d.n + '</td>'
+      + '<td class="num">' + _prMoney(d.inn) + '</td>'
+      + '<td class="num">' + _prMoney(d.out) + '</td>'
+      + '<td class="num">' + _prMoney(d.bal) + '</td></tr>';
+  }).join('');
+
+  const txRows = shown.map((t, i) =>
+    '<tr><td class="center">' + (i + 1) + '</td><td class="center">' + _prEsc(toYYMMDD(t.date)) + '</td>'
+    + '<td>' + _prEsc(t.from) + '</td><td>' + _prEsc(t.to) + '</td>'
+    + '<td class="num">' + _prMoney(t.amount) + '</td><td>' + _prEsc(t.note) + '</td></tr>'
+  ).join('');
+
+  const html = '<h1>流水账 · 月度报告</h1>'
+    + '<div class="meta">统计区间：' + _prEsc(period) + '（' + _prEsc(r.start) + ' ~ ' + _prEsc(r.end) + '）'
+    + ' · 账户 ' + state.accounts.length + ' 个 · 本期流水 ' + txs.length + ' 笔</div>'
+
+    + '<h2>总览</h2>'
+    + '<div class="kv">'
+    + '<div>本期收入<b>' + _prMoney(totIn) + '</b></div>'
+    + '<div>本期支出<b>' + _prMoney(totOut) + '</b></div>'
+    + '<div>本期结余<b>' + _prMoney(totIn - totOut) + '</b></div>'
+    + '<div>资产<b>' + _prMoney(totAsset) + '</b></div>'
+    + '<div>负债<b>' + _prMoney(totDebt) + '</b></div>'
+    + '<div>净资产<b>' + _prMoney(net) + '</b></div>'
+    + '</div>'
+
+    + '<h2>分类汇总</h2>'
+    + '<table><thead><tr><th>分类</th><th>账户数</th><th>转入</th><th>转出</th><th>结余</th></tr></thead><tbody>'
+    + rows
+    + '<tr class="total-row"><td>合计</td><td class="center">' + state.accounts.length + '</td>'
+    + '<td class="num">' + _prMoney(totIn) + '</td><td class="num">' + _prMoney(totOut) + '</td>'
+    + '<td class="num">' + _prMoney(net) + '</td></tr>'
+    + '</tbody></table>'
+
+    + (shown.length ? ('<h2>本期流水' + (txs.length > shown.length ? '（前 ' + shown.length + ' 笔，共 ' + txs.length + ' 笔）' : '') + '</h2>'
+      + '<table><thead><tr><th>序号</th><th>日期</th><th>转出</th><th>转入</th><th>金额</th><th>备注</th></tr></thead><tbody>'
+      + txRows + '</tbody></table>') : '')
+
+    + '<div class="foot">打印时间 ' + new Date().toLocaleString('zh-CN') + '</div>';
+
+  _prGo(html);
+}
+
+// 账户余额表
+function printAccounts() {
+  const r = getCurrentRange();
+  const catsOrder = ['资产类', '负债类', '收入类', '权益类', '费用类'];
+  const byCat = {};
+  for (const a of state.accounts) {
+    const c = a.cat || '未分类';
+    (byCat[c] = byCat[c] || []).push(a);
+  }
+  const cats = Object.keys(byCat).sort((a, b) => {
+    const ia = catsOrder.indexOf(a), ib = catsOrder.indexOf(b);
+    return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib);
+  });
+  let idx = 1, grand = 0;
+  let body = '';
+  for (const c of cats) {
+    let sub = 0;
+    const rows = byCat[c].map(a => {
+      const st = computeStats(a, r);
+      sub += st.balance;
+      const isDebt = (a.cat || '') === '负债类';
+      return '<tr><td class="center">' + (idx++) + '</td><td>' + _prEsc(c) + '</td>'
+        + '<td class="center">' + _prEsc(a.code) + '</td><td>' + _prEsc(a.name) + '</td>'
+        + '<td class="num">' + _prMoney(st.balance) + '</td>'
+        + '<td class="num">' + _prMoney(a.opening) + '</td>'
+        + '<td class="center">' + (isDebt ? _prEsc(a.billDay) : '') + '</td>'
+        + '<td class="center">' + (isDebt ? _prEsc(a.repayDay) : '') + '</td></tr>';
+    }).join('');
+    body += rows;
+    body += '<tr class="total-row"><td colspan="4">' + _prEsc(c) + ' 合计</td>'
+      + '<td class="num">' + _prMoney(sub) + '</td><td colspan="3"></td></tr>';
+    grand += sub;
+  }
+  const html = '<h1>流水账 · 账户余额表</h1>'
+    + '<div class="meta">统计区间：' + _prEsc(summaryMode === 'month' ? (summaryMonth.year + ' 年 ' + summaryMonth.month + ' 月') : (r.start + ' ~ ' + r.end))
+    + ' · 账户 ' + state.accounts.length + ' 个</div>'
+    + '<table><thead><tr><th>序号</th><th>分类</th><th>简码</th><th>账户名称</th><th>当前结余</th><th>期初</th><th>账单日</th><th>还款日</th></tr></thead><tbody>'
+    + body
+    + '<tr class="total-row"><td colspan="4">全部合计</td><td class="num">' + _prMoney(grand) + '</td><td colspan="3"></td></tr>'
+    + '</tbody></table>'
+    + '<div class="foot">打印时间 ' + new Date().toLocaleString('zh-CN') + '</div>';
+  _prGo(html);
+}
+
+
 function parseBookTXT(text) {
   text = String(text).replace(/\r\n?/g, '\n');
   const txs = [], accs = [];
@@ -4159,6 +4350,7 @@ document.querySelectorAll('.tabbar button').forEach(b => {
 });
 render();
 </script>
+<div id="print-area"></div>
 
 <script>
 if ('serviceWorker' in navigator) {
