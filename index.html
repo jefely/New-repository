@@ -1047,6 +1047,12 @@ table.install-table tbody tr.inst-p > td.col-name input { color: #ffffff !import
 /* 月份格子保持紧凑，不参与 2ch 大间隔（12 个月放不下） */
 .toolbar.bar1 .month-row,
 .toolbar.bar2 .month-row { gap: 4px; }
+/* 窄屏：流水页有 5 个按钮 + 标题，需要收紧才放得下 */
+@media (max-width: 767px) {
+  .toolbar.flow-bar { gap: 1.5ch; padding-left: 4px; padding-right: 4px; }
+  .toolbar.flow-bar > button { width: 40px !important; flex: 0 0 40px !important; padding: 0 !important; }
+  .toolbar.flow-bar .flow-title { margin-right: 0 !important; font-size: 14px; }
+}
 </style>
 </head>
 <body>
@@ -1510,9 +1516,8 @@ function renderFlow(main, footer) {
     <button class="ghost" id="f-sync">同步</button>
     <button class="ghost" id="f-exp">导出</button>
     <button class="ghost" id="f-print">打印</button>
-    <input type="file" id="f-addfile" accept=".txt,text/plain" style="display:none">
-    <span style="flex:1"></span>
     <button class="ghost" id="f-theme" title="切换反色主题">主题</button>
+    <input type="file" id="f-addfile" accept=".txt,text/plain" style="display:none">
   `;
   main.appendChild(bar);
 
