@@ -103,6 +103,8 @@ table.grid tbody td.col-bill { position: relative; padding-left: 30px; }
 .row-del { position: absolute; right: 0; top: 0; bottom: 0; width: 30px; padding: 0; background: none; border: none; color: var(--border); font-size: 19px; line-height: 1; cursor: pointer; transition: color 0.2s; }
 table.grid tbody td.col-bill > .row-del { right: auto; left: 0; }
 .row-del:active { color: var(--danger); background: #fee2e2; }
+/* 固定支出勾选框：放在删除按钮左边 */
+.fixed-chk { position: absolute; right: 30px; top: 50%; transform: translateY(-50%); width: 15px; height: 15px; margin: 0; cursor: pointer; accent-color: var(--primary); }
 
 /* 空行：默认铺 100 行，整行高亮太吵，只把序号淡化以区分「还没落库的行」 */
 table.grid tbody tr[data-new="1"] td.col-seq { color: var(--text-light); font-weight: 400; }
@@ -589,6 +591,7 @@ footer { position: relative; }
   <button data-tab="summary">汇总</button>
   <button data-tab="query">查询</button>
   <button data-tab="install">分期</button>
+  <button data-tab="fixed">固定</button>
 </div>
 
 <main id="main"></main>
@@ -642,10 +645,19 @@ const FLOW_FIELDS = ['date', 'from', 'to', 'amount', 'note'];
 let state = (() => {
   try {
     const raw = localStorage.getItem(LS_KEY);
-    if (raw) { const s = JSON.parse(raw); if (s.accounts && s.transactions) return s; }
+    if (raw) {
+      const s = JSON.parse(raw);
+      if (s.accounts && s.transactions) {
+        if (!Array.isArray(s.fixed)) s.fixed = [];
+        if (!Array.isArray(s.installments)) s.installments = [];
+        return s;
+      }
+    }
   } catch (e) {}
-  return { accounts: JSON.parse(JSON.stringify(defaultAccounts)), transactions: [] };
+  return { accounts: JSON.parse(JSON.stringify(defaultAccounts)), transactions: [], installments: [], fixed: [] };
 })();
+if (!Array.isArray(state.fixed)) state.fixed = [];
+if (!Array.isArray(state.installments)) state.installments = [];
 
 let summaryMode = 'month';
 let summaryRange = { start: '', end: '' };
@@ -973,6 +985,7 @@ function render() {
   if (currentTab === 'flow') renderFlow(main, footer);
   else if (currentTab === 'summary') renderSummary(main, footer);
   else if (currentTab === 'install') renderInstall(main, footer);
+  else if (currentTab === 'fixed') renderFixed(main, footer);
   else if (currentTab === 'query') renderQuery(main, footer);
 
   // 数据体检：标红重复/异常项（flow 和 summary 页才有可标的地方）
@@ -1040,6 +1053,11 @@ function renderFlow(main, footer) {
   for (let i = 0; i < FLOW_BLANK_ROWS; i++) frag.appendChild(makeFlowRow(blankFlowRow(), 0, true));
   tbody.appendChild(frag);
   renumberFlowRows(tbody);
+  // 已有数据的行统一挂上「固定支出」勾选框
+  txs.forEach(t => {
+    const tr = tbody.querySelector('tr[data-id="' + t.id + '"]');
+    if (tr) attachFixedCheckbox(tr);
+  });
 
   wrap.appendChild(table);
   main.appendChild(wrap);
@@ -1145,6 +1163,7 @@ function bindFlowEvents(tbody) {
       if (amtInp) amtInp.value = fmtMoneyOrBlank(t.amount);
       // 行转正后补上删除按钮（挂在备注格右端，不占列）
       const noteTd = tr.querySelector('td.col-note');
+      attachFixedCheckbox(tr);
       if (noteTd && !noteTd.querySelector('.row-del')) {
         const btn = document.createElement('button');
         btn.type = 'button'; btn.className = 'row-del'; btn.textContent = '×';
@@ -3085,6 +3104,181 @@ function printAccounts() {
 }
 
 
+
+/* ============================================================
+   固定支出
+   ------------------------------------------------------------
+   数据：state.fixed = [{ id, day, from, to, amount, note, sourceTxId, lastMonth }]
+   · day        每月几号触发（取自添加时那笔流水的日）
+   · lastMonth  最近一次自动写入的月份（'YYYY-MM'），防止同月重复写
+   · sourceTxId 来源流水 id；取消勾选时按它找回
+   触发规则：当天 >= day，且 lastMonth 不是本月 → 写入一笔（日期用当天）
+   每天只在 5:00 之后检查一次（localStorage 记日期）
+   ============================================================ */
+const FIXED_RUN_KEY = 'flow_fixed_lastrun_v1';
+
+
+// 给一行流水挂上「固定支出」勾选框（幂等）
+function attachFixedCheckbox(tr) {
+  if (!tr || !tr.dataset.id) return;
+  const noteTd = tr.querySelector('td.col-note');
+  if (!noteTd || noteTd.querySelector('.fixed-chk')) return;
+  const chk = document.createElement('input');
+  chk.type = 'checkbox';
+  chk.className = 'fixed-chk';
+  chk.title = '加入固定支出（每月按这一天的金额自动记一笔）';
+  chk.checked = !!fixedBySource(tr.dataset.id);
+  chk.addEventListener('click', (ev) => {
+    ev.stopPropagation();
+    if (chk.checked) addFixedFromTx(tr.dataset.id);
+    else removeFixedBySource(tr.dataset.id);
+    save();
+    toast(chk.checked ? '已加入固定支出' : '已取消固定支出');
+  });
+  noteTd.appendChild(chk);
+}
+
+function fixedBySource(txId) {
+  return (state.fixed || []).find(f => f.sourceTxId === txId) || null;
+}
+
+// 从一笔流水创建固定支出（勾选）
+function addFixedFromTx(txId) {
+  const t = state.transactions.find(x => x.id === txId);
+  if (!t) return;
+  if (fixedBySource(txId)) return;
+  const day = t.date ? parseInt(t.date.slice(8, 10), 10) : 1;
+  state.fixed.push({
+    id: 'f' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+    day: day || 1,
+    from: t.from || '',
+    to: t.to || '',
+    amount: t.amount === '' || t.amount == null ? '' : t.amount,
+    note: t.note || '',
+    sourceTxId: txId,
+    lastMonth: ''
+  });
+}
+
+// 取消勾选（按来源流水）
+function removeFixedBySource(txId) {
+  state.fixed = (state.fixed || []).filter(f => f.sourceTxId !== txId);
+}
+
+// 打开时自动写入：当天 >= day 且本月还没写过
+function runFixedExpenses() {
+  if (!state.fixed || !state.fixed.length) return 0;
+  const now = new Date();
+  const hh = now.getHours();
+  if (hh < 5) return 0;                       // 5:00 之前不触发
+  const today = todayISO();
+  const day = now.getDate();
+  const ym = today.slice(0, 7);               // '2026-10'
+
+  let ranToday = false;
+  try { ranToday = localStorage.getItem(FIXED_RUN_KEY) === today; } catch (e) {}
+  if (ranToday) return 0;                     // 今天已经跑过
+
+  let added = 0;
+  for (const f of state.fixed) {
+    if (day < (f.day || 1)) continue;         // 还没到这个月的那天
+    if (f.lastMonth === ym) continue;         // 本月已经写过
+    state.transactions.push({
+      id: 't' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6) + (added++),
+      seq: 0,
+      date: today,                            // 日期用当天
+      from: f.from || '',
+      to: f.to || '',
+      amount: f.amount === '' || f.amount == null ? '' : f.amount,
+      note: f.note || '',
+      fixedId: f.id
+    });
+    f.lastMonth = ym;
+  }
+  try { localStorage.setItem(FIXED_RUN_KEY, today); } catch (e) {}
+  if (added) { reseq(); save(); }
+  return added;
+}
+
+// 固定支出列表页
+function renderFixed(main, footer) {
+  const list = (state.fixed || []).slice().sort((a, b) => (a.day || 1) - (b.day || 1));
+  const bar = document.createElement('div');
+  bar.className = 'toolbar flow-bar';
+  bar.innerHTML = `
+    <span class="flow-title" style="position:static;transform:none;width:auto;text-align:left;padding-left:0">固定支出</span>
+  `;
+  main.appendChild(bar);
+
+  const wrap = document.createElement('div');
+  wrap.className = 'grid-wrap';
+  const table = document.createElement('table');
+  table.className = 'grid';
+  table.id = 'fixed-table';
+  table.innerHTML = `
+    <thead><tr>
+      <th class="col-seq">序号</th>
+      <th class="col-day">每月</th>
+      <th class="col-from">转出</th>
+      <th class="col-to">转入</th>
+      <th class="col-amount">金额</th>
+      <th class="col-note">备注</th>
+      <th class="col-state">本月</th>
+      <th class="col-op">操作</th>
+    </tr></thead><tbody></tbody>`;
+  const tbody = table.querySelector('tbody');
+  const nowYm = todayISO().slice(0, 7);
+
+  if (!list.length) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = '<td colspan="8" style="padding:18px;text-align:center;color:var(--text-muted)">还没有固定支出。到「流水」页勾选行尾的复选框即可添加。</td>';
+    tbody.appendChild(tr);
+  } else {
+    list.forEach((f, i) => {
+      const tr = document.createElement('tr');
+      tr.dataset.fid = f.id;
+      const done = f.lastMonth === nowYm;
+      const cells = [
+        { cls: 'col-seq', text: String(i + 1) },
+        { cls: 'col-day', text: (f.day || 1) + ' 号' },
+        { cls: 'col-from', text: f.from || '' },
+        { cls: 'col-to', text: f.to || '' },
+        { cls: 'col-amount', text: f.amount === '' || f.amount == null ? '' : fmtMoney(f.amount) },
+        { cls: 'col-note', text: f.note || '' },
+        { cls: 'col-state', text: done ? '已写入' : '待写入' }
+      ];
+      cells.forEach(c => {
+        const td = document.createElement('td');
+        td.className = c.cls;
+        td.textContent = c.text;
+        if (c.cls === 'col-state') td.style.color = done ? 'var(--success, #00b050)' : 'var(--text-muted)';
+        tr.appendChild(td);
+      });
+      const op = document.createElement('td');
+      op.className = 'col-op';
+      const del = document.createElement('button');
+      del.type = 'button';
+      del.className = 'row-del';
+      del.textContent = '×';
+      del.title = '取消这条固定支出（不影响已有流水）';
+      del.style.position = 'static';
+      del.style.width = 'auto';
+      del.style.padding = '0 8px';
+      del.onclick = () => {
+        removeFixedBySource(f.sourceTxId);
+        save(); render();
+        toast('已取消固定支出（原流水保留）');
+      };
+      op.appendChild(del);
+      tr.appendChild(op);
+      tbody.appendChild(tr);
+    });
+  }
+  wrap.appendChild(table);
+  main.appendChild(wrap);
+  setFooterText('共 ' + list.length + ' 条固定支出 · 每天 5:00 后首次打开时，到期的自动写入流水');
+}
+
 function parseBookTXT(text) {
   text = String(text).replace(/\r\n?/g, '\n');
   const txs = [], accs = [];
@@ -4348,6 +4542,12 @@ document.addEventListener('focus', e => {
 document.querySelectorAll('.tabbar button').forEach(b => {
   b.onclick = () => { currentTab = b.dataset.tab; render(); };
 });
+// 固定支出：当天 5:00 之后第一次打开时，把到期的自动写进流水
+try {
+  const nFixed = runFixedExpenses();
+  if (nFixed > 0) setTimeout(() => toast("已自动记入 " + nFixed + " 笔固定支出", { duration: 5000 }), 600);
+} catch (e) {}
+
 render();
 </script>
 <div id="print-area"></div>
