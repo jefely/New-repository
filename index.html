@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#3b82f6">
+<meta name="theme-color" content="#679df8">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
 <link rel="apple-touch-icon" href="icon-192.png">
@@ -20,7 +20,7 @@
    1. 全局变量与基础设置
    ========================================== */
 :root {
-  --primary: #3b82f6;
+  --primary: #679df8;
   --primary-dark: #2563eb;
   --bg-main: #ffffff;
   --bg-gray: #f1f5f9;
@@ -45,10 +45,10 @@ body { display: flex; flex-direction: column; height: 100vh; height: 100dvh; }
    2. 布局与导航
    ========================================== */
 /* 标签栏高度同其它行统一为 32px（含 3px 的选中下划线） */
-.tabbar { flex-shrink: 0; display: flex; height: 40px; background: var(--primary); overflow-x: auto; border-bottom: 2px solid #2563eb; }
-.tabbar button { flex: 1 1 0; min-width: 0; height: 100%; box-sizing: border-box; background: none; border: none; border-left: 1px solid rgba(255, 255, 255, .35); color: #0f172a; padding: 0 2px; font-size: 15px; font-weight: 700; cursor: pointer; border-bottom: 3px solid transparent; transition: all 0.2s; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tabbar { flex-shrink: 0; display: flex; height: 40px; background: #eff6ff; overflow-x: auto; border-bottom: 2px solid var(--primary); }
+.tabbar button { flex: 1 1 0; min-width: 0; height: 100%; box-sizing: border-box; background: none; border: none; border-left: 1px solid #dbeafe; color: #1e3a8a; padding: 0 2px; font-size: 15px; font-weight: 700; cursor: pointer; border-bottom: 3px solid transparent; transition: all 0.2s; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .tabbar button:first-child { border-left: none; }
-.tabbar button.active { color: #0f172a; background: rgba(255, 255, 255, .45); border-bottom-color: #0f172a; }
+.tabbar button.active { color: #ffffff; background: var(--primary); border-bottom-color: #1e40af; }
 
 main { flex: 1; min-height: 0; display: flex; flex-direction: column; background: var(--bg-main); overflow: hidden; }
 footer { flex-shrink: 0; background: var(--bg-dark); color: var(--text-light); padding: 8px 12px; padding-bottom: max(8px, env(safe-area-inset-bottom)); font-size: 12px; text-align: center; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -118,33 +118,34 @@ table#flow-table tbody td.col-note > .row-del { right: 18px; width: 18px; font-s
 
 /* 表头统一：字号加大到 14px（颜色沿用各表原有的灰色，不改） */
 table.grid thead th, table.query-table thead th, table.install-table thead th {
-  font-size: 14px !important;
+  font-size: 15px !important;
+  white-space: nowrap;
 }
 /* 查询表的筛选输入行也统一成小一号灰字 */
 table.query-table thead th input {
-  font-size: 12px !important;
+  font-size: 13px !important;
   color: #64748b !important;
 }
 table.query-table thead th input:focus { color: #0f172a !important; }
 
 /* 统一按钮：字号一致、黑字（放最后 + !important，压过前面各页的局部规则） */
-button { font-size: 13px !important; color: #0f172a !important; }
+button { font-size: 14px !important; color: #0f172a !important; }
 button.ghost { color: #0f172a !important; }
 /* 深色底上的标签栏按钮保持白字 */
-.tabbar button { font-size: 15px !important; color: #0f172a !important; }
-.tabbar button.active { color: #0f172a !important; }
+.tabbar button { font-size: 15px !important; color: #1e3a8a !important; }
+.tabbar button.active { color: #ffffff !important; }
 /* 危险操作（删除）保持原有浅色，hover/active 由 .row-del 自己控制 */
 button.row-del { color: var(--border) !important; }
 button.row-del:active { color: var(--danger) !important; }
 /* 月份小按钮字号跟着统一，仍然 44px 宽放得下「12月」 */
-.toolbar .m-btn { font-size: 13px !important; }
+.toolbar .m-btn { font-size: 14px !important; }
 
 /* 字号变小后行高会跟着缩，给输入框一个固定高度把行高锁在 32px */
 table.grid tbody td input { height: 30px; box-sizing: border-box; }
 table#summary-table tbody td input { height: 30px; }
 
 /* 输入框：字号小一号、灰字 */
-input, select, textarea { font-size: 12px !important; color: #64748b !important; }
+input, select, textarea { font-size: 13px !important; color: #64748b !important; }
 input::placeholder, textarea::placeholder { color: #94a3b8 !important; }
 /* 聚焦时文字加深，便于看清正在改什么 */
 input:focus, textarea:focus { color: #0f172a !important; }
@@ -262,7 +263,7 @@ table#summary-table .cat-row td.col-open { border-right: 1px solid var(--border-
    4. 各页面列宽自适应规则 (按照截图比例微调)
    ========================================== */
 /* 流水表 */
-table#flow-table th.col-seq, table#flow-table td.col-seq { width: 6%; }
+table#flow-table th.col-seq, table#flow-table td.col-seq { width: 54px; min-width: 54px; max-width: 54px; }
 table#flow-table th.col-date, table#flow-table td.col-date { width: 14%; }
 table#flow-table th.col-from, table#flow-table td.col-from { width: 20%; }
 table#flow-table th.col-to, table#flow-table td.col-to { width: 20%; }
@@ -270,7 +271,7 @@ table#flow-table th.col-amount, table#flow-table td.col-amount { width: 16%; }
 table#flow-table th.col-note, table#flow-table td.col-note { width: 24%; }
 
 /* 汇总表 */
-table#summary-table th.col-seq, table#summary-table td.col-seq { width: 5%; }
+table#summary-table th.col-seq, table#summary-table td.col-seq { width: 54px; min-width: 54px; max-width: 54px; }
 table#summary-table th.col-cat, table#summary-table td.col-cat { width: 8%; }
 table#summary-table th.col-code, table#summary-table td.col-code { width: 7%; }
 table#summary-table th.col-name, table#summary-table td.col-name { width: 15%; }
