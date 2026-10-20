@@ -992,6 +992,42 @@ table#summary-table tbody tr.cat-row > td .cat-col {
   background-color: transparent !important;
   color: #6b4fe0 !important;
 }
+/* ============================================================
+   最终规则（压倒一切前面的定义）
+   ============================================================ */
+/* 1. 分期「账户名称」列回到 深紫底 + 白字 */
+[data-theme="dark"] table.install-table tbody tr.inst-p > td.col-name,
+[data-theme="dark"] table.install-table tbody tr.inst-p:nth-child(odd) > td.col-name,
+[data-theme="dark"] table.install-table tbody tr.inst-p:nth-child(even) > td.col-name {
+  background-color: #2a2a4a !important;
+}
+[data-theme="dark"] table.install-table tbody tr.inst-p > td.col-name input,
+[data-theme="dark"] table.install-table tbody tr.inst-p > td.col-name input:focus {
+  color: #ffffff !important;
+  font-weight: 700;
+}
+/* 利息行的名称列仍跟随斑马纹 */
+[data-theme="dark"] table.install-table tbody tr.inst-i:nth-child(odd) > td.col-name { background-color: #0d0d0d !important; }
+[data-theme="dark"] table.install-table tbody tr.inst-i:nth-child(even) > td.col-name { background-color: #1a1a1a !important; }
+/* 浅色主题同步：本金行深紫底白字 */
+table.install-table tbody tr.inst-p > td.col-name { background-color: #2a2a4a !important; }
+table.install-table tbody tr.inst-p > td.col-name input { color: #ffffff !important; font-weight: 700; }
+
+/* 2. 汇总分类行：包括「账户名称」在内的每一格都必须和所在行同色 */
+[data-theme="dark"] table#summary-table tbody tr.cat-row:nth-child(odd) > td,
+[data-theme="dark"] table#summary-table tbody tr.cat-row:nth-child(odd) > td.col-seq,
+[data-theme="dark"] table#summary-table tbody tr.cat-row:nth-child(odd) > td.col-name,
+[data-theme="dark"] table#summary-table tbody tr.cat-row:nth-child(odd) > td.cat-tag {
+  background-color: #0d0d0d !important;
+  background-image: none !important;
+}
+[data-theme="dark"] table#summary-table tbody tr.cat-row:nth-child(even) > td,
+[data-theme="dark"] table#summary-table tbody tr.cat-row:nth-child(even) > td.col-seq,
+[data-theme="dark"] table#summary-table tbody tr.cat-row:nth-child(even) > td.col-name,
+[data-theme="dark"] table#summary-table tbody tr.cat-row:nth-child(even) > td.cat-tag {
+  background-color: #1a1a1a !important;
+  background-image: none !important;
+}
 </style>
 </head>
 <body>
