@@ -39,17 +39,18 @@
 
 /* 反色（暗色）主题：只换变量，其余样式自动跟随 */
 [data-theme="dark"] {
+  /* 底色全部用中性黑灰，不带蓝；只有选中态保留一点蓝做强调 */
   --primary: #7fb0ff;
   --primary-dark: #679df8;
-  --bg-main: #0f172a;
-  --bg-gray: #111c2e;
-  --bg-gray-light: #16233a;
-  --bg-dark: #e2e8f0;
-  --text-main: #e6edf7;
-  --text-muted: #9fb0c6;
-  --text-light: #6b7d94;
-  --border: #2c3d55;
-  --border-light: #1f2d42;
+  --bg-main: #000000;
+  --bg-gray: #0a0a0a;
+  --bg-gray-light: #131313;
+  --bg-dark: #f0f0f0;
+  --text-main: #f0f0f0;
+  --text-muted: #9a9a9a;
+  --text-light: #6e6e6e;
+  --border: #2a2a2a;
+  --border-light: #1c1c1c;
   --danger: #f87171;
   --success: #34d399;
 }
@@ -170,7 +171,7 @@ table.grid tbody td, table.query-table tbody td, table.install-table tbody td { 
 }
 /* 暗色下按钮：深底 + 亮边 + 亮字，别再是白块 */
 [data-theme="dark"] button, [data-theme="dark"] button.ghost {
-  background-color: #1c2a42 !important;
+  background-color: #1a1a1a !important;
   color: var(--text-main) !important;
   border: 1px solid var(--border) !important;
 }
