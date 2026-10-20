@@ -1283,9 +1283,8 @@ table#summary-table td input { padding-left: 4px !important; padding-right: 4px 
   display: grid !important;
   grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
   gap: 2px !important;
-  flex: 1 1 auto !important;
+  flex: 1 1 0 !important;
   min-width: 0 !important;
-  width: 100% !important;
 }
 .toolbar.bar2 .month-row .m-btn {
   display: flex !important;
@@ -1339,8 +1338,11 @@ table#summary-table { min-width: 800px !important; }
   gap: 6px !important;
   padding: 4px 6px !important;
   box-sizing: border-box !important;
-  width: 100% !important;
+  /* 宽度由 syncToolbarWidth() 按表格实际宽度设定（内联 style），
+     这里绝不能写 !important，否则会压掉 JS 设的值 */
   min-width: 0 !important;
+  position: sticky;
+  left: 0;
 }
 
 /* 标题：不参与均分 */
@@ -1460,6 +1462,32 @@ table#summary-table { min-width: 800px !important; }
   padding: 0 2px !important;
   white-space: nowrap !important;
 }
+/* 工具栏按表格宽度定宽后，超出视口时整页横向滚动即可 */
+#main { overflow-x: auto !important; }
+.toolbar.flow-bar > button,
+.toolbar.bar1 > button,
+.toolbar.bar2 > button,
+.toolbar.install-bar > button { min-width: 52px !important; }
+@media (max-width: 420px) {
+  .toolbar.flow-bar > button,
+  .toolbar.bar1 > button,
+  .toolbar.bar2 > button,
+  .toolbar.install-bar > button { min-width: 44px !important; }
+}
+/* 按钮均分但设上限：小表不会太宽，大表右侧自然留白（对齐表格右边界） */
+.toolbar.flow-bar > button,
+.toolbar.bar1 > button,
+.toolbar.bar2 > button,
+.toolbar.install-bar > button { max-width: 130px !important; }
+.toolbar.bar1 > .month-row,
+.toolbar.bar2 > .month-row { max-width: 780px !important; }
+.toolbar.bar1 .month-row .m-btn,
+.toolbar.bar2 .month-row .m-btn { max-width: 130px !important; }
+/* 模式切换按钮（月份/区间）本来就窄，不跟上限 */
+.toolbar.bar1 > #mode-month,
+.toolbar.bar1 > #mode-range,
+.toolbar.bar2 > #mode-month,
+.toolbar.bar2 > #mode-range { max-width: 72px !important; }
 </style>
 </head>
 <body>
@@ -1560,7 +1588,7 @@ function toggleTheme() {
   toast(theme === 'dark' ? '已切换到反色主题' : '已切换到浅色主题');
 }
 
-const APP_VER = 'v7.55';
+const APP_VER = 'v7.60';
 const LS_KEY = 'flow_grid_v5';
 const SUMMARY_STATE_KEY = 'flow_summary_state_v3';
 // 流水表默认铺多少行空行。像 Excel 一样随手往下填，不用先点「新增」。
@@ -2330,6 +2358,38 @@ function computeStats(acc, range) {
    ============================================================ */
 let currentTab = 'flow';
 
+// 工具栏宽度跟随它下面那张表的实际宽度（最后一列右边界），
+// 不撑满视口；拖列宽后重新调用即可对齐。
+function syncToolbarWidth() {
+  const main = document.getElementById('main');
+  if (!main) return;
+  // 逐个直接子元素扫：工具栏记住自己，遇到 table 就对齐
+  let cur = null;
+  for (const el of Array.from(main.children)) {
+    if (el.classList && el.classList.contains('toolbar')) {
+      cur = el;
+      el.style.width = '';
+      el.style.maxWidth = 'none';
+      continue;
+    }
+    if (!cur) continue;
+    const table = el.tagName === 'TABLE' ? el
+      : (el.querySelector ? el.querySelector('table') : null);
+    if (!table) continue;
+    const tw = Math.max(table.scrollWidth || 0, Math.ceil(table.getBoundingClientRect().width) || 0);
+    if (!tw) continue;
+    // 按钮自然总宽（防止极端窄屏把按钮压没）
+    const prevW = cur.style.width;
+    cur.style.width = 'auto';
+    const natural = Math.ceil(cur.scrollWidth) || 0;
+    cur.style.width = prevW;
+    cur.style.width = Math.max(tw, natural) + 'px';
+    cur.style.maxWidth = 'none';
+    cur.dataset.synced = '1';
+    cur = null;
+  }
+}
+
 function render() {
   const main = document.getElementById('main');
   const footer = document.getElementById('footer');
@@ -2349,6 +2409,7 @@ function render() {
   if (currentTab === 'flow' || currentTab === 'summary') {
     try { applyDataIssues(); } catch (e) {}
   }
+  try { syncToolbarWidth(); } catch (e) {}
 }
 
 // 页脚文字统一入口
@@ -5767,6 +5828,8 @@ function fitWidth(table, idx) {
 }
 
 function initColResize(table, key) {
+  // 拖完列宽后让工具栏重新对齐表格宽度
+  const _syncLater = () => { try { syncToolbarWidth(); } catch (e) {} };
   if (!table) return;
   table.dataset.colkey = key;
   const headRow = colHeadRow(table);
@@ -5821,7 +5884,7 @@ function initColResize(table, key) {
         grip.removeEventListener('pointercancel', onUp);
         grip.classList.remove('dragging');
         if (moved) {
-          saveColWidths(); syncFlowTitleWidth(); syncGridRight();
+          saveColWidths(); syncFlowTitleWidth(); syncGridRight(); try { syncToolbarWidth(); } catch (e) {} try { syncToolbarWidth(); } catch (e) {}
           // applySummarySticky 是 renderSummary 内部的局部函数，非汇总页时不存在
           if (typeof applySummarySticky === 'function') { try { applySummarySticky(); } catch (e) {} }
         }
