@@ -83,6 +83,16 @@ body { display: flex; flex-direction: column; height: 100vh; height: 100dvh; }
 .tabbar button.active { color: #ffffff; background: var(--primary); border-bottom-color: #1e40af; }
 
 main { flex: 1; min-height: 0; display: flex; flex-direction: column; background: var(--bg-main); overflow: hidden; }
+#footer::after {
+  content: attr(data-ver);
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 10px;
+  opacity: 0.55;
+  font-weight: 400;
+}
 footer { flex-shrink: 0; background: var(--bar-bg); color: var(--bar-text-dim); padding: 8px 12px; padding-bottom: max(8px, env(safe-area-inset-bottom)); font-size: 12px; text-align: center; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 .grid-wrap { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; background: var(--bg-main); }
@@ -1332,6 +1342,7 @@ function toggleTheme() {
   toast(theme === 'dark' ? '已切换到反色主题' : '已切换到浅色主题');
 }
 
+const APP_VER = 'v7.32';
 const LS_KEY = 'flow_grid_v5';
 const SUMMARY_STATE_KEY = 'flow_summary_state_v3';
 // 流水表默认铺多少行空行。像 Excel 一样随手往下填，不用先点「新增」。
@@ -4923,7 +4934,7 @@ async function exportXLSX() {
   const name = '流水账_' + todayISO() + '.xlsx';
   const type = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
   const blob = new Blob([bytes], { type });
-  toast('已生成 Excel（' + Math.round(bytes.length / 1024) + ' KB）：流水 ' + state.transactions.length + ' 笔、账户 ' + state.accounts.length + ' 个、分期 ' + (state.installments || []).length + ' 个', { duration: 5000 });
+  toast('[' + APP_VER + '] 已生成 Excel（' + Math.round(bytes.length / 1024) + ' KB）：流水 ' + state.transactions.length + ' 笔、账户 ' + state.accounts.length + ' 个、分期 ' + (state.installments || []).length + ' 个', { duration: 5000 });
   // 1) 桌面 Chrome / Edge：弹系统「另存为」，自己选目录和文件名
   if (window.showSaveFilePicker) {
     try {
@@ -5408,6 +5419,7 @@ try {
 } catch (e) {}
 
 applyTheme();
+try { document.getElementById('footer').dataset.ver = APP_VER; } catch (e) {}
 render();
 </script>
 <div id="print-area"></div>
