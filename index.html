@@ -107,12 +107,31 @@ table.grid tbody td.col-bill > .row-del { right: auto; left: 0; }
 table#flow-table tbody td.col-note { white-space: nowrap; overflow: hidden; }
 /* 删除按钮收窄到 18px（原来 22px），勾选框 12px，合计占位从 45px 降到 33px */
 table#flow-table tbody td.col-note > .row-del { right: 18px; width: 18px; font-size: 13px; }
+/* 三个页面的标题统一：最左、和后面按钮留 4 个字符的间距 */
+.toolbar.flow-bar .flow-title,
+.toolbar.flow-bar .bar-title,
+.toolbar.flow-bar .fixed-title {
+  flex: 0 0 auto;
+  padding-left: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f172a;
+  white-space: nowrap;
+}
+/* 流水 / 分期：标题后跟按钮，留 4 个字符的间距 */
+.toolbar.flow-bar .flow-title,
+.toolbar.flow-bar .bar-title { margin-right: 4em; }
+/* 固定页标题后面是合计项，间距小一些，避免挤到换行 */
+.fixed-bar .fixed-title { margin-right: 16px; }
+.fixed-bar { flex-wrap: nowrap; overflow-x: auto; }
+.fixed-bar .fixed-sum { white-space: nowrap; }
+
 /* 固定页顶部：标题 + 收入/支出合计 */
 .fixed-bar { gap: 12px; }
 .fixed-bar .fixed-title { font-size: 14px; font-weight: 700; color: #0f172a; flex: 0 0 auto; }
 .fixed-bar .fixed-sum { display: inline-flex; align-items: baseline; gap: 4px; flex: 0 0 auto; }
 .fixed-bar .fixed-sum i { font-style: normal; font-size: 12px; color: #64748b; }
-.fixed-bar .fixed-sum b { font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; text-align: right; min-width: 82px; display: inline-block; }
+.fixed-bar .fixed-sum b { font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; text-align: left; display: inline-block; }
 .fixed-bar .fixed-sum b.in { color: #059669; }
 .fixed-bar .fixed-sum b.out { color: #dc2626; }
 
@@ -622,13 +641,13 @@ td.query-empty { text-align: center; color: var(--text-light); padding: 40px 12p
   .month-bar .range-inline { display: none; }
 
   /* 流水 / 分期两页的标题：手机上改成左对齐放在最前，不再绝对定位居中（会和按钮叠字） */
-  .toolbar.flow-bar .flow-title { position: static; transform: none; width: auto; flex: 0 0 auto; text-align: left; font-size: 14px; padding-left: 8px; }
+  .toolbar.flow-bar .flow-title { position: static; transform: none; width: auto; flex: 0 0 auto; text-align: left; font-size: 14px; padding-left: 0; }
   /* 分期页标题在窄屏也改成左对齐放在最前 */
-  .toolbar.install-bar .bar-title { position: static; transform: none; width: auto; flex: 0 0 auto; order: -1; text-align: left; font-size: 14px; padding-right: 4px; }
+  .toolbar.install-bar .bar-title { position: static; transform: none; width: auto; flex: 0 0 auto; order: -1; text-align: left; font-size: 14px; padding-right: 0; margin-right: 4em; }
   .toolbar.flow-bar { padding-left: 8px; }
   /* 分期页：标题 + 新增 + 复制 + 起 + 止 要塞进 390px，尺寸统一收一档，否则「止」会被挤到第二行 */
   .toolbar.install-bar { flex-wrap: wrap; height: auto; min-height: 32px; padding: 2px 8px; gap: 6px; }
-  .toolbar.install-bar .bar-title { font-size: 13px; }
+  .toolbar.install-bar .bar-title { font-size: 14px; margin-right: 4em; }
   .toolbar.install-bar > button { width: 56px; }
   .toolbar.install-bar .inst-input { width: 56px; }
   .toolbar.install-bar > .inst-label:first-of-type { margin-left: 0; }
@@ -1099,12 +1118,12 @@ function renderFlow(main, footer) {
   const bar = document.createElement('div');
   bar.className = 'toolbar flow-bar';
   bar.innerHTML = `
+    <span class="flow-title">流水记录</span>
     <button class="ghost" id="f-add">添加</button>
     <button class="ghost" id="f-sync">同步</button>
     <button class="ghost" id="f-exp">导出</button>
     <button class="ghost" id="f-print">打印</button>
     <input type="file" id="f-addfile" accept=".txt,text/plain" style="display:none">
-    <span class="flow-title">流水记录</span>
     <span style="flex:1"></span>
   `;
   main.appendChild(bar);
@@ -2220,12 +2239,12 @@ function renderInstall(main, footer) {
   const bar = document.createElement('div');
   bar.className = 'toolbar install-bar';
   bar.innerHTML = `
+    <span class="bar-title">分期统计</span>
     <button class="ghost" id="i-add">新增</button>
     <button class="ghost" id="i-copy">复制</button>
     <label class="inst-label">起 <input id="i-from" class="inst-input" inputmode="numeric" maxlength="6" title="如 2610 表示 2026 年 10 月" value="${ymShort(installState.from)}"></label>
     <label class="inst-label">止 <input id="i-to" class="inst-input" inputmode="numeric" maxlength="6" title="如 2909 表示 2029 年 9 月" value="${ymShort(installState.to)}"></label>
     <span style="flex:1"></span>
-    <span class="bar-title">分期统计</span>
   `;
   main.appendChild(bar);
 
@@ -3347,8 +3366,8 @@ function renderFixed(main, footer) {
   bar.className = 'toolbar flow-bar fixed-bar';
   bar.innerHTML = `
     <span class="fixed-title">固定收支</span>
-    <span class="fixed-sum"><i>收入合计</i><b class="in">${fmtMoney(sumIn)}</b></span>
-    <span class="fixed-sum"><i>支出合计</i><b class="out">${fmtMoney(sumOut)}</b></span>
+    <span class="fixed-sum"><i>收入合计：</i><b class="in">${fmtMoney(sumIn)}</b></span>
+    <span class="fixed-sum"><i>支出合计：</i><b class="out">${fmtMoney(sumOut)}</b></span>
   `;
   main.appendChild(bar);
 
