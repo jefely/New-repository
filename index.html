@@ -266,11 +266,11 @@ table#flow-table tbody td.col-note > .row-del { right: 18px; width: 18px; font-s
 [data-theme="dark"] table.grid tbody tr.cat-row > td,
 [data-theme="dark"] table.grid tbody tr.cat-row:nth-child(odd) > td,
 [data-theme="dark"] table.grid tbody tr.cat-row:nth-child(even) > td {
-  background-color: #232323 !important;
-  color: #ffffff !important;
+  background-color: transparent !important;
+  color: #b9a6ff !important;
 }
 [data-theme="dark"] table.grid tbody tr.cat-row > td.col-bill,
-[data-theme="dark"] table.grid tbody tr.cat-row > td.col-repay { color: #c8c8c8 !important; }
+[data-theme="dark"] table.grid tbody tr.cat-row > td.col-repay { color: #8e7fd0 !important; }
 /* 冻结列（序号 / 账户名称）在分组行里也必须跟分组行同色，不再沿用斑马纹 */
 [data-theme="dark"] table.grid tbody tr.cat-row > td.col-seq,
 [data-theme="dark"] table#summary-table tbody tr.cat-row > td.col-name,
@@ -278,8 +278,8 @@ table#flow-table tbody td.col-note > .row-del { right: 18px; width: 18px; font-s
 [data-theme="dark"] table.grid tbody tr.cat-row:nth-child(even) > td.col-seq,
 [data-theme="dark"] table#summary-table tbody tr.cat-row:nth-child(odd) > td.col-name,
 [data-theme="dark"] table#summary-table tbody tr.cat-row:nth-child(even) > td.col-name {
-  background-color: #232323 !important;
-  color: #ffffff !important;
+  background-color: transparent !important;
+  color: #b9a6ff !important;
 }
 /* 冻结列跟着所在行走，不再固定浅色 */
 [data-theme="dark"] table.grid tbody tr:nth-child(odd) > td.col-seq,
@@ -299,9 +299,9 @@ table#flow-table tbody td.col-note > .row-del { right: 18px; width: 18px; font-s
 [data-theme="dark"] footer { background: var(--bar-bg) !important; color: var(--bar-text-dim) !important; }
 /* 分组行必须排在「tbody td 透明」之后，否则会被抹掉 */
 [data-theme="dark"] table.grid .cat-row td,
-[data-theme="dark"] .cat-row td { background: var(--bar-bg) !important; color: var(--bar-text) !important; }
+[data-theme="dark"] .cat-row td { background: transparent !important; color: #b9a6ff !important; }
 [data-theme="dark"] table#summary-table .cat-row td.col-bill,
-[data-theme="dark"] table#summary-table .cat-row td.col-repay { color: var(--bar-text-dim) !important; }
+[data-theme="dark"] table#summary-table .cat-row td.col-repay { color: #8e7fd0 !important; }
 [data-theme="dark"] table.install-table tr.inst-p td.col-name { background: inherit !important; }
 [data-theme="dark"] table.install-table tr.inst-i td.col-name { background: inherit !important; }
 [data-theme="dark"] table.install-table tbody tr.inst-i:nth-child(odd) td.col-name { background: #0d0d0d !important; }
@@ -938,7 +938,7 @@ footer { position: relative; }
 [data-theme="dark"] table.grid tbody tr.cat-row > td.col-repay,
 html[data-theme="dark"] table.grid tbody tr.cat-row:nth-child(odd) > td,
 html[data-theme="dark"] table.grid tbody tr.cat-row:nth-child(even) > td {
-  background-color: #232323 !important;
+  background-color: transparent !important;
   background-image: none !important;
 }
 /* 2. 分期利息行：整行同色（跟随斑马纹） */
@@ -961,6 +961,37 @@ html[data-theme="dark"] table.grid tbody tr.cat-row:nth-child(even) > td {
 /* 浅色主题：同一列用深一点的紫，保证可读 */
 table.install-table tr.inst-p > td.col-name,
 table.install-table tr.inst-p > td.col-name input { background-color: transparent !important; color: #6b4fe0 !important; font-weight: 700; }
+/* 汇总的分类标签行（资产/费用…）：底色不再单独区分，跟随所在行的斑马纹；
+   只用亮紫字区分它是分组标题 */
+[data-theme="dark"] table#summary-table tbody tr.cat-row > td,
+[data-theme="dark"] table#summary-table tbody tr.cat-row > td.col-seq,
+[data-theme="dark"] table#summary-table tbody tr.cat-row > td.col-name,
+[data-theme="dark"] table#summary-table tbody tr.cat-row > td.col-bill,
+[data-theme="dark"] table#summary-table tbody tr.cat-row > td.col-repay,
+[data-theme="dark"] table#summary-table tbody tr.cat-row:nth-child(odd) > td {
+  background-color: #0d0d0d !important;
+  color: #b9a6ff !important;
+}
+[data-theme="dark"] table#summary-table tbody tr.cat-row:nth-child(even) > td {
+  background-color: #1a1a1a !important;
+  color: #b9a6ff !important;
+}
+[data-theme="dark"] table#summary-table tbody tr.cat-row td.cat-tag,
+[data-theme="dark"] table#summary-table tbody tr.cat-row td.cat-sum,
+[data-theme="dark"] table#summary-table tbody tr.cat-row td.col-bal,
+[data-theme="dark"] table#summary-table tbody tr.cat-row td .cat-col {
+  color: #b9a6ff !important;
+}
+[data-theme="dark"] table#summary-table tbody tr.cat-row td.col-bill,
+[data-theme="dark"] table#summary-table tbody tr.cat-row td.col-repay { color: #8e7fd0 !important; }
+/* 浅色主题同样：分组行不着色，只用紫字 */
+table#summary-table tbody tr.cat-row > td,
+table#summary-table tbody tr.cat-row > td.cat-tag,
+table#summary-table tbody tr.cat-row > td.cat-sum,
+table#summary-table tbody tr.cat-row > td .cat-col {
+  background-color: transparent !important;
+  color: #6b4fe0 !important;
+}
 </style>
 </head>
 <body>
