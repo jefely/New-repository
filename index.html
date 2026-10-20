@@ -1028,6 +1028,25 @@ table.install-table tbody tr.inst-p > td.col-name input { color: #ffffff !import
   background-color: #1a1a1a !important;
   background-image: none !important;
 }
+/* ============================================================
+   工具栏统一间距：标题与第一个按钮之间 2 个英文字符宽，其余等间隔
+   ============================================================ */
+.toolbar.flow-bar,
+.toolbar.install-bar,
+.toolbar.bar1,
+.toolbar.bar2 {
+  gap: 2ch;
+}
+/* 标题后面再多让 2ch（gap 已经 2ch，所以标题单独不再加 margin） */
+.toolbar.flow-bar .flow-title,
+.toolbar.flow-bar .bar-title,
+.toolbar.install-bar .bar-title,
+.fixed-title {
+  margin-right: 0 !important;
+}
+/* 月份格子保持紧凑，不参与 2ch 大间隔（12 个月放不下） */
+.toolbar.bar1 .month-row,
+.toolbar.bar2 .month-row { gap: 4px; }
 </style>
 </head>
 <body>
