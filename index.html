@@ -436,12 +436,14 @@ table.install-table tr.inst-i td.col-name input:focus { background: #eff6ff; }
 .toolbar.bar1 { border-bottom: none; }
 /* 「区间 / 月份」两个切换按钮也收窄，和月份格子的宽度接近 */
 /* 「区间 / 月份」按钮固定宽度，两个按钮 + 间隙 = 年份框宽度，两排左边界自然对齐 */
-.toolbar.bar1 > button { width: 44px; padding: 0; }
+/* 区间 / 月份 / 清空 / 打印 四个按钮统一宽度 */
+.toolbar.bar1 > button, .toolbar.bar2 > button { width: 44px; padding: 0; flex: 0 0 44px; }
 /* 年份框宽度 = 44 × 2 + 8 = 96 */
-.toolbar.bar1 .year-input { width: 96px; }
+.toolbar.bar2 .year-input { width: 72px; }
 /* 年份框在工具栏里绝对居中（flex 的 auto 边距只会平分「按钮右侧」的余量，不是真居中）。
    绝对定位后它不是 flex item，flex-basis 失效，必须显式给宽度，否则会撑满并盖住按钮。 */
-.toolbar.bar1 .year-input { position: absolute; left: 50%; transform: translateX(-50%); width: 96px; flex: none; }
+/* 年份框改成普通 flex 项：绝对定位居中会盖住 9 月、10 月 */
+.toolbar.bar2 .year-input { position: static; transform: none; width: 72px; flex: 0 0 72px; }
 /* 区间模式：两个日期输入框各占一半，中间一个 ~ 分隔 */
 .toolbar.bar2 .grow { flex: 1 1 0; min-width: 0; font-size: 12px; padding: 0 7px; }
 .toolbar.bar2 .tilde { flex: 0 0 auto; color: var(--text-muted); }
@@ -1487,7 +1489,6 @@ function renderSummary(main, footer) {
   bar1.innerHTML = `
     <button id="mode-range" class="ghost" data-active="${summaryMode === 'range'}">区间</button>
     <button id="mode-month" class="ghost" data-active="${summaryMode === 'month'}">月份</button>
-    <button id="s-print" class="ghost" title="打印账户余额表">打印</button>
     ${monthsMode ? '' : '<button id="range-clear" class="ghost" title="清空起止日期">清空</button>'}
     ${monthsMode ? `<div class="month-row" id="month-row-top">${monthsTop}</div>` : ''}
   `;
@@ -1498,13 +1499,15 @@ function renderSummary(main, footer) {
   bar2.className = 'toolbar bar2';
   if (summaryMode === 'range') {
     bar2.innerHTML = `
+      <button id="s-print" class="ghost" title="打印账户余额表">打印</button>
       <input id="r-start" class="grow" placeholder="起始 YY/YYMM/YYMMDD" inputmode="numeric" title="起始：YY / YYMM / YYMMDD，例如 26 / 2608 / 260801" value="${esc(summaryRange.start)}">
       <span class="tilde">~</span>
       <input id="r-end" class="grow" placeholder="结束 YY/YYMM/YYMMDD" inputmode="numeric" title="结束：YY / YYMM / YYMMDD，例如 26 / 2608 / 260801" value="${esc(summaryRange.end)}">
     `;
   } else {
     bar2.innerHTML = `
-      <input id="r-year" class="year-input" placeholder="年" inputmode="numeric" title="输入年份，如 2026" value="${summaryMonth.year}年">
+      <button id="s-print" class="ghost" title="打印账户余额表">打印</button>
+      <input id="r-year" class="year-input" placeholder="年" inputmode="numeric" title="输入年份，如 26 或 2026" value="${String(summaryMonth.year).slice(-2)}年">
       <div class="month-row" id="month-row">${monthsBottom}</div>
     `;
   }
@@ -1655,18 +1658,22 @@ function applySummarySticky() {
     const allMonthBtns = () => [...document.querySelectorAll('.toolbar .m-btn')];
     // 年份输入后自动补「年」字；聚焦时把「年」剥掉，方便直接改数字
     const onYearChange = () => {
-      const y = parseInt(yearEl.value, 10);
+      let y = parseInt(yearEl.value, 10);
+      if (isNaN(y)) { yearEl.value = String(summaryMonth.year).slice(-2) + '年'; return; }
+      // 两位数按 20xx 解释（26 → 2026），四位数原样用
+      if (y >= 0 && y <= 99) y += 2000;
       if (y >= 1900 && y <= 2999) {
         summaryMonth.year = y;
-        yearEl.value = y + '年';
+        yearEl.value = String(y).slice(-2) + '年';
         saveSummaryState(); refreshSummaryTable(rangeUpdate());
       } else {
-        yearEl.value = summaryMonth.year + '年';
+        yearEl.value = String(summaryMonth.year).slice(-2) + '年';
       }
     };
     yearEl.addEventListener('focus', () => {
-      const y = parseInt(yearEl.value, 10);
-      yearEl.value = isNaN(y) ? '' : String(y);
+      // 聚焦时只留两位数字，方便直接改
+      yearEl.value = String(summaryMonth.year).slice(-2);
+      yearEl.select();
     });
     yearEl.addEventListener('change', onYearChange);
     yearEl.addEventListener('blur', onYearChange);
