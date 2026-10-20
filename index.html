@@ -1238,6 +1238,33 @@ button.inst-del:active,
 }
 button.inst-del { color: var(--text-light) !important; }
 button.inst-del:active, [data-theme="dark"] button.inst-del:active { color: var(--danger) !important; }
+/* ============================================================
+   浅色主题：分期账户名紫色与标签统一 + 选中标签下划线改深紫
+   ============================================================ */
+/* 1) 分期「账户名称」本金行的紫色 = 标签选中色 */
+table.install-table tbody tr.inst-p > td.col-name {
+  background-color: var(--primary) !important;
+}
+[data-theme="dark"] table.install-table tbody tr.inst-p > td.col-name {
+  background-color: var(--deep-blue) !important;
+}
+/* 2) 选中标签的粗下划线换成深紫 */
+.tabbar button.active { border-bottom-color: var(--primary-dark) !important; }
+[data-theme="dark"] .tabbar button.active { border-bottom-color: var(--primary) !important; }
+/* 3) 年份框高度与旁边按钮一致 */
+.toolbar.bar1 .year-input,
+.toolbar.bar2 .year-input,
+.toolbar.bar2 .grow,
+.toolbar.bar1 > button,
+.toolbar.bar2 > button {
+  height: 28px !important;
+  line-height: 28px !important;
+  box-sizing: border-box !important;
+}
+/* 4) 分期「起 / 止」距离前面的按钮 = 2ch */
+.toolbar.install-bar > .inst-label:first-of-type { margin-left: calc(2ch - 2px) !important; }
+.toolbar.install-bar > .inst-label { margin-left: 0 !important; }
+.toolbar.install-bar > .inst-label:first-of-type { margin-left: calc(2ch - 2px) !important; }
 </style>
 </head>
 <body>
