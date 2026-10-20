@@ -1170,6 +1170,41 @@ table.query-table thead th input:focus { border-color: var(--primary); outline: 
   .toolbar.bar1, .toolbar.bar2, .toolbar.install-bar { gap: 2px !important; }
   .toolbar.install-bar .bar-title { margin-right: calc(4ch - 2px) !important; }
 }
+/* ============================================================
+   所有数据单元格字号 = 表头字号（15px）
+   ============================================================ */
+:root { --cell-fs: 15px; }
+table.grid tbody td,
+table.query-table tbody td,
+table.install-table tbody td,
+table#summary-table tbody td { font-size: var(--cell-fs) !important; }
+/* 单元格里的输入框 / 只读文本同样放大，否则编辑态和展示态不一致 */
+table.grid tbody td input,
+table.query-table tbody td input,
+table.install-table tbody td input,
+table#summary-table tbody td input { font-size: var(--cell-fs) !important; }
+/* 固定页是纯文本表格，一并放大 */
+table#fixed-table tbody td { font-size: var(--cell-fs) !important; }
+/* 表头保持一致 */
+table.grid thead th,
+table.query-table thead th,
+table.install-table thead th,
+table#fixed-table thead th { font-size: var(--cell-fs) !important; }
+/* 表头里的筛选输入框比正文小一号（它们是控件不是数据） */
+table.query-table thead th input { font-size: 13px !important; }
+/* 字号放大后行高会被撑开，统一锁回 32px，五张表一致 */
+table.grid tbody tr,
+table.query-table tbody tr,
+table.install-table tbody tr,
+table#fixed-table tbody tr { height: 32px; }
+table.grid tbody td,
+table.query-table tbody td,
+table.install-table tbody td,
+table#fixed-table tbody td { height: 32px; padding-top: 0 !important; padding-bottom: 0 !important; }
+table.grid tbody td input,
+table.query-table tbody td input,
+table.install-table tbody td input,
+table#fixed-table tbody td input { height: 30px !important; line-height: 30px; }
 </style>
 </head>
 <body>
