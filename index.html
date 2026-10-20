@@ -2719,13 +2719,46 @@ function _bytesToB64(bytes) {
 
 /* 「添加」：读 TXT，把里面的流水追加到当前账本（账户按文件内容替换）。
    和 Excel 的「添加流水」语义一致：账户替换、流水追加并去重。 */
+// 纯流水格式：每行「日期，转出，转入，金额，备注」，没有 [账户] / [流水] 段标记。
+// 例如：261021，ZHC，XJ，1000，备用金，
+function parsePlainFlow(text) {
+  const out = [];
+  for (const raw of String(text || '').replace(/\r\n?/g, '\n').split('\n')) {
+    const line = raw.replace(/[ ]+$/, '');
+    if (!line.trim()) continue;
+    if (/^\[.+?\]$/.test(line.trim())) continue;          // 残留的段标记直接跳过
+    const sep = line.indexOf('\t') >= 0 ? '\t' : (line.indexOf('，') >= 0 ? '，' : ',');
+    const cols = splitEscaped(line, sep);
+    const rawDate = String(cols[0] || '').trim();
+    // 日期必须是 6 位（261021）或 8 位（20261021），否则当表头/垃圾行跳过
+    const digits = rawDate.replace(/[-/.年月日]/g, '');
+    if (!/^\d{6}$|^\d{8}$/.test(digits)) continue;
+    const amtRaw = String(cols[3] == null ? '' : cols[3]).replace(/[^\d.-]/g, '');
+    out.push({
+      date: parseDateInput(rawDate) || '',
+      from: String(cols[1] || '').trim(),
+      to: String(cols[2] || '').trim(),
+      amount: amtRaw === '' ? '' : Number(amtRaw),
+      note: String(cols[4] || '').trim()
+    });
+  }
+  return out;
+}
+
 async function addFlowFromTXT(e, footer) {
   const f = e.target.files && e.target.files[0];
   if (!f) return;
   const text = await f.text();
-  const parsed = parseBookTXT(text);
+  // 有 [账户] / [流水] 标记的老格式走两段解析；纯流水行（日期,转出,转入,金额,备注）走新解析
+  const hasSection = /^\s*\[(账户|流水)\]/m.test(text);
+  let parsed;
+  if (hasSection) {
+    parsed = parseBookTXT(text);
+  } else {
+    parsed = { txs: parsePlainFlow(text), accs: [] };
+  }
   if (!parsed.accs.length && !parsed.txs.length) {
-    toast('这个文件里没读到数据', { type: 'error' });
+    toast('这个文件里没读到流水（每行应是：日期，转出，转入，金额，备注）', { type: 'error', duration: 6000 });
     e.target.value = '';
     return;
   }
