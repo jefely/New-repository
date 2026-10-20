@@ -66,7 +66,7 @@
   --bar-text: #ffffff;
   --bar-text-dim: #c8c8c8;
   /* 分期账户名的深暗蓝 */
-  --deep-blue: #2e1065;
+  --deep-blue: #333042;
 }
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; font-family: var(--font-sys); }
@@ -174,20 +174,39 @@ table#flow-table tbody td.col-note > .row-del { right: 18px; width: 18px; font-s
   --cell-hover: #202020;
   --cell-active: #2b2b2b;
 }
-/* 输入框看起来和按钮同一套：深底 + 描边 + 圆角，只是字号小一号 */
+/* 输入框回到「单元格本身就是线框」的模式：透明底、无边框，只调字号 */
 [data-theme="dark"] input, [data-theme="dark"] select, [data-theme="dark"] textarea {
-  background-color: #1a1a1a !important;
-  border: 1px solid #333333 !important;
-  border-radius: 4px !important;
+  background-color: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
   color: #ffffff !important;
   font-size: 12px !important;
-}
-[data-theme="dark"] input:focus, [data-theme="dark"] textarea:focus {
-  background-color: var(--cell-active) !important;
-  border-color: #5a5a5a !important;
-  color: #ffffff !important;
   outline: none !important;
+  box-shadow: none !important;
 }
+/* 未选中的单元格：足够深的底；选中时只淡一点点 */
+[data-theme="dark"] table.grid tbody td,
+[data-theme="dark"] table.query-table tbody td,
+[data-theme="dark"] table.install-table tbody td {
+  background-color: #0a0a0a !important;
+}
+[data-theme="dark"] table.grid tbody tr:nth-child(even) td,
+[data-theme="dark"] table.query-table tbody tr:nth-child(even) td {
+  background-color: #121212 !important;
+}
+[data-theme="dark"] table.grid thead th,
+[data-theme="dark"] table.query-table thead th,
+[data-theme="dark"] table.install-table thead th {
+  background-color: #141414 !important;
+}
+/* 选中 = 淡一点点（不是亮一截）；特异性要压过 tbody td 那条 */
+[data-theme="dark"] table.grid tbody td:focus-within,
+[data-theme="dark"] table.query-table tbody td:focus-within,
+[data-theme="dark"] table.install-table tbody td:focus-within,
+[data-theme="dark"] table.grid tbody tr:nth-child(even) td:focus-within,
+[data-theme="dark"] table.query-table tbody tr:nth-child(even) td:focus-within,
+[data-theme="dark"] td.cell-active { background-color: #262626 !important; }
+[data-theme="dark"] input:focus { background-color: transparent !important; color: #ffffff !important; }
 /* 选中的单元格：深灰底 + 纯白字 */
 [data-theme="dark"] td:focus-within,
 [data-theme="dark"] .cell-active { background-color: var(--cell-active) !important; }
@@ -239,10 +258,10 @@ table#flow-table tbody td.col-note > .row-del { right: 18px; width: 18px; font-s
 [data-theme="dark"] table.install-table tr.inst-p td.col-name input { color: #ffffff !important; }
 /* 分期利息行别留白底 */
 [data-theme="dark"] table.install-table tr.inst-i td,
-[data-theme="dark"] table.install-table tr.inst-i td.col-name { background: var(--bg-gray) !important; color: var(--text-main) !important; }
-[data-theme="dark"] table.install-table tbody td,
-[data-theme="dark"] table.grid tbody td,
-[data-theme="dark"] table.query-table tbody td { background-color: transparent !important; }
+[data-theme="dark"] table.install-table tr.inst-i td.col-name { background: #0a0a0a !important; color: var(--text-main) !important; }
+[data-theme="dark"] table.install-table tr.inst-p td { background: #121212 !important; }
+[data-theme="dark"] table.install-table tr.inst-p td.col-name { background: var(--deep-blue) !important; }
+
 [data-theme="dark"] table.install-table thead th,
 [data-theme="dark"] table.install-table th { background: var(--bg-gray-light) !important; color: var(--text-muted) !important; }
 [data-theme="dark"] .grid-wrap { background: var(--bg-gray) !important; }
