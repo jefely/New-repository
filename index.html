@@ -1488,6 +1488,29 @@ table#summary-table { min-width: 800px !important; }
 .toolbar.bar1 > #mode-range,
 .toolbar.bar2 > #mode-month,
 .toolbar.bar2 > #mode-range { max-width: 72px !important; }
+/* 按钮宽度：内容自适应 + 上下限，绝不被表格宽度拉宽 */
+.toolbar.flow-bar > button,
+.toolbar.bar1 > button,
+.toolbar.bar2 > button,
+.toolbar.install-bar > button {
+  flex: 0 1 auto !important;      /* 不 grow，只按内容 */
+  min-width: 52px !important;
+  max-width: 96px !important;
+  padding: 0 8px !important;
+}
+/* 月份格子：不 grow，按等分但要窄 */
+.toolbar.bar1 > .month-row,
+.toolbar.bar2 > .month-row {
+  flex: 1 1 auto !important;
+  max-width: 640px !important;
+}
+
+@media (max-width: 420px) {
+  .toolbar.flow-bar > button,
+  .toolbar.bar1 > button,
+  .toolbar.bar2 > button,
+  .toolbar.install-bar > button { min-width: 46px !important; max-width: 72px !important; padding: 0 4px !important; }
+}
 </style>
 </head>
 <body>
@@ -1588,7 +1611,7 @@ function toggleTheme() {
   toast(theme === 'dark' ? '已切换到反色主题' : '已切换到浅色主题');
 }
 
-const APP_VER = 'v7.60';
+const APP_VER = 'v7.61';
 const LS_KEY = 'flow_grid_v5';
 const SUMMARY_STATE_KEY = 'flow_summary_state_v3';
 // 流水表默认铺多少行空行。像 Excel 一样随手往下填，不用先点「新增」。
