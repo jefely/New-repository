@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#8b7fe8">
+<meta name="theme-color" content="#6b5bc4">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
 <link rel="apple-touch-icon" href="icon-192.png">
@@ -20,8 +20,8 @@
    1. 全局变量与基础设置
    ========================================== */
 :root {
-  --primary: #8b7fe8;
-  --primary-dark: #6f62d8;
+  --primary: #6b5bc4;
+  --primary-dark: #574aa6;
   --bg-main: #ffffff;
   --bg-gray: #f1f5f9;
   --bg-gray-light: #f8fafc;
@@ -44,8 +44,8 @@
 /* 反色（暗色）主题：只换变量，其余样式自动跟随 */
 [data-theme="dark"] {
   /* 底色全部用中性黑灰，不带蓝；只有选中态保留一点蓝做强调 */
-  --primary: #9a90f0;
-  --primary-dark: #8b7fe8;
+  --primary: #5b4ea8;
+  --primary-dark: #6b5bc4;
   --bg-main: #000000;
   --bg-gray: #0a0a0a;
   --bg-gray-light: #131313;
@@ -245,7 +245,55 @@ table#flow-table tbody td.col-note > .row-del { right: 18px; width: 18px; font-s
 [data-theme="dark"] table.install-table { background-color: #0a0a0a !important; }
 [data-theme="dark"] table.install-table thead th.inst-total,
 [data-theme="dark"] table.install-table thead th { background-color: #141414 !important; color: var(--text-muted) !important; }
-[data-theme="dark"] table.install-table tbody tr.inst-i td.col-name { background: #171717 !important; }
+
+/* ---- 暗色斑马纹统一：奇数行统一 #0d0d0d，偶数行统一 #1a1a1a ----
+   之前汇总/分期被各种局部规则拆得七零八落（sticky 列、分组行、利息行各用一套），
+   这里用一整组高特异性选择器把它们压平。 */
+[data-theme="dark"] table.grid tbody tr:nth-child(odd) > td,
+[data-theme="dark"] table.query-table tbody tr:nth-child(odd) > td,
+[data-theme="dark"] table.install-table tbody tr:nth-child(odd) > td {
+  background-color: #0d0d0d !important;
+}
+[data-theme="dark"] table.grid tbody tr:nth-child(even) > td,
+[data-theme="dark"] table.query-table tbody tr:nth-child(even) > td,
+[data-theme="dark"] table.install-table tbody tr:nth-child(even) > td {
+  background-color: #1a1a1a !important;
+}
+/* 分期表：本金行/利息行的 td 一律跟随斑马纹（含名称列以外的所有列） */
+[data-theme="dark"] table.install-table tbody tr:nth-child(odd) > td:not(.col-name) { background-color: #0d0d0d !important; }
+[data-theme="dark"] table.install-table tbody tr:nth-child(even) > td:not(.col-name) { background-color: #1a1a1a !important; }
+/* 分类分组行：每个 td 一律 #232323，压过上面的斑马纹（加 (1,1,3) 特异性） */
+[data-theme="dark"] table.grid tbody tr.cat-row > td,
+[data-theme="dark"] table.grid tbody tr.cat-row:nth-child(odd) > td,
+[data-theme="dark"] table.grid tbody tr.cat-row:nth-child(even) > td {
+  background-color: #232323 !important;
+  color: #ffffff !important;
+}
+[data-theme="dark"] table.grid tbody tr.cat-row > td.col-bill,
+[data-theme="dark"] table.grid tbody tr.cat-row > td.col-repay { color: #c8c8c8 !important; }
+/* 冻结列（序号 / 账户名称）在分组行里也必须跟分组行同色，不再沿用斑马纹 */
+[data-theme="dark"] table.grid tbody tr.cat-row > td.col-seq,
+[data-theme="dark"] table#summary-table tbody tr.cat-row > td.col-name,
+[data-theme="dark"] table.grid tbody tr.cat-row:nth-child(odd) > td.col-seq,
+[data-theme="dark"] table.grid tbody tr.cat-row:nth-child(even) > td.col-seq,
+[data-theme="dark"] table#summary-table tbody tr.cat-row:nth-child(odd) > td.col-name,
+[data-theme="dark"] table#summary-table tbody tr.cat-row:nth-child(even) > td.col-name {
+  background-color: #232323 !important;
+  color: #ffffff !important;
+}
+/* 冻结列跟着所在行走，不再固定浅色 */
+[data-theme="dark"] table.grid tbody tr:nth-child(odd) > td.col-seq,
+[data-theme="dark"] table#summary-table tbody tr:nth-child(odd) > td.col-name,
+[data-theme="dark"] table.query-table tbody tr:nth-child(odd) > td.col-seq {
+  background-color: #0d0d0d !important;
+}
+[data-theme="dark"] table.grid tbody tr:nth-child(even) > td.col-seq,
+[data-theme="dark"] table#summary-table tbody tr:nth-child(even) > td.col-name,
+[data-theme="dark"] table.query-table tbody tr:nth-child(even) > td.col-seq {
+  background-color: #1a1a1a !important;
+}
+/* 分期：本金行/利息行不再各用一套底色，交给上面的斑马纹 */
+[data-theme="dark"] table.install-table tr.inst-p td.col-name input { color: #ffffff !important; }
 
 /* 暗色下：页脚、分类分组条、分期账户名统一深底白字，不留浅色块 */
 [data-theme="dark"] footer { background: var(--bar-bg) !important; color: var(--bar-text-dim) !important; }
@@ -255,6 +303,9 @@ table#flow-table tbody td.col-note > .row-del { right: 18px; width: 18px; font-s
 [data-theme="dark"] table#summary-table .cat-row td.col-bill,
 [data-theme="dark"] table#summary-table .cat-row td.col-repay { color: var(--bar-text-dim) !important; }
 [data-theme="dark"] table.install-table tr.inst-p td.col-name { background: var(--deep-blue) !important; }
+[data-theme="dark"] table.install-table tr.inst-i td.col-name { background: inherit !important; }
+[data-theme="dark"] table.install-table tbody tr.inst-i:nth-child(odd) td.col-name { background: #0d0d0d !important; }
+[data-theme="dark"] table.install-table tbody tr.inst-i:nth-child(even) td.col-name { background: #1a1a1a !important; }
 [data-theme="dark"] table.install-table tr.inst-p td.col-name input { color: #ffffff !important; }
 /* 分期利息行别留白底 */
 [data-theme="dark"] table.install-table tr.inst-i td,
@@ -876,6 +927,29 @@ footer { position: relative; }
 .toast span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .toast button { flex: 0 0 auto; padding: 3px 10px; border: 1px solid rgba(255, 255, 255, .45); border-radius: 4px; background: transparent; color: #fff; font-size: 12px; font-weight: 700; cursor: pointer; }
 .toast button:active { background: rgba(255, 255, 255, .22); }
+/* ============================================================
+   最终覆盖层：放在样式表最后，保证这三类行不被任何前面的规则拆开
+   ============================================================ */
+/* 1. 分类分组行：整行同色 */
+[data-theme="dark"] table.grid tbody tr.cat-row > td,
+[data-theme="dark"] table.grid tbody tr.cat-row > td.col-seq,
+[data-theme="dark"] table.grid tbody tr.cat-row > td.col-name,
+[data-theme="dark"] table.grid tbody tr.cat-row > td.col-bill,
+[data-theme="dark"] table.grid tbody tr.cat-row > td.col-repay,
+html[data-theme="dark"] table.grid tbody tr.cat-row:nth-child(odd) > td,
+html[data-theme="dark"] table.grid tbody tr.cat-row:nth-child(even) > td {
+  background-color: #232323 !important;
+  background-image: none !important;
+}
+/* 2. 分期利息行：整行同色（跟随斑马纹） */
+[data-theme="dark"] table.install-table tbody tr.inst-i:nth-child(odd) > td,
+[data-theme="dark"] table.install-table tbody tr.inst-i:nth-child(odd) > td.col-name {
+  background-color: #0d0d0d !important;
+}
+[data-theme="dark"] table.install-table tbody tr.inst-i:nth-child(even) > td,
+[data-theme="dark"] table.install-table tbody tr.inst-i:nth-child(even) > td.col-name {
+  background-color: #1a1a1a !important;
+}
 </style>
 </head>
 <body>
