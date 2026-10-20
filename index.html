@@ -4953,16 +4953,32 @@ async function exportXLSX() {
     if (e && e.name === 'AbortError') return;   // 用户取消
     // 分享被拦截就继续往下走
   }
-  // 3) 兜底：默认下载 + 弹窗告诉用户文件在哪
+  // 3) 试 a[download]
   const url = URL.createObjectURL(blob);
-  const a = document.createElement('a'); a.href = url; a.download = name;
-  document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 120000);
-  showExportDone(name, bytes.length, url);
+  const a = document.createElement('a'); a.href = url; a.download = name; a.rel = 'noopener';
+  document.body.appendChild(a);
+  let clicked = false;
+  try { a.click(); clicked = true; } catch (e) {}
+  a.remove();
+
+  // 4) 再试 window.open —— 有些浏览器拦截 a.click 但对 window.open 放行
+  let opened = null;
+  try { opened = window.open(url, '_blank'); } catch (e) {}
+
+  // 5) 无论前面成没成，都给一个「点我保存」的链接 + data URL 兜底
+  const b64 = (() => {
+    let s = '';
+    const CH = 0x8000;
+    for (let i = 0; i < bytes.length; i += CH) s += String.fromCharCode.apply(null, bytes.subarray(i, i + CH));
+    return btoa(s);
+  })();
+  const dataUrl = 'data:' + type + ';base64,' + b64;
+  showExportDone(name, bytes.length, url, dataUrl, { clicked, opened: !!opened });
+  setTimeout(() => URL.revokeObjectURL(url), 10 * 60 * 1000);
 }
 
 // 导出完成提示：告诉用户文件叫什么、多大、可能在哪，并给一个「再存一次」的入口
-function showExportDone(name, size, url) {
+function showExportDone(name, size, url, dataUrl, info) {
   const mask = document.createElement('div');
   mask.className = 'confirm-mask';
   mask.innerHTML = `
@@ -4976,12 +4992,20 @@ function showExportDone(name, size, url) {
         <b>文件保存位置：内部存储 / Download</b><br>
         打开手机自带的「<b>文件管理</b>」→「<b>内部存储</b>」→「<b>Download</b>」文件夹，<br>
         文件名就是上面那个 <b>${esc(name)}</b>。<br>
-        <span style="color:#dc2626">找不到就点下面「再存一次」；微信里打开的可能根本没保存，<br>请点右上角「…」→「在浏览器打开」再试。</span>
+        <span style="color:#dc2626">如果下面点了没反应，请长按按钮选「链接另存为」，<br>或者换系统浏览器打开这个页面再导出。</span>
       </div>
-      <div class="sync-actions">
-        <a href="${url}" download="${esc(name)}" style="text-decoration:none"><button type="button">再存一次</button></a>
-        <button type="button" data-act="close">关闭</button>
+      <div class="sync-block" style="gap:8px">
+        <a href="${dataUrl}" download="${esc(name)}" style="display:block;text-decoration:none">
+          <button type="button" style="width:100%">点我保存（推荐）</button>
+        </a>
+        <a href="${url}" download="${esc(name)}" target="_blank" rel="noopener" style="display:block;text-decoration:none">
+          <button type="button" class="ghost" style="width:100%">换个方式再试</button>
+        </a>
       </div>
+      <div class="sync-hint" style="text-align:left;font-size:12px;color:#64748b">
+        长按上面任一按钮 →「链接另存为」也能保存
+      </div>
+      <div class="sync-actions"><button type="button" data-act="close">关闭</button></div>
     </div>`;
   document.body.appendChild(mask);
   const close = () => mask.remove();
