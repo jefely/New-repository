@@ -45,14 +45,18 @@
   --bg-main: #000000;
   --bg-gray: #0a0a0a;
   --bg-gray-light: #131313;
-  --bg-dark: #f0f0f0;
-  --text-main: #f0f0f0;
-  --text-muted: #9a9a9a;
-  --text-light: #6e6e6e;
+  --bg-dark: #ffffff;
+  /* 正文以纯白为主，次要信息才降一档 */
+  --text-main: #ffffff;
+  --text-muted: #e0e0e0;
+  --text-light: #b4b4b4;
   --border: #2a2a2a;
   --border-light: #1c1c1c;
-  --danger: #f87171;
-  --success: #34d399;
+  /* 红绿提亮到暗底上也足够醒目 */
+  --danger: #ff9d9d;
+  --success: #5ee9a4;
+  --money-in: #5ee9a4;
+  --money-out: #ff9d9d;
 }
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; font-family: var(--font-sys); }
@@ -150,10 +154,10 @@ table#flow-table tbody td.col-note > .row-del { right: 18px; width: 18px; font-s
 .fixed-bar .fixed-sum + .fixed-sum { margin-left: 7px; }
 .fixed-bar .fixed-title { font-size: 14px; font-weight: 700; color: var(--text-main); flex: 0 0 auto; }
 .fixed-bar .fixed-sum { display: inline-flex; align-items: baseline; gap: 4px; flex: 0 0 auto; }
-.fixed-bar .fixed-sum i { font-style: normal; font-size: 12px; color: #64748b; }
+.fixed-bar .fixed-sum i { font-style: normal; font-size: 12px; color: var(--text-muted); }
 .fixed-bar .fixed-sum b { font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; text-align: left; display: inline-block; }
-.fixed-bar .fixed-sum b.in { color: #059669; }
-.fixed-bar .fixed-sum b.out { color: #dc2626; }
+.fixed-bar .fixed-sum b.in { color: var(--success); }
+.fixed-bar .fixed-sum b.out { color: var(--danger); }
 
 /* 可编辑的输入框用纯黑字，只读内容用灰字 —— 一眼能看出哪里能改 */
 input, select, textarea { color: #000000 !important; }
@@ -161,7 +165,7 @@ table.query-table thead th input { color: #000000 !important; }
 input::placeholder, textarea::placeholder { color: #9aa7b8 !important; }
 table.grid tbody td, table.query-table tbody td, table.install-table tbody td { color: var(--text-muted); }
 /* 反色主题下可编辑内容用亮白，和暗底形成对比 */
-[data-theme="dark"] input, [data-theme="dark"] select, [data-theme="dark"] textarea { color: #f8fafc !important; }
+[data-theme="dark"] input, [data-theme="dark"] select, [data-theme="dark"] textarea { color: #ffffff !important; }
 /* 暗色下按钮 / 卡片底色 */
 [data-theme="dark"] .toolbar, [data-theme="dark"] .tabbar,
 [data-theme="dark"] .grid-wrap, [data-theme="dark"] table.grid,
@@ -177,7 +181,8 @@ table.grid tbody td, table.query-table tbody td, table.install-table tbody td { 
 }
 [data-theme="dark"] button.active, [data-theme="dark"] button[data-active="true"] {
   background-color: var(--primary) !important;
-  color: #0f172a !important;
+  /* 选中不反色成黑，用「白再压一点灰」，蓝底上依然清楚又不刺眼 */
+  color: #ececec !important;
   border-color: var(--primary) !important;
 }
 /* 标签栏按钮不要额外边框 */
@@ -189,7 +194,7 @@ table.grid tbody td, table.query-table tbody td, table.install-table tbody td { 
 }
 [data-theme="dark"] .tabbar button.active {
   background-color: var(--primary) !important;
-  color: #0f172a !important;
+  color: #ececec !important;
 }
 [data-theme="dark"] .tabbar button:first-child { border-left: none !important; }
 [data-theme="dark"] .toolbar { background-color: var(--bg-main); }
