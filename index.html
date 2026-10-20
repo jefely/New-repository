@@ -2996,8 +2996,17 @@ function dataIssues() {
 // 把体检结果标到界面上：账户名/简码重复、流水里引用了不存在的账户
 function applyDataIssues() {
   const issues = dataIssues();
+  // 没问题就完全不碰 DOM（这是「打开页面」路径上最常走的分支）
+  if (!issues.count) {
+    document.querySelectorAll('td input.dup, td input.bad').forEach(el => {
+      el.classList.remove('dup'); el.classList.remove('bad');
+    });
+    return;
+  }
+  // 有 id → 账户 的索引表，避免每行都 accounts.find()（账户多时是 O(n²)）
+  const accById = new Map(state.accounts.map(a => [a.id, a]));
   document.querySelectorAll('#summary-table tbody tr[data-id]').forEach(tr => {
-    const acc = state.accounts.find(a => a.id === tr.dataset.id);
+    const acc = accById.get(tr.dataset.id);
     if (!acc) return;
     const nameInp = tr.querySelector('td.col-name input');
     const codeInp = tr.querySelector('td.col-code input');
