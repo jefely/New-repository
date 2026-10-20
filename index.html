@@ -1065,7 +1065,12 @@ const normalizeAmount = v => {
   return isNaN(n) ? '' : n;
 };
 
-const fmtMoney = n => { n = Number(n) || 0; return '¥' + n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ','); };
+// 负数写成 -¥1,234.56（负号在货币符号前），而不是 ¥-1,234.56
+const fmtMoney = n => {
+  n = Number(n) || 0;
+  const s = Math.abs(n).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  return (n < 0 ? '-' : '') + '¥' + s;
+};
 // 金额显示用：空值保持空（不要变成 ¥0.00），有值就 ¥1,234.56
 const fmtMoneyOrBlank = v => (v === '' || v == null) ? '' : fmtMoney(v);
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
