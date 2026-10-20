@@ -1394,7 +1394,7 @@ function toggleTheme() {
   toast(theme === 'dark' ? '已切换到反色主题' : '已切换到浅色主题');
 }
 
-const APP_VER = 'v7.49';
+const APP_VER = 'v7.50';
 const LS_KEY = 'flow_grid_v5';
 const SUMMARY_STATE_KEY = 'flow_summary_state_v3';
 // 流水表默认铺多少行空行。像 Excel 一样随手往下填，不用先点「新增」。
@@ -2479,9 +2479,29 @@ function bindFlowEvents(tbody) {
     if (!matrix) return;              // 单个格子：交给浏览器默认粘贴
     e.preventDefault();
     const tr = input.closest('tr');
-    const rowIdx = Array.prototype.indexOf.call(tbody.children, tr);
+    const dataRows = Array.from(tbody.querySelectorAll('tr[data-id]'));
+    const rowIdx = dataRows.indexOf(tr) < 0 ? 0 : dataRows.indexOf(tr);
     const colIdx = Math.max(0, FLOW_FIELDS.indexOf(input.dataset.field));
-    applyFlowPaste(matrix, rowIdx < 0 ? 0 : rowIdx, colIdx);
+    // 目标行超出当前已渲染的批次（默认 150 行）时先把它们放出来，
+    // 否则粘贴会落在不存在的 DOM 行上，静默丢掉。
+    const need = rowIdx + matrix.length + 1;
+    if (need > flowShown) {
+      flowShown = Math.min(Math.max(need, flowShown), Math.max(need, state.transactions.length + need));
+      // 直接按需要的行数重渲染，再粘
+      render();
+      const tbody2 = document.querySelector('#flow-table tbody');
+      if (tbody2) {
+        const rows2 = Array.from(tbody2.querySelectorAll('tr[data-id]'));
+        const tr2 = rows2[rowIdx];
+        if (tr2) {
+          const inp2 = tr2.querySelector(`input[data-field="${FLOW_FIELDS[colIdx]}"]`);
+          if (inp2) { inp2.focus(); }
+        }
+      }
+      applyFlowPaste(matrix, rowIdx, colIdx);
+      return;
+    }
+    applyFlowPaste(matrix, rowIdx, colIdx);
   });
 }
 
@@ -2490,12 +2510,13 @@ function bindFlowEvents(tbody) {
 function parseClipboardMatrix(text) {
   const lines = String(text).replace(/\r\n?/g, '\n').replace(/\n+$/, '').split('\n');
   if (!lines.length) return null;
-  let sep = '\t';
-  if (!lines.some(l => l.indexOf('\t') >= 0)) {
-    if (!lines.some(l => l.indexOf('，') >= 0)) return null;
-    sep = '，';
-  }
-  const matrix = lines.map(l => l.split(sep));
+  // 分隔符优先级：制表符（Excel/WPS 复制）> 全角逗号（本程序导出的 TXT）
+  let sep = null;
+  if (lines.some(l => l.indexOf('\t') >= 0)) sep = '\t';
+  else if (lines.some(l => l.indexOf('，') >= 0)) sep = '，';
+  // 没有分隔符时：多行就是「单列多行」（例如只复制一列期初/金额），仍按矩阵处理；
+  // 只有「单行单列」才是普通文本，交回浏览器默认粘贴。
+  const matrix = sep ? lines.map(l => l.split(sep)) : lines.map(l => [l]);
   if (matrix.length === 1 && matrix[0].length === 1) return null;
   return matrix;
 }
@@ -2511,9 +2532,15 @@ function applyFlowPaste(matrix, startRow, startCol) {
     if (ae && ae.tagName === 'INPUT' && typeof ae.blur === 'function') ae.blur();
   } catch (e) {}
 
+  // 目标行若超出当前渲染批次，先扩到足够行数再重渲染一次
+  const needRows = startRow + matrix.length + 1;
+  if (needRows > flowShown) {
+    flowShown = needRows;
+    render();
+  }
   const tbody = document.querySelector('#flow-table tbody');
   if (!tbody) return { added: 0, updated: 0 };
-  const rows = Array.from(tbody.children);
+  const rows = Array.from(tbody.querySelectorAll('tr[data-id]'));
   const wrapEl = tbody.closest('.grid-wrap');
   const keepTop = wrapEl ? wrapEl.scrollTop : 0;
 
