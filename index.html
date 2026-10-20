@@ -4972,12 +4972,11 @@ function showExportDone(name, size, url) {
         文件名：<b>${esc(name)}</b><br>
         大小：${Math.round(size / 1024)} KB
       </div>
-      <div class="sync-hint" style="text-align:left;line-height:1.7">
-        <b>手机上去哪里找：</b><br>
-        · Chrome / Edge：<b>文件管理 → Download</b> 或浏览器「下载」列表<br>
-        · 夸克 / UC：<b>文件 → 下载</b><br>
-        · 微信内置浏览器：可能不会保存，请点右上角「…」→「在浏览器打开」后重试<br>
-        <span style="color:#dc2626">如果提示已保存却找不到，点下面「再存一次」</span>
+      <div class="sync-hint" style="text-align:left;line-height:1.8">
+        <b>文件保存位置：内部存储 / Download</b><br>
+        打开手机自带的「<b>文件管理</b>」→「<b>内部存储</b>」→「<b>Download</b>」文件夹，<br>
+        文件名就是上面那个 <b>${esc(name)}</b>。<br>
+        <span style="color:#dc2626">找不到就点下面「再存一次」；微信里打开的可能根本没保存，<br>请点右上角「…」→「在浏览器打开」再试。</span>
       </div>
       <div class="sync-actions">
         <a href="${url}" download="${esc(name)}" style="text-decoration:none"><button type="button">再存一次</button></a>
