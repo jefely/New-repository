@@ -3480,8 +3480,17 @@ async function buildXlsxFromTemplate(tplBytes) {
   // ---------- 分期：保留 r1（表头）r2（月份），r3 起每分期两行 ----------
   const instXml = _xdec.decode(map.get(paths.inst));
   const instRows = _xParseSheet(instXml, shared);
-  const instStyleP = styleAt(instRows, 3);
-  const instStyleI = styleAt(instRows, 4);
+  // 动态找表头行：A 列写着「账户名称」的那行；下一行是月份，再下一行开始才是数据。
+  // 模板以后再加/减标题行时不用改代码。
+  let headRow = 2;
+  for (const [rn, cells] of [...instRows.entries()].sort((a, b) => a[0] - b[0])) {
+    const ac = cells.find((c) => c.col === 'A');
+    if (ac && /账户名称/.test(String(ac.v))) { headRow = rn; break; }
+  }
+  const monthRow = headRow + 1;
+  const dataStart = headRow + 2;
+  const instStyleP = styleAt(instRows, dataStart);
+  const instStyleI = styleAt(instRows, dataStart + 1);
   const months = installMonths();
   // 2 行表头之后：本金行 + 利息行交替
   const instData = [];
@@ -3510,15 +3519,15 @@ async function buildXlsxFromTemplate(tplBytes) {
   // 分期两张行样式不同：奇数行用 r3 的样式，偶数行用 r4 的
   // 表头两行也要重写：r1 的旧合计值清空、r2 的月份换成当前区间的月份
   let instHead = instXml;
-  const h1 = instRows.get(1) || [];
-  const h2 = instRows.get(2) || [];
+  const h1 = instRows.get(headRow) || [];
+  const h2 = instRows.get(monthRow) || [];
   const headCells = [];
   const pushCell = (cells, col, val, isNum) => {
     const cn = _xColName(col);
     const hit = cells.find(c => c.col === cn);
     const s = hit ? hit.s : null;
     const sAttr = s == null ? '' : ' s="' + s + '"';
-    const ref = cn + '3';
+    const ref = cn + dataStart;
     if (val === '' || val == null) return;
     headCells.push('<c r="' + ref + '"' + sAttr + (isNum ? '><v>' + val + '</v></c>' : ' t="inlineStr"><is><t xml:space="preserve">' + _xEsc(String(val)) + '</t></is></c>'));
   };
@@ -3529,9 +3538,9 @@ async function buildXlsxFromTemplate(tplBytes) {
     if (!hit) return;
     const sAttr = hit.s == null ? '' : ' s="' + hit.s + '"';
     if (hit.v && hit.v.trim()) {
-      h1Parts.push('<c r="' + cn + '1"' + sAttr + ' t="inlineStr"><is><t xml:space="preserve">' + _xEsc(hit.v) + '</t></is></c>');
+      h1Parts.push('<c r="' + cn + headRow + '"' + sAttr + ' t="inlineStr"><is><t xml:space="preserve">' + _xEsc(hit.v) + '</t></is></c>');
     } else if (hit.s != null) {
-      h1Parts.push('<c r="' + cn + '1" s="' + hit.s + '"/>');
+      h1Parts.push('<c r="' + cn + headRow + '" s="' + hit.s + '"/>');
     }
   });
   months.forEach((ym, k) => {
@@ -3543,15 +3552,15 @@ async function buildXlsxFromTemplate(tplBytes) {
       const cc = inst.cells && inst.cells[ym];
       if (cc) total += Number(cc.p) || 0;
     });
-    h1Parts.push(total ? '<c r="' + cn + '1"' + sAttr + '><v>' + total.toFixed(2) + '</v></c>'
-      : '<c r="' + cn + '1"' + sAttr + '/>');
+    h1Parts.push(total ? '<c r="' + cn + headRow + '"' + sAttr + '><v>' + total.toFixed(2) + '</v></c>'
+      : '<c r="' + cn + headRow + '"' + sAttr + '/>');
   });
   const h1Row = h1Parts.join('');
   // r2 的月份：前 3 格留空，第 4 格起写月份日期
   const h2Parts = [];
   [1, 2, 3].forEach(col => {
     const hit = h2.find(c => c.col === _xColName(col));
-    if (hit && hit.s != null) h2Parts.push('<c r="' + _xColName(col) + '2" s="' + hit.s + '"/>');
+    if (hit && hit.s != null) h2Parts.push('<c r="' + _xColName(col) + monthRow + '" s="' + hit.s + '"/>');
   });
   months.forEach((ym, k) => {
     const col = 4 + k, cn = _xColName(col);
@@ -3560,12 +3569,12 @@ async function buildXlsxFromTemplate(tplBytes) {
     const sAttr = s == null ? '' : ' s="' + s + '"';
     const yy = Math.floor(ym / 100), mm = ym % 100;
     const ser = _xSerial(yy + '-' + pad2(mm) + '-01');
-    h2Parts.push('<c r="' + cn + '2"' + sAttr + '><v>' + ser + '</v></c>');
+    h2Parts.push('<c r="' + cn + monthRow + '"' + sAttr + '><v>' + ser + '</v></c>');
   });
   instHead = instHead
-    .replace(/<row r="1"[^>]*>[\s\S]*?<\/row>/, (mm2) => mm2.replace(/>[\s\S]*<\/row>$/, '>' + h1Row + '</row>'))
-    .replace(/<row r="2"[^>]*>[\s\S]*?<\/row>/, (mm2) => mm2.replace(/>[\s\S]*<\/row>$/, '>' + h2Parts.join('') + '</row>'));
-  const newInst = _xRebuild(instHead, 2, instData, (col) => instStyleP(col));
+    .replace(new RegExp('<row r="' + headRow + '"[^>]*>[\\s\\S]*?</row>'), (mm2) => mm2.replace(/>[\s\S]*<\/row>$/, '>' + h1Row + '</row>'))
+    .replace(new RegExp('<row r="' + monthRow + '"[^>]*>[\\s\\S]*?</row>'), (mm2) => mm2.replace(/>[\s\S]*<\/row>$/, '>' + h2Parts.join('') + '</row>'));
+  const newInst = _xRebuild(instHead, dataStart - 1, instData, (col) => instStyleP(col));
 
   // ---------- 打包 ----------
   const outEntries = order.map(e => {
