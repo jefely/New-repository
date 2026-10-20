@@ -453,7 +453,8 @@ td.query-empty { text-align: center; color: var(--text-light); padding: 40px 12p
 
   /* 汇总表：13 列，保底 800px */
   table#summary-table { min-width: 800px; }
-  table#summary-table td input { font-size: 13px; padding: 10px 4px; }
+  /* 之前是 10px，把行高从 32 撑到 38；改成 6.5px 和桌面一致，行高稳定在 32 */
+  table#summary-table td input { font-size: 13px; padding: 6.5px 4px; }
   /* 窄屏下重分配列宽：13 列挤在 800px 里，金额列必须拿到足够像素，
      否则 ¥-1,034.56 会被省略成 "¥-1,034..."（桌面端百分比不动） */
   table#summary-table thead th { padding: 8px 2px; font-size: 12px; }
@@ -2735,9 +2736,12 @@ async function addFlowFromTXT(e, footer) {
     const k = sig(t);
     if (seen.has(k)) { dup++; continue; }
     seen.add(k);
+    // 转出 / 转入 支持简码：XJ → 现金（账户已经在上面替换过了，这里能查到）
     state.transactions.push({
       id: 't' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
-      seq: 0, date: t.date || '', from: t.from || '', to: t.to || '',
+      seq: 0, date: t.date || '',
+      from: resolveCode(t.from || ''),
+      to: resolveCode(t.to || ''),
       amount: t.amount === '' || t.amount == null ? '' : t.amount,
       note: t.note || ''
     });
