@@ -107,6 +107,11 @@ table.grid tbody td.col-bill > .row-del { right: auto; left: 0; }
 table#flow-table tbody td.col-note { white-space: nowrap; overflow: hidden; }
 /* 删除按钮收窄到 18px（原来 22px），勾选框 12px，合计占位从 45px 降到 33px */
 table#flow-table tbody td.col-note > .row-del { right: 18px; width: 18px; font-size: 17px; }
+/* 流水「加载更多」行 */
+tr.flow-more td.flow-more-td { padding: 10px; text-align: center; color: var(--primary); font-size: 12px; cursor: pointer; background: var(--bg-gray-light); }
+tr.flow-more td.flow-more-td:hover { background: #eff6ff; }
+tr.flow-more td.flow-more-td b { text-decoration: underline; }
+
 /* 固定表对齐：金额靠右、备注靠左、其余居中 */
 table#fixed-table tbody td { text-align: center; }
 table#fixed-table tbody td.col-amount { text-align: right; padding-right: 10px; }
@@ -667,7 +672,9 @@ const defaultAccounts = ACC_RAW.map((r, i) => ({
 const LS_KEY = 'flow_grid_v5';
 const SUMMARY_STATE_KEY = 'flow_summary_state_v3';
 // 流水表默认铺多少行空行。像 Excel 一样随手往下填，不用先点「新增」。
-const FLOW_BLANK_ROWS = 100;
+const FLOW_BLANK_ROWS = 30;
+const FLOW_BATCH = 150;        // 每次渲染/追加的流水行数
+let flowShown = FLOW_BATCH;    // 当前已渲染多少行
 // 可编辑的列顺序，粘贴时按这个映射
 const FLOW_FIELDS = ['date', 'from', 'to', 'amount', 'note'];
 
@@ -1075,18 +1082,36 @@ function renderFlow(main, footer) {
   const tbody = table.querySelector('tbody');
 
   const txs = state.transactions.slice().sort((a, b) => (a.seq || 0) - (b.seq || 0));
-  txs.forEach(t => tbody.appendChild(makeFlowRow(t, 0, false)));
 
-  // 记录之后固定铺 100 行空行，随手往下填即可，不用先点「新增」
+  // 分批渲染：每行 6 个 input，一次性铺几百行会让页面明显卡顿。
+  // 先渲染前 FLOW_BATCH 行，滚到底部再追加一批。
+  const shown = txs.slice(0, flowShown);
   const frag = document.createDocumentFragment();
+  shown.forEach(t => frag.appendChild(makeFlowRow(t, 0, false)));
+
+  // 记录之后铺 FLOW_BLANK_ROWS 行空行，随手往下填即可
   for (let i = 0; i < FLOW_BLANK_ROWS; i++) frag.appendChild(makeFlowRow(blankFlowRow(), 0, true));
   tbody.appendChild(frag);
   renumberFlowRows(tbody);
-  // 已有数据的行统一挂上「固定支出」勾选框
-  txs.forEach(t => {
+  shown.forEach(t => {
     const tr = tbody.querySelector('tr[data-id="' + t.id + '"]');
     if (tr) attachFixedCheckbox(tr);
   });
+
+  // 还有没渲染的，底部放一行提示（点一下追加）
+  if (txs.length > flowShown) {
+    const more = document.createElement('tr');
+    more.className = 'flow-more';
+    more.innerHTML = '<td colspan="6" class="flow-more-td">已显示 ' + flowShown + ' / ' + txs.length
+      + ' 笔 · <b>点击加载更多</b></td>';
+    more.addEventListener('click', () => {
+      flowShown = Math.min(txs.length, flowShown + FLOW_BATCH);
+      render();
+    });
+    tbody.appendChild(more);
+  } else if (flowShown !== FLOW_BATCH && txs.length <= FLOW_BATCH) {
+    flowShown = FLOW_BATCH;
+  }
 
   wrap.appendChild(table);
   main.appendChild(wrap);
