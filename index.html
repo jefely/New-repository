@@ -105,6 +105,13 @@ table.grid tbody td.col-bill > .row-del { right: auto; left: 0; }
 .row-del:active { color: var(--danger); background: #fee2e2; }
 /* 固定支出勾选框：放在删除按钮右侧（删除按钮让出 22px），尺寸压到 13px 不撑列 */
 table#flow-table tbody td.col-note > .row-del { right: 22px; width: 22px; }
+/* 固定表对齐：金额靠右、备注靠左、其余居中 */
+table#fixed-table tbody td { text-align: center; }
+table#fixed-table tbody td.col-amount { text-align: right; padding-right: 10px; }
+table#fixed-table tbody td.col-note { text-align: left; padding-left: 8px; }
+table#fixed-table thead th.col-amount { text-align: right; padding-right: 10px; }
+table#fixed-table thead th.col-note { text-align: left; padding-left: 8px; }
+
 /* 优先级要压过通用 input 样式（那些规则会把 width 拉成 100%） */
 table#flow-table tbody td.col-note input.fixed-chk,
 .fixed-chk {
