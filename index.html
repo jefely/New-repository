@@ -1342,7 +1342,7 @@ function toggleTheme() {
   toast(theme === 'dark' ? '已切换到反色主题' : '已切换到浅色主题');
 }
 
-const APP_VER = 'v7.32';
+const APP_VER = 'v7.33';
 const LS_KEY = 'flow_grid_v5';
 const SUMMARY_STATE_KEY = 'flow_summary_state_v3';
 // 流水表默认铺多少行空行。像 Excel 一样随手往下填，不用先点「新增」。
@@ -4935,8 +4935,13 @@ async function exportXLSX() {
   const type = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
   const blob = new Blob([bytes], { type });
   toast('[' + APP_VER + '] 已生成 Excel（' + Math.round(bytes.length / 1024) + ' KB）：流水 ' + state.transactions.length + ' 笔、账户 ' + state.accounts.length + ' 个、分期 ' + (state.installments || []).length + ' 个', { duration: 5000 });
+  // 手机（窄屏 / 触屏）不试前面那两级：华为浏览器会「假装支持」然后什么都不做，
+  // 直接走最后的 data URL + 剪贴板，那个是用户主动点击，绕不过去。
+  const isMobile = (typeof window !== 'undefined')
+    && (/Android|iPhone|iPad|iPod|HarmonyOS|Mobile/i.test(navigator.userAgent || '') || window.innerWidth < 768);
+
   // 1) 桌面 Chrome / Edge：弹系统「另存为」，自己选目录和文件名
-  if (window.showSaveFilePicker) {
+  if (!isMobile && window.showSaveFilePicker) {
     try {
       const handle = await window.showSaveFilePicker({
         suggestedName: name,
@@ -4952,16 +4957,17 @@ async function exportXLSX() {
       // 其他错误就继续往下走
     }
   }
-  // 2) 手机：先试系统分享面板 —— 那里可以选「保存到文件」/「发送给朋友」，位置由用户定
-  try {
-    const file = new File([blob], name, { type });
-    if (navigator.canShare && navigator.canShare({ files: [file] })) {
-      await navigator.share({ files: [file], title: name });
-      return;
+  // 2) 桌面：再试一次系统分享（手机上跳过，见上）
+  if (!isMobile) {
+    try {
+      const file = new File([blob], name, { type });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file], title: name });
+        return;
+      }
+    } catch (e) {
+      if (e && e.name === 'AbortError') return;
     }
-  } catch (e) {
-    if (e && e.name === 'AbortError') return;   // 用户取消
-    // 分享被拦截就继续往下走
   }
   // 3) 试 a[download]
   const url = URL.createObjectURL(blob);
