@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#1e293b">
+<meta name="theme-color" content="#3b82f6">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
 <link rel="apple-touch-icon" href="icon-192.png">
@@ -45,10 +45,10 @@ body { display: flex; flex-direction: column; height: 100vh; height: 100dvh; }
    2. 布局与导航
    ========================================== */
 /* 标签栏高度同其它行统一为 32px（含 3px 的选中下划线） */
-.tabbar { flex-shrink: 0; display: flex; height: 32px; background: var(--bg-dark); overflow-x: auto; border-bottom: 2px solid #0b1220; }
-.tabbar button { flex: 1 1 0; min-width: 0; height: 100%; box-sizing: border-box; background: none; border: none; border-left: 1px solid rgba(255, 255, 255, .18); color: var(--text-light); padding: 0 2px; font-size: 15px; font-weight: 700; cursor: pointer; border-bottom: 3px solid transparent; transition: all 0.2s; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tabbar { flex-shrink: 0; display: flex; height: 40px; background: var(--primary); overflow-x: auto; border-bottom: 2px solid #2563eb; }
+.tabbar button { flex: 1 1 0; min-width: 0; height: 100%; box-sizing: border-box; background: none; border: none; border-left: 1px solid rgba(255, 255, 255, .35); color: #0f172a; padding: 0 2px; font-size: 15px; font-weight: 700; cursor: pointer; border-bottom: 3px solid transparent; transition: all 0.2s; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .tabbar button:first-child { border-left: none; }
-.tabbar button.active { color: #fff; background: rgba(255, 255, 255, .08); border-bottom-color: var(--primary); }
+.tabbar button.active { color: #0f172a; background: rgba(255, 255, 255, .45); border-bottom-color: #0f172a; }
 
 main { flex: 1; min-height: 0; display: flex; flex-direction: column; background: var(--bg-main); overflow: hidden; }
 footer { flex-shrink: 0; background: var(--bg-dark); color: var(--text-light); padding: 8px 12px; padding-bottom: max(8px, env(safe-area-inset-bottom)); font-size: 12px; text-align: center; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -116,12 +116,24 @@ table#flow-table tbody td.col-note > .row-del { right: 18px; width: 18px; font-s
 .fixed-bar .fixed-sum b.in { color: #059669; }
 .fixed-bar .fixed-sum b.out { color: #dc2626; }
 
+/* 表头统一：字号 13px、黑字（含查询表那三行标题） */
+table.grid thead th, table.query-table thead th, table.install-table thead th {
+  font-size: 13px !important;
+  color: #0f172a !important;
+}
+/* 查询表的筛选输入行也统一成小一号灰字 */
+table.query-table thead th input {
+  font-size: 12px !important;
+  color: #64748b !important;
+}
+table.query-table thead th input:focus { color: #0f172a !important; }
+
 /* 统一按钮：字号一致、黑字（放最后 + !important，压过前面各页的局部规则） */
 button { font-size: 13px !important; color: #0f172a !important; }
 button.ghost { color: #0f172a !important; }
 /* 深色底上的标签栏按钮保持白字 */
-.tabbar button { font-size: 15px !important; color: var(--text-light) !important; }
-.tabbar button.active { color: #ffffff !important; }
+.tabbar button { font-size: 15px !important; color: #0f172a !important; }
+.tabbar button.active { color: #0f172a !important; }
 /* 危险操作（删除）保持原有浅色，hover/active 由 .row-del 自己控制 */
 button.row-del { color: var(--border) !important; }
 button.row-del:active { color: var(--danger) !important; }
@@ -144,7 +156,9 @@ tr.flow-more td.flow-more-td:hover { background: #eff6ff; }
 tr.flow-more td.flow-more-td b { text-decoration: underline; }
 
 /* 固定表对齐：金额靠右、备注靠左、其余居中 */
-table#fixed-table tbody td { text-align: center; }
+table#fixed-table tbody td { text-align: center; height: 30px; }
+table#fixed-table tbody tr { height: 30px; }
+table#fixed-table thead th { height: 32px; }
 table#fixed-table tbody td.col-amount { text-align: right; padding-right: 10px; }
 table#fixed-table tbody td.col-note { text-align: left; padding-left: 8px; }
 /* 表头一律居中（数据行才分左右） */
@@ -435,8 +449,9 @@ table.install-table tbody tr.inst-i td { border-bottom: 2px solid var(--border);
    字号 12px —— 119px 的列宽减去左侧内边距和删除按钮，
    剩下的空间放 13px 会截断「招行信1007」。 */
 /* 账户名称列：本金行深色底白字，利息行普通字；两行都居中 */
-table.install-table tr.inst-p td.col-name { background: #364760; }
-table.install-table tr.inst-p td.col-name input { color: #fff; font-weight: 700; }
+/* 账户名称列：本金行蓝底黑字（和标签栏同色），利息行普通字 */
+table.install-table tr.inst-p td.col-name { background: var(--primary); }
+table.install-table tr.inst-p td.col-name input { color: #0f172a !important; font-weight: 700; }
 /* 名称列收窄到 87px 后，13px 字号会把「招行信1007」截断，降一档到 11px 刚好完整 */
 /* 名称字号和其它单元格一致（13px），列宽相应放宽到 100px */
 table.install-table tbody td.col-name input { text-align: center; }
