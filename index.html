@@ -1205,6 +1205,39 @@ table.grid tbody td input,
 table.query-table tbody td input,
 table.install-table tbody td input,
 table#fixed-table tbody td input { height: 30px !important; line-height: 30px; }
+/* ============================================================
+   删除按钮（×）：无边框、无填充、加粗
+   ============================================================ */
+button.row-del,
+button.row-del:hover,
+button.row-del:focus,
+[data-theme="dark"] button.row-del,
+[data-theme="dark"] button.row-del:hover {
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  font-weight: 900 !important;
+  color: var(--text-light) !important;
+}
+button.row-del:active,
+[data-theme="dark"] button.row-del:active {
+  background: transparent !important;
+  color: var(--danger) !important;
+}
+/* 分期页的删除按钮用的是 .inst-del，同样处理 */
+button.inst-del,
+button.inst-del:hover,
+button.inst-del:active,
+[data-theme="dark"] button.inst-del,
+[data-theme="dark"] button.inst-del:hover {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  font-weight: 900 !important;
+}
+button.inst-del { color: var(--text-light) !important; }
+button.inst-del:active, [data-theme="dark"] button.inst-del:active { color: var(--danger) !important; }
 </style>
 </head>
 <body>
