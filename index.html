@@ -1274,6 +1274,26 @@ table#summary-table th.col-name, table#summary-table td.col-name {
   min-width: 96px !important;
 }
 table#summary-table { min-width: 920px; }
+/* 分类页「月」模式：年份框不被压扁，12 个月份按钮分两行 */
+.toolbar.bar2 > input.year-input {
+  flex: 0 0 auto !important;
+  width: 56px !important;
+  min-width: 56px !important;
+  max-width: 56px !important;
+}
+.toolbar.bar2 .month-row {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 2px !important;
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+}
+.toolbar.bar2 .month-row .m-btn {
+  flex: 1 1 calc(16.66% - 2px) !important;
+  min-width: 0 !important;
+}
+/* 表格：去掉账户数后不用那么宽 */
+table.subsum-table { min-width: 470px !important; }
 </style>
 </head>
 <body>
@@ -1374,7 +1394,7 @@ function toggleTheme() {
   toast(theme === 'dark' ? '已切换到反色主题' : '已切换到浅色主题');
 }
 
-const APP_VER = 'v7.46';
+const APP_VER = 'v7.47';
 const LS_KEY = 'flow_grid_v5';
 const SUMMARY_STATE_KEY = 'flow_summary_state_v3';
 // 流水表默认铺多少行空行。像 Excel 一样随手往下填，不用先点「新增」。
@@ -1831,7 +1851,6 @@ function renderCat(main, footer) {
       <td class="center">${i + 1}</td>
       <td class="cat-name">${esc(g.sub)}</td>
       <td class="center">${esc(g.mainCat)}</td>
-      <td class="center">${g.n}</td>
       <td class="num">${fmtMoney(g.bal)}</td>
       <td class="num">${fmtMoney(g.out)}</td>
       <td class="num">${fmtMoney(g.inn)}</td>
@@ -1839,13 +1858,12 @@ function renderCat(main, footer) {
   }).join('');
   table.innerHTML = `
     <thead><tr>
-      <th class="center">序号</th><th>汇总分类</th><th class="center">类型</th><th class="center">账户数</th>
+      <th class="center">序号</th><th>汇总分类</th><th class="center">类型</th>
       <th class="num">当前结余</th><th class="num">转出</th><th class="num">转入</th>
     </tr></thead>
-    <tbody>${body || '<tr><td colspan="7" class="query-empty">这个时间段还没有数据</td></tr>'}</tbody>
+    <tbody>${body || '<tr><td colspan="6" class="query-empty">这个时间段还没有数据</td></tr>'}</tbody>
     <tfoot><tr class="total-row">
       <td colspan="3" class="center">合计</td>
-      <td class="center">${state.accounts.length}</td>
       <td class="num">${fmtMoney(totBal)}</td>
       <td class="num">${fmtMoney(totOut)}</td>
       <td class="num">${fmtMoney(totInn)}</td>
