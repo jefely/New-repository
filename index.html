@@ -1491,6 +1491,7 @@ function renderSummary(main, footer) {
   bar1.className = 'toolbar bar1';
   bar1.innerHTML = `
     <button id="mode-month" class="ghost" data-active="${summaryMode === 'month'}">月份</button>
+    ${monthsMode ? '' : '<button id="range-clear" class="ghost" title="清空起止日期">清空</button>'}
     ${monthsMode ? `<input id="r-year" class="year-input" placeholder="年" inputmode="numeric" title="输入年份，如 26 或 2026" value="${String(summaryMonth.year).slice(-2)}年">` : ''}
     ${monthsMode ? `<div class="month-row" id="month-row-top">${monthsTop}</div>` : ''}
   `;
@@ -1502,7 +1503,6 @@ function renderSummary(main, footer) {
   if (summaryMode === 'range') {
     bar2.innerHTML = `
       <button id="mode-range" class="ghost" data-active="true">区间</button>
-      <button id="range-clear" class="ghost" title="清空起止日期">清空</button>
       <button id="s-print" class="ghost" title="打印账户余额表">打印</button>
       <input id="r-start" class="grow" placeholder="起始 YY/YYMM/YYMMDD" inputmode="numeric" title="起始：YY / YYMM / YYMMDD，例如 26 / 2608 / 260801" value="${esc(summaryRange.start)}">
       <span class="tilde">~</span>
