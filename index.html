@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#679df8">
+<meta name="theme-color" content="#8b7fe8">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
 <link rel="apple-touch-icon" href="icon-192.png">
@@ -20,8 +20,8 @@
    1. 全局变量与基础设置
    ========================================== */
 :root {
-  --primary: #679df8;
-  --primary-dark: #2563eb;
+  --primary: #8b7fe8;
+  --primary-dark: #6f62d8;
   --bg-main: #ffffff;
   --bg-gray: #f1f5f9;
   --bg-gray-light: #f8fafc;
@@ -38,14 +38,14 @@
   --bar-bg: #1e293b;
   --bar-text: #ffffff;
   --bar-text-dim: #cbd5e1;
-  --deep-blue: #364760;
+  --deep-blue: #2a2a4a;
 }
 
 /* 反色（暗色）主题：只换变量，其余样式自动跟随 */
 [data-theme="dark"] {
   /* 底色全部用中性黑灰，不带蓝；只有选中态保留一点蓝做强调 */
-  --primary: #7fb0ff;
-  --primary-dark: #679df8;
+  --primary: #9a90f0;
+  --primary-dark: #8b7fe8;
   --bg-main: #000000;
   --bg-gray: #0a0a0a;
   --bg-gray-light: #131313;
@@ -66,7 +66,7 @@
   --bar-text: #ffffff;
   --bar-text-dim: #c8c8c8;
   /* 分期账户名的深暗蓝 */
-  --deep-blue: #333042;
+  --deep-blue: #2a2a4a;
 }
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; font-family: var(--font-sys); }
@@ -94,7 +94,7 @@ table.grid { border-collapse: separate; border-spacing: 0; table-layout: fixed; 
 table.grid thead th { position: sticky; top: 0; z-index: 3; background: var(--bg-gray); color: var(--text-muted); font-weight: 700; font-size: 13px; padding: 7px 6px; text-align: center; border-bottom: 1px solid var(--border); border-right: 1px solid var(--border-light); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 table.grid tbody td { padding: 0; border-bottom: 1px solid var(--border-light); border-right: 1px solid var(--border-light); vertical-align: middle; background: var(--bg-main); }
 table.grid tbody tr:nth-child(even) td { background: var(--bg-gray-light); }
-table.grid tbody tr:hover td { background: #eff6ff; } /* 悬停高亮，增加可读性 */
+table.grid tbody tr:hover td { background: #f3f1fb; } /* 悬停高亮，增加可读性 */
 
 /* 序号列固定 */
 table.grid thead th.col-seq { left: 0; z-index: 4; text-align: center; }
@@ -358,7 +358,7 @@ input:focus, textarea:focus { color: #0f172a !important; }
 
 /* 流水「加载更多」行 */
 tr.flow-more td.flow-more-td { padding: 10px; text-align: center; color: var(--primary); font-size: 12px; cursor: pointer; background: var(--bg-gray-light); }
-tr.flow-more td.flow-more-td:hover { background: #eff6ff; }
+tr.flow-more td.flow-more-td:hover { background: #f3f1fb; }
 tr.flow-more td.flow-more-td b { text-decoration: underline; }
 
 /* 固定表对齐：金额靠右、备注靠左、其余居中 */
@@ -553,7 +553,7 @@ table.query-table .q-title-row th { background: #fff; color: var(--text-main); p
 /* 查询区筛选行 */
 table.query-table .q-filter-row th { background: var(--bg-gray-light); padding: 2.5px 3px; border-right: 1px solid var(--border-light); border-bottom: 1px solid var(--border-light); text-align: center; }
 table.query-table .q-filter-row input { width: 100%; padding: 4px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 12px; outline: none; text-align: center; }
-table.query-table .q-filter-row input:focus { border-color: var(--primary); background: #eff6ff; }
+table.query-table .q-filter-row input:focus { border-color: var(--primary); background: #f3f1fb; }
 
 /* 列名行 */
 table.query-table .q-head-row th { background: var(--bg-gray); color: var(--text-muted); padding: 7px 4px; text-align: center; font-size: 13px; font-weight: 700; white-space: nowrap; border-right: 1px solid var(--border-light); border-bottom: 1px solid var(--border); }
@@ -606,7 +606,7 @@ table.query-table tr > td:last-child { border-right: none; }
 .toolbar.install-bar > .inst-label:first-of-type { margin-left: 16px; }
 .inst-label { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; color: var(--text-muted); white-space: nowrap; }
 .inst-input { width: 62px; height: 28px; padding: 0 6px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 13px; text-align: center; outline: none; font-variant-numeric: tabular-nums; }
-.inst-input:focus { border-color: var(--primary); background: #eff6ff; }
+.inst-input:focus { border-color: var(--primary); background: #f3f1fb; }
 
 /* 列宽必须硬性保底，否则月份列一多、浏览器就把「账户名称」压成几个字。
    用 min-width 而不是 table-layout:fixed —— 后者在 width:auto 下列宽会被均分掉。
@@ -639,7 +639,7 @@ table.install-table thead th.col-sum { text-align: center; }
 /* 月份格：单元格本身不带内边距，输入框铺满，点击范围更大 */
 table.install-table td.col-month { padding: 0; }
 table.install-table td.col-month input { width: 100%; height: 32px; border: none; background: transparent; text-align: right; padding: 0 6px; font-size: 13px; outline: none; font-variant-numeric: tabular-nums; color: var(--text-main); }
-table.install-table td.col-month input:focus { background: #eff6ff; }
+table.install-table td.col-month input:focus { background: #f3f1fb; }
 /* 已还=绿色，未还=黑色（和原表的判定一致） */
 table.install-table td.col-month.paid input { color: #00b050; }
 table.install-table td.col-month.pending input { color: var(--text-main); }
@@ -667,7 +667,7 @@ table.install-table td.col-name { position: relative; }
 table.install-table td.col-name input { width: 100%; height: 30px; border: none; background: transparent; font-size: 13px; outline: none; padding: 0 2px; }
 table.install-table td.col-name input:focus { background: rgba(255, 255, 255, .16); }
 table.install-table tr.inst-i td.col-name input { font-weight: 700; text-align: right; }
-table.install-table tr.inst-i td.col-name input:focus { background: #eff6ff; }
+table.install-table tr.inst-i td.col-name input:focus { background: #f3f1fb; }
 /* 删除按钮：放在「每月合计」格靠左的位置。金额是右对齐的，左边本来就空着，
    这样它不再占用账户名称列的宽度。 */
 .inst-del { position: absolute; left: 2px; top: 0; bottom: 0; width: 16px; border: none; background: none; color: var(--border); font-size: 15px; line-height: 1; cursor: pointer; }
@@ -748,7 +748,7 @@ table.install-table tr.inst-i td.col-name input:focus { background: #eff6ff; }
 .month-row .m-btn:active { background: #dbeafe; }
 .month-row .m-btn[data-active="true"]:active { background: var(--primary-dark); }
 
-.range-inline { flex: 0 0 auto; margin-left: auto; display: inline-flex; align-items: center; height: 28px; padding: 0 12px; font-size: 13px; font-weight: 600; color: var(--primary-dark); background: #eff6ff; border-radius: var(--radius); }
+.range-inline { flex: 0 0 auto; margin-left: auto; display: inline-flex; align-items: center; height: 28px; padding: 0 12px; font-size: 13px; font-weight: 600; color: var(--primary-dark); background: #f3f1fb; border-radius: var(--radius); }
 
 /* ==========================================
    6. 页面动画与空状态
