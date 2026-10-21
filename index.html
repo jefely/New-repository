@@ -1561,6 +1561,194 @@ table#summary-table { min-width: 800px !important; }
 .toolbar.bar2 { gap: 6px !important; }
 .toolbar.bar2 > #mode-range { flex: 0 0 auto !important; padding: 0 8px !important; max-width: 64px !important; }
 .toolbar.bar2 > #range-clear { flex: 0 0 auto !important; padding: 0 8px !important; max-width: 64px !important; }
+/* ============================================================
+   工具栏：按钮固定宽度、靠左排列、整行装得下（不拉伸、不跟随表格）
+   ============================================================ */
+.toolbar.flow-bar,
+.toolbar.bar1,
+.toolbar.bar2,
+.toolbar.install-bar {
+  display: flex !important;
+  align-items: center !important;
+  flex-wrap: nowrap !important;
+  gap: 5px !important;
+  padding: 4px 6px !important;
+  box-sizing: border-box !important;
+  width: 100% !important;
+  height: auto !important;
+  min-height: 34px !important;
+  max-width: 100% !important;
+  overflow: hidden !important;
+}
+
+/* 标题靠左，宽度按内容 */
+.toolbar.flow-bar > .flow-title,
+.toolbar.flow-bar > .bar-title,
+.toolbar.install-bar > .bar-title,
+.toolbar.flow-bar > .fixed-title {
+  position: static !important;
+  flex: 0 0 auto !important;
+  width: auto !important;
+  margin: 0 !important;
+  padding: 0 2px 0 0 !important;
+  font-size: 14px !important;
+  white-space: nowrap !important;
+  text-align: left !important;
+}
+
+/* 按钮：固定宽度（按内容 + 左右内边距），不 grow 不 shrink */
+.toolbar.flow-bar > button,
+.toolbar.bar1 > button,
+.toolbar.bar2 > button,
+.toolbar.install-bar > button {
+  flex: 0 0 auto !important;
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  height: 28px !important;
+  padding: 0 9px !important;
+  box-sizing: border-box !important;
+  font-size: 13px !important;
+  white-space: nowrap !important;
+  text-align: center !important;
+}
+
+/* 年份/数字输入框：固定窄宽 */
+.toolbar.bar1 > input.year-input,
+.toolbar.bar2 > input.year-input,
+.toolbar.install-bar > input {
+  flex: 0 0 54px !important;
+  width: 54px !important;
+  min-width: 54px !important;
+  max-width: 54px !important;
+  height: 28px !important;
+  padding: 0 2px !important;
+  font-size: 13px !important;
+  text-align: center !important;
+  box-sizing: border-box !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 5px !important;
+  background: var(--bg-main) !important;
+}
+.toolbar.bar2 > input.grow {
+  flex: 1 1 0 !important;
+  min-width: 0 !important;
+  width: auto !important;
+  max-width: none !important;
+}
+.toolbar.bar2 > .tilde { flex: 0 0 auto !important; }
+
+/* 月份格子：固定小格，一行 12 个 */
+.toolbar.bar1 > .month-row,
+.toolbar.bar2 > .month-row {
+  flex: 1 1 0 !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  display: grid !important;
+  grid-template-columns: repeat(12, minmax(0, 1fr)) !important;
+  gap: 2px !important;
+  height: auto !important;
+}
+.toolbar.bar1 > .month-row .m-btn,
+.toolbar.bar2 > .month-row .m-btn {
+  flex: 0 0 auto !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  height: 26px !important;
+  padding: 0 !important;
+  font-size: 12px !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+}
+
+/* 分期页 起/止 标签 */
+.toolbar.install-bar > .inst-label,
+.toolbar.install-bar > label,
+.toolbar.install-bar > span { flex: 0 0 auto !important; white-space: nowrap !important; }
+/* 规划版工具栏（.plan-bar / .plan-bar2）：标题和按钮都靠左、固定宽 */
+.toolbar.plan-bar, .toolbar.plan-bar2 {
+  display: flex !important;
+  align-items: center !important;
+  flex-wrap: nowrap !important;
+  gap: 5px !important;
+  padding: 4px 6px !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  height: auto !important;
+  min-height: 34px !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+}
+.toolbar.plan-bar > .flow-title {
+  position: static !important;
+  flex: 0 0 auto !important;
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 0 2px 0 0 !important;
+  font-size: 14px !important;
+  white-space: nowrap !important;
+  text-align: left !important;
+  transform: none !important;
+}
+.toolbar.plan-bar > button.plan-btn {
+  flex: 0 0 auto !important;
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  height: 28px !important;
+  padding: 0 9px !important;
+  font-size: 13px !important;
+  white-space: nowrap !important;
+  box-sizing: border-box !important;
+}
+.toolbar.plan-bar > input.year-input {
+  flex: 0 0 54px !important;
+  width: 54px !important;
+  min-width: 54px !important;
+  max-width: 54px !important;
+  height: 28px !important;
+  padding: 0 2px !important;
+  font-size: 13px !important;
+  text-align: center !important;
+  box-sizing: border-box !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 5px !important;
+  background: var(--bg-main) !important;
+}
+/* 月份 / 年份 格子：12 列或 4 列 */
+.toolbar.plan-bar2 > .month-row {
+  flex: 1 1 0 !important;
+  min-width: 0 !important;
+  display: grid !important;
+  grid-template-columns: repeat(12, minmax(0, 1fr)) !important;
+  gap: 2px !important;
+}
+.toolbar.plan-bar2 > .month-row.plan-years {
+  grid-template-columns: repeat(auto-fit, minmax(0, 1fr)) !important;
+  gap: 6px !important;
+}
+.toolbar.plan-bar2 > .month-row .m-btn {
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  height: 26px !important;
+  padding: 0 !important;
+  font-size: 12px !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  box-sizing: border-box !important;
+}
+.toolbar.plan-bar2 > input.grow {
+  flex: 1 1 0 !important;
+  min-width: 0 !important;
+  height: 28px !important;
+  box-sizing: border-box !important;
+  font-size: 13px !important;
+}
+.toolbar.plan-bar2 > .tilde { flex: 0 0 auto !important; font-size: 13px !important; }
 </style>
 </head>
 <body>
@@ -1661,7 +1849,7 @@ function toggleTheme() {
   toast(theme === 'dark' ? '已切换到反色主题' : '已切换到浅色主题');
 }
 
-const APP_VER = 'v7.66';
+const APP_VER = 'v7.72';
 const LS_KEY = 'flow_grid_v5';
 const SUMMARY_STATE_KEY = 'flow_summary_state_v3';
 // 流水表默认铺多少行空行。像 Excel 一样随手往下填，不用先点「新增」。
@@ -1690,7 +1878,8 @@ let state = (() => {
 if (!Array.isArray(state.fixed)) state.fixed = [];
 if (!Array.isArray(state.installments)) state.installments = [];
 
-let summaryMode = 'month';
+let summaryMode = 'month';   // month | year | range | all
+let summaryYear = new Date().getFullYear();
 let summaryRange = { start: '', end: '' };
 let summaryMonth = (() => {
   const d = new Date();
@@ -2034,77 +2223,39 @@ function catRangeLabel() {
 function renderCat(main, footer) {
   const range = catRangeOf();
 
-  // 工具栏
-  const bar = document.createElement('div');
-  bar.className = 'toolbar flow-bar';
-  bar.innerHTML = `
-    <span class="flow-title">分类统计</span>
-    <button class="ghost" id="cat-m-month" data-active="${catMode === 'month'}">月</button>
-    <button class="ghost" id="cat-m-year" data-active="${catMode === 'year'}">年</button>
-    <button class="ghost" id="cat-m-range" data-active="${catMode === 'range'}">区间</button>
-    <button class="ghost" id="cat-m-all" data-active="${catMode === 'all'}">全部</button>
-    <span style="flex:1"></span>
-    <span style="font-size:12px;color:var(--text-muted);white-space:nowrap">${esc(catRangeLabel())}</span>
-  `;
-  main.appendChild(bar);
-
-  const pick = (m) => { catMode = m; render(); };
-  bar.querySelector('#cat-m-month').onclick = () => pick('month');
-  bar.querySelector('#cat-m-year').onclick = () => pick('year');
-  bar.querySelector('#cat-m-range').onclick = () => pick('range');
-  bar.querySelector('#cat-m-all').onclick = () => pick('all');
-
-  // 第二行：月份 / 年份 / 区间输入
-  const bar2 = document.createElement('div');
-  bar2.className = 'toolbar bar2';
-  if (catMode === 'month') {
-    const activeM = parseInt(summaryMonth.month, 10);
-    let ms = '';
-    for (let m = 1; m <= 12; m++) ms += `<button type="button" class="m-btn" data-m="${m}" data-active="${activeM === m}"><span class="m-num">${m}</span><span class="m-suf">月</span></button>`;
-    bar2.innerHTML = `<input id="cat-year" class="year-input" placeholder="年" inputmode="numeric" value="${String(summaryMonth.year).slice(-2)}年">
-      <div class="month-row">${ms}</div>`;
-    main.appendChild(bar2);
-    const yi = bar2.querySelector('#cat-year');
-    yi.onchange = () => {
-      let y = parseInt(yi.value, 10);
-      if (isNaN(y)) { yi.value = String(summaryMonth.year).slice(-2) + '年'; return; }
-      if (y >= 0 && y <= 99) y += 2000;
-      if (y >= 1900 && y <= 2999) { summaryMonth.year = y; saveSummaryState(); render(); }
-      else yi.value = String(summaryMonth.year).slice(-2) + '年';
-    };
-    bar2.querySelectorAll('.m-btn').forEach(btn => {
-      btn.onclick = () => { const m = parseInt(btn.dataset.m, 10); if (m && m !== summaryMonth.month) { summaryMonth.month = m; saveSummaryState(); render(); } };
-    });
-  } else if (catMode === 'year') {
-    bar2.innerHTML = `<input id="cat-y2" class="year-input" placeholder="年" inputmode="numeric" value="${String(catYear).slice(-2)}年"><span style="flex:1"></span>`;
-    main.appendChild(bar2);
-    const yi = bar2.querySelector('#cat-y2');
-    yi.onchange = () => {
-      let y = parseInt(yi.value, 10);
-      if (isNaN(y)) { yi.value = String(catYear).slice(-2) + '年'; return; }
-      if (y >= 0 && y <= 99) y += 2000;
-      if (y >= 1900 && y <= 2999) { catYear = y; render(); }
-      else yi.value = String(catYear).slice(-2) + '年';
-    };
-  } else if (catMode === 'range') {
-    bar2.innerHTML = `
-      <input id="cat-rs" class="grow" placeholder="起始 YY/YYMM/YYMMDD" inputmode="numeric" value="${esc(catRange.start)}">
-      <span class="tilde">~</span>
-      <input id="cat-re" class="grow" placeholder="结束 YY/YYMM/YYMMDD" inputmode="numeric" value="${esc(catRange.end)}">
-    `;
-    main.appendChild(bar2);
-    const conv = (v, which) => {
-      const s = String(v || '').trim();
-      if (!s) { catRange[which] = ''; render(); return; }
-      const iso = parseRangeInput ? parseRangeInput(s, which === 'start') : null;
-      if (iso) { catRange[which] = iso; render(); }
-    };
-    bar2.querySelector('#cat-rs').onchange = (e) => conv(e.target.value, 'start');
-    bar2.querySelector('#cat-re').onchange = (e) => conv(e.target.value, 'end');
-  } else {
-    bar2.innerHTML = `<span style="font-size:12px;color:var(--text-muted)">不限制时间，统计全部流水</span>`;
-    main.appendChild(bar2);
-  }
+  // 统一工具栏：分类统计 | 全部 清空 区间 年份 月份 [年]
+  const { bar1, bar2 } = buildRangeToolbar({
+    title: '分类统计',
+    mode: catMode,
+    year: catMode === 'year' ? catYear : summaryMonth.year,
+    month: summaryMonth.month,
+    range: catMode === 'range' ? catRange : { start: '', end: '' },
+    onMode: (m) => { catMode = m; render(); },
+    onClear: () => {
+      catMode = 'month';
+      catRange = { start: '', end: '' };
+      const d = new Date();
+      summaryMonth = { year: d.getFullYear(), month: d.getMonth() + 1 };
+      saveSummaryState(); render(); toast('已清空条件，回到本月');
+    },
+    onYear: (y) => {
+      if (catMode === 'year') catYear = y;
+      else { summaryMonth.year = y; }
+      saveSummaryState(); render();
+    },
+    onMonth: (m) => { catMode = 'month'; summaryMonth.month = m; saveSummaryState(); render(); },
+    onRange: (s, e) => {
+      const conv = (v) => {
+        if (!v) return '';
+        const iso = parseRangeInput ? parseRangeInput(v, true) : null;
+        return iso || '';
+      };
+      catRange = { start: conv(s) || s, end: conv(e) || e };
+      render();
+    }
+  });
+  main.appendChild(bar1);
+  main.appendChild(bar2);
 
   // 表格
   const rows = buildSubSummary(range);
@@ -2385,18 +2536,27 @@ function parseRangeInput(v, side) {
 }
 
 function getCurrentRange() {
-  if (summaryMode === 'month') {
-    const y = summaryMonth.year, m = summaryMonth.month;
-    const last = new Date(y, m, 0).getDate();
-    return { start: y + '-' + pad2(m) + '-01', end: y + '-' + pad2(m) + '-' + pad2(last) };
+  if (summaryMode === 'all') {
+    let min = '', max = '';
+    for (const t of state.transactions) {
+      if (!t.date) continue;
+      if (!min || t.date < min) min = t.date;
+      if (!max || t.date > max) max = t.date;
+    }
+    return { start: min || '2000-01-01', end: max || todayISO() };
   }
-  let s = parseRangeInput(summaryRange.start, 'start');
-  let e = parseRangeInput(summaryRange.end, 'end');
-  if (!s && !e) { const y = new Date().getFullYear(); s = y + '-01-01'; e = y + '-12-31'; }
-  else if (!s) s = e.slice(0, 4) + '-01-01';
-  else if (!e) e = s.slice(0, 4) + '-12-31';
-  if (s > e) { const t = s; s = e; e = t; }
-  return { start: s, end: e };
+  if (summaryMode === 'year') {
+    return { start: summaryYear + '-01-01', end: summaryYear + '-12-31' };
+  }
+  if (summaryMode === 'range') {
+    const s = summaryRange.start, e = summaryRange.end;
+    const sIso = s ? (parseRangeInput ? parseRangeInput(s, true) : null) : null;
+    const eIso = e ? (parseRangeInput ? parseRangeInput(e, false) : null) : null;
+    return { start: sIso || s || '2000-01-01', end: eIso || e || todayISO() };
+  }
+  const y = summaryMonth.year, m = summaryMonth.month;
+  const last = new Date(y, m, 0).getDate();
+  return { start: y + '-' + pad2(m) + '-01', end: y + '-' + pad2(m) + '-' + pad2(last) };
 }
 
 // 计算单个账户的各项指标
@@ -2433,7 +2593,100 @@ let currentTab = 'flow';
 
 // 工具栏宽度跟随它下面那张表的实际宽度（最后一列右边界），
 // 不撑满视口；拖列宽后重新调用即可对齐。
+/* ============================================================
+   统一工具栏（按用户规划）
+   ------------------------------------------------------------
+   第一行：[标题] [全部] [清空] [区间] [年份] [月份] [年份框]
+   第二行：按 mode
+     · all   → 无（或提示）
+     · range → [起始] 至 [结束]
+     · year  → [2025][2026][2027][2028]
+     · month → [1][2][3]…[12]
+   ============================================================ */
+function buildRangeToolbar(opts) {
+  // opts: { title, mode, year, month, range, onMode, onYear, onMonth, onRange }
+  const { title, mode, year, month, range } = opts;
+  const bar1 = document.createElement('div');
+  bar1.className = 'toolbar bar1 plan-bar';
+  // 年份格子：只列「流水记录里真的出现过」的年份（加上当前选中的年份），
+  // 没有数据的年份不显示。
+  const years = (() => {
+    const set = new Set();
+    for (const t of state.transactions) {
+      if (t.date && /^\d{4}-/.test(t.date)) set.add(parseInt(t.date.slice(0, 4), 10));
+    }
+    if (year) set.add(Number(year));
+    const arr = [...set].filter(y => y >= 1900 && y <= 2999).sort((a, b) => a - b);
+    return arr.length ? arr : [new Date().getFullYear()];
+  })();
+  bar1.innerHTML = `
+    <span class="flow-title">${esc(title)}</span>
+    <button class="ghost plan-btn" data-mode="all" data-active="${mode === 'all'}">全部</button>
+    <button class="ghost plan-btn" id="plan-clear" title="清空条件">清空</button>
+    <button class="ghost plan-btn" data-mode="range" data-active="${mode === 'range'}">区间</button>
+    <button class="ghost plan-btn" data-mode="year" data-active="${mode === 'year'}">年份</button>
+    <button class="ghost plan-btn" data-mode="month" data-active="${mode === 'month'}">月份</button>
+    ${mode === 'month' ? `<input class="year-input" id="plan-year" placeholder="年" inputmode="numeric" value="${String(year).slice(-2)}年">` : ''}
+  `;
+
+  const bar2 = document.createElement('div');
+  bar2.className = 'toolbar bar2 plan-bar2';
+  if (mode === 'month') {
+    let cells = '';
+    for (let m = 1; m <= 12; m++) {
+      cells += `<button type="button" class="m-btn plan-m" data-m="${m}" data-active="${m === month}">${m}</button>`;
+    }
+    bar2.innerHTML = `<div class="month-row plan-months">${cells}</div>`;
+  } else if (mode === 'year') {
+    let cells = '';
+    for (const y of years) {
+      cells += `<button type="button" class="m-btn plan-y" data-y="${y}" data-active="${y === year}">${y}</button>`;
+    }
+    bar2.innerHTML = `<div class="month-row plan-years">${cells}</div>`;
+  } else if (mode === 'range') {
+    bar2.innerHTML = `
+      <input class="grow plan-start" placeholder="起始 2026-10-1" inputmode="numeric" value="${esc(range.start || '')}">
+      <span class="tilde">至</span>
+      <input class="grow plan-end" placeholder="结束 2026-10-30" inputmode="numeric" value="${esc(range.end || '')}">
+    `;
+  } else {
+    bar2.innerHTML = `<span style="font-size:12px;color:var(--text-muted);padding:0 4px">不限制时间，统计全部数据</span>`;
+  }
+
+  // 绑定
+  bar1.querySelectorAll('.plan-btn[data-mode]').forEach(b => {
+    b.onclick = () => { opts.onMode && opts.onMode(b.dataset.mode); };
+  });
+  const cb = bar1.querySelector('#plan-clear');
+  if (cb) cb.onclick = () => { opts.onClear && opts.onClear(); };
+  const yi = bar1.querySelector('#plan-year');
+  if (yi) {
+    yi.onchange = () => {
+      let y = parseInt(yi.value, 10);
+      if (isNaN(y)) { yi.value = String(year).slice(-2) + '年'; return; }
+      if (y >= 0 && y <= 99) y += 2000;
+      if (y >= 1900 && y <= 2999) opts.onYear && opts.onYear(y);
+      else yi.value = String(year).slice(-2) + '年';
+    };
+  }
+  bar2.querySelectorAll('.plan-m').forEach(b => {
+    b.onclick = () => opts.onMonth && opts.onMonth(parseInt(b.dataset.m, 10));
+  });
+  bar2.querySelectorAll('.plan-y').forEach(b => {
+    b.onclick = () => opts.onYear && opts.onYear(parseInt(b.dataset.y, 10));
+  });
+  const si = bar2.querySelector('.plan-start'), ei = bar2.querySelector('.plan-end');
+  const fire = () => opts.onRange && opts.onRange(si.value.trim(), ei.value.trim());
+  if (si) { si.onchange = fire; si.onblur = fire; }
+  if (ei) { ei.onchange = fire; ei.onblur = fire; }
+
+  return { bar1, bar2 };
+}
+
 function syncToolbarWidth() {
+  // 已停用：按钮改为固定宽度靠左排列，工具栏不再跟随表格宽度。
+  // 保留函数名避免旧调用点报错。
+  if (true) return;
   const main = document.getElementById('main');
   if (!main) return;
   // 同一页可能有多个工具栏（汇总/分类各两行），它们对齐同一张表。
@@ -2965,42 +3218,33 @@ function reseq() {
 function renderSummary(main, footer) {
   const range = getCurrentRange();
 
-  // 月份按钮：12 个全部放在第一行，和「月份」「26年」并排；
-  // 第二行只留「区间」（切到区间模式时放起止输入框）。
-  const activeM = parseInt(summaryMonth.month, 10);
-  let monthsAll = '';
-  for (let m = 1; m <= 12; m++) {
-    monthsAll += `<button type="button" class="m-btn" data-m="${m}" data-active="${activeM === m}"><span class="m-num">${m}</span><span class="m-suf">月</span></button>`;
-  }
-  const monthsMode = summaryMode === 'month';
-
-  // 工具栏1：月份 26年 1月…12月（12 个月一行）
-  const bar1 = document.createElement('div');
-  bar1.className = 'toolbar bar1';
-  bar1.innerHTML = `
-    <button id="mode-month" class="ghost" data-active="${summaryMode === 'month'}">月份</button>
-    ${monthsMode ? `<input id="r-year" class="year-input" placeholder="年" inputmode="numeric" title="输入年份，如 26 或 2026" value="${String(summaryMonth.year).slice(-2)}年">` : ''}
-    ${monthsMode ? `<div class="month-row" id="month-row">${monthsAll}</div>` : '<span style="flex:1"></span>'}
-  `;
+  // 统一工具栏：账户汇总 | 全部 清空 区间 年份 月份 [年]
+  const { bar1, bar2 } = buildRangeToolbar({
+    title: '账户汇总',
+    mode: summaryMode,
+    year: summaryMode === 'year' ? summaryYear : summaryMonth.year,
+    month: summaryMonth.month,
+    range: summaryMode === 'range' ? summaryRange : { start: '', end: '' },
+    onMode: (m) => { summaryMode = m; saveSummaryState(); render(); },
+    onClear: () => {
+      summaryMode = 'month';
+      summaryRange = { start: '', end: '' };
+      const d = new Date();
+      summaryMonth = { year: d.getFullYear(), month: d.getMonth() + 1 };
+      saveSummaryState(); render(); toast('已清空条件，回到本月');
+    },
+    onYear: (y) => {
+      if (summaryMode === 'year') summaryYear = y;
+      else summaryMonth.year = y;
+      saveSummaryState(); render();
+    },
+    onMonth: (m) => { summaryMode = 'month'; summaryMonth.month = m; saveSummaryState(); render(); },
+    onRange: (s, e) => {
+      summaryRange = { start: s, end: e };
+      saveSummaryState(); render();
+    }
+  });
   main.appendChild(bar1);
-
-  // 工具栏2：区间切换；区间模式下放两个日期框 + 清空
-  const bar2 = document.createElement('div');
-  bar2.className = 'toolbar bar2';
-  if (summaryMode === 'range') {
-    bar2.innerHTML = `
-      <button id="mode-range" class="ghost" data-active="true">区间</button>
-      <input id="r-start" class="grow" placeholder="起始 YY/YYMM/YYMMDD" inputmode="numeric" title="起始：YY / YYMM / YYMMDD，例如 26 / 2608 / 260801" value="${esc(summaryRange.start)}">
-      <span class="tilde">~</span>
-      <input id="r-end" class="grow" placeholder="结束 YY/YYMM / YYMMDD" inputmode="numeric" title="结束：YY / YYMM / YYMMDD，例如 26 / 2608 / 260801" value="${esc(summaryRange.end)}">
-      <button id="range-clear" class="ghost" title="清空起止日期">清空</button>
-    `;
-  } else {
-    bar2.innerHTML = `
-      <button id="mode-range" class="ghost" data-active="false">区间</button>
-      <span style="flex:1"></span>
-    `;
-  }
   main.appendChild(bar2);
 
   // 表格主体
@@ -3125,83 +3369,7 @@ function applySummarySticky() {
 }
   applySummarySticky();
 
-  // 绑定事件（导入导出统一在流水页，汇总页不再放这两个按钮）
-  document.getElementById('mode-range').onclick = () => { if (summaryMode !== 'range') { summaryMode = 'range'; saveSummaryState(); render(); } };
-  document.getElementById('mode-month').onclick = () => { if (summaryMode !== 'month') { summaryMode = 'month'; saveSummaryState(); render(); } };
 
-  function rangeUpdate() {
-    return getCurrentRange();
-  }
-  function refreshSummaryTable(r) {
-    tbody.querySelectorAll('tr[data-id]').forEach(tr => {
-      if (tr.dataset.new === '1') return;
-      const acc = state.accounts.find(x => x.id === tr.dataset.id);
-      if (acc) updateSummaryRow(tr, acc, r);
-    });
-    updateSummaryFooter(footer, r);
-  }
-
-  if (summaryMode === 'range') {
-    const startEl = document.getElementById('r-start');
-    const endEl = document.getElementById('r-end');
-    const onChange = () => {
-      summaryRange.start = startEl.value.trim();
-      summaryRange.end = endEl.value.trim();
-      saveSummaryState(); refreshSummaryTable(rangeUpdate());
-    };
-    [startEl, endEl].forEach(el => { el.addEventListener('change', onChange); el.addEventListener('blur', onChange); });
-
-    // 「清空」：把两个起止日期清空，回到默认区间
-    const clearBtn = document.getElementById('range-clear');
-    if (clearBtn) clearBtn.onclick = () => {
-      summaryRange.start = '';
-      summaryRange.end = '';
-      saveSummaryState();
-      render();
-      toast('已清空起止日期');
-    };
-  } else {
-    const yearEl = document.getElementById('r-year');
-    // 月份按钮可能分在上下两行（第一行 1-6、第二行 7-12），所以统一在文档里找
-    const allMonthBtns = () => [...document.querySelectorAll('.toolbar .m-btn')];
-    // 年份输入后自动补「年」字；聚焦时把「年」剥掉，方便直接改数字
-    const onYearChange = () => {
-      let y = parseInt(yearEl.value, 10);
-      if (isNaN(y)) { yearEl.value = String(summaryMonth.year).slice(-2) + '年'; return; }
-      // 两位数按 20xx 解释（26 → 2026），四位数原样用
-      if (y >= 0 && y <= 99) y += 2000;
-      if (y >= 1900 && y <= 2999) {
-        summaryMonth.year = y;
-        yearEl.value = String(y).slice(-2) + '年';
-        saveSummaryState(); refreshSummaryTable(rangeUpdate());
-      } else {
-        yearEl.value = String(summaryMonth.year).slice(-2) + '年';
-      }
-    };
-    yearEl.addEventListener('focus', () => {
-      // 聚焦时只留两位数字，方便直接改
-      yearEl.value = String(summaryMonth.year).slice(-2);
-      yearEl.select();
-    });
-    yearEl.addEventListener('change', onYearChange);
-    yearEl.addEventListener('blur', onYearChange);
-
-    allMonthBtns().forEach(btn => {
-      btn.addEventListener('click', (ev) => {
-        ev.preventDefault(); ev.stopPropagation();
-        const m = parseInt(btn.dataset.m, 10);
-        if (!m || m === summaryMonth.month) return;
-        summaryMonth.month = m;
-        allMonthBtns().forEach(b => b.dataset.active = (parseInt(b.dataset.m, 10) === m).toString());
-        saveSummaryState(); refreshSummaryTable(rangeUpdate());
-      });
-    });
-  }
-
-  bindSummaryEvents(tbody);
-  updateSummaryFooter(footer, range);
-  syncYearWidth();
-  syncGridRight();
 }
 
 // 汇总页两条工具栏的右边界：都对齐表格「期初」列的右边框。
