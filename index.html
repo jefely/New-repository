@@ -2488,6 +2488,16 @@ table.query-table button.q-clear,
   border-radius: 6px !important;
   vertical-align: middle !important;
 }
+/* 分期页：月份列统一宽度，由 --inst-mw 控制 */
+table.install-table thead th.col-month,
+table.install-table tbody td.col-month {
+  width: var(--inst-mw, 62px) !important;
+  min-width: var(--inst-mw, 62px) !important;
+  max-width: var(--inst-mw, 62px) !important;
+  box-sizing: border-box !important;
+}
+/* 分期表表头加拖动手柄 */
+table.install-table thead th.col-month { position: relative; }
 </style>
 </head>
 <body>
@@ -2588,7 +2598,7 @@ function toggleTheme() {
   toast(theme === 'dark' ? '已切换到反色主题' : '已切换到浅色主题');
 }
 
-const APP_VER = 'v8.12';
+const APP_VER = 'v8.16';
 const LS_KEY = 'flow_grid_v5';
 const SUMMARY_STATE_KEY = 'flow_summary_state_v3';
 // 流水表默认铺多少行空行。像 Excel 一样随手往下填，不用先点「新增」。
@@ -3083,7 +3093,7 @@ function openColWidthsDialog() {
     <div class="sync-box" style="max-width:min(94vw,560px)">
       <div class="sync-title">列宽设置</div>
       <div class="sync-hint" style="text-align:left;line-height:1.8">
-        当前已保存：<b id="cw-count">0</b> 张表
+        当前已保存：<b id="cw-count">0</b> 张表 · 分期月份列 <b id="cw-mw">62</b>px
       </div>
       <div class="sync-block" style="gap:8px">
         <button type="button" id="cw-reset" style="width:100%">恢复默认列宽</button>
@@ -3104,13 +3114,19 @@ function openColWidthsDialog() {
   const cnt = mask.querySelector('#cw-count');
   const area = mask.querySelector('#cw-area');
   const ta = mask.querySelector('#cw-json');
-  const updCnt = () => { if (cnt) cnt.textContent = String(Object.keys(colWidths || {}).length); };
+  const updCnt = () => {
+    if (cnt) cnt.textContent = String(Object.keys(colWidths || {}).length);
+    const mw = mask.querySelector('#cw-mw');
+    if (mw) { try { mw.textContent = String(localStorage.getItem('flow_inst_mw_v1') || 62); } catch (e) {} }
+  };
   updCnt();
 
   // 恢复默认
   mask.querySelector('#cw-reset').onclick = () => {
     colWidths = JSON.parse(JSON.stringify(DEFAULT_COL_WIDTHS));
-    saveColWidths(); close(); render(); toast('已恢复默认列宽');
+    saveColWidths();
+    try { localStorage.removeItem('flow_inst_mw_v1'); } catch (e) {}
+    close(); render(); toast('已恢复默认列宽（含分期月份列 62px）');
   };
 
   // 复制当前
@@ -3201,6 +3217,7 @@ function doReset() {
     localStorage.removeItem(COLW_KEY);
     localStorage.removeItem(COLW_KEY_V1);
     localStorage.removeItem(COLW_KEY_V2);
+    localStorage.removeItem('flow_inst_mw_v1');
   } catch (e) {}
   // 列宽也回到内置默认
   colWidths = JSON.parse(JSON.stringify(DEFAULT_COL_WIDTHS));
@@ -4872,6 +4889,13 @@ function renderInstall(main, footer) {
 
   const tbody = table.querySelector('tbody');
 
+  // 分期表列宽：月份列统一宽度，用 CSS 变量控制（CSS 变量 + 专用拖动）
+  const MW_KEY = 'flow_inst_mw_v1';
+  let instMW = 62;
+  try { instMW = parseInt(localStorage.getItem(MW_KEY), 10) || 62; } catch (e) {}
+  instMW = Math.max(44, Math.min(160, instMW));
+  table.style.setProperty('--inst-mw', instMW + 'px');
+
   const makeRow = (inst, kind) => {
     const tr = document.createElement('tr');
     tr.className = 'inst-row ' + (kind === 'p' ? 'inst-p' : 'inst-i');
@@ -4937,6 +4961,47 @@ function renderInstall(main, footer) {
 
   wrap.appendChild(table);
   main.appendChild(wrap);
+
+// 分期表：拖任一月份列 → 所有月份列同宽
+try {
+  const ths = table.querySelectorAll('thead th.col-month');
+  ths.forEach((th, k) => {
+    if (th.querySelector('.inst-resizer')) return;
+    const g = document.createElement('div');
+    g.className = 'col-resizer inst-resizer';
+    g.title = '拖动调整所有月份列宽度';
+    th.appendChild(g);
+    g.addEventListener('pointerdown', ev2 => {
+      if (ev2.button !== 0) return;
+      ev2.preventDefault(); ev2.stopPropagation();
+      const startX = ev2.clientX;
+      const baseW = parseInt(table.style.getPropertyValue('--inst-mw'), 10) || 62;
+      let moved = false;
+      g.classList.add('dragging');
+      try { g.setPointerCapture(ev2.pointerId); } catch (e) {}
+      const onMv = me => {
+        const w = Math.max(44, Math.min(160, baseW + (me.clientX - startX)));
+        table.style.setProperty('--inst-mw', w + 'px');
+        moved = true;
+      };
+      const onUp = () => {
+        g.removeEventListener('pointermove', onMv);
+        g.removeEventListener('pointerup', onUp);
+        g.removeEventListener('pointercancel', onUp);
+        g.classList.remove('dragging');
+        if (moved) {
+          const w = parseInt(table.style.getPropertyValue('--inst-mw'), 10) || 62;
+          try { localStorage.setItem('flow_inst_mw_v1', String(w)); } catch (e) {}
+          try { syncToolbarWidth(); } catch (e) {}
+          toast('月份列宽 ' + w + 'px');
+        }
+      };
+      g.addEventListener('pointermove', onMv);
+      g.addEventListener('pointerup', onUp);
+      g.addEventListener('pointercancel', onUp);
+    });
+  });
+} catch (e) {}
 
   bindInstallEvents(tbody);
   recalcInstall();
@@ -5012,7 +5077,7 @@ function recalcInstallFooter() {
 function updateInstallFooter(footer) {
   footer = footer || document.getElementById('footer');
   const s = recalcInstallFooter();
-  setFooterText(`${s.count} 个分期 · 全部合计 ${fmtMoney(s.total)} · 未还本金 ${fmtMoney(s.pendingP)} · 未还利息 ${fmtMoney(s.pendingI)}`);
+    setFooterText(`${s.count} 个分期 · 全部合计 ${fmtMoney(s.total)} · 未还本金 ${fmtMoney(s.pendingP)} · 未还利息 ${fmtMoney(s.pendingI)}`);
 }
 
 function bindInstallEvents(tbody) {
@@ -7053,6 +7118,18 @@ function initColResize(table, key) {
           if (a < COL_MIN) { a = COL_MIN; b = pairSum - COL_MIN; }
           if (b < COL_MIN) { b = COL_MIN; a = pairSum - COL_MIN; }
           next[idx] = a; next[partner] = b;
+        } else if (key === 'install') {
+          const isMonth = th.classList.contains('col-month');
+          if (isMonth) {
+            // 月份列联动：拖任一月份列，所有月份列同宽
+            const w = Math.max(COL_MIN, base[idx] + delta);
+            next.forEach((v, i) => {
+              const t = ths[i];
+              if (t && t.classList.contains('col-month')) next[i] = w;
+            });
+          } else {
+            next[idx] = Math.max(COL_MIN, base[idx] + delta);
+          }
         } else {
           next[idx] = Math.max(COL_MIN, base[idx] + delta);
         }
