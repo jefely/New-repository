@@ -2335,6 +2335,23 @@ table.subsum-table tfoot td.num { text-align: right !important; }
 /* 浅色主题也给一个降饱和版本 */
 table.query-table thead th input { color: #6b6478 !important; }
 table.query-table thead th input::placeholder { color: #9c96a8 !important; opacity: 1 !important; }
+/* 分期表月份合计：过期=绿、未过期=红（深色下也要生效） */
+table.install-table th.inst-total { color: #991b1b !important; }
+table.install-table th.inst-total.past { color: #00b050 !important; }
+[data-theme="dark"] table.install-table thead th.inst-total {
+  color: #ff8a8a !important;         /* 未过期：亮红 */
+  background-color: #16121f !important;
+}
+[data-theme="dark"] table.install-table thead th.inst-total.past {
+  color: #4ade80 !important;         /* 已过期：亮绿 */
+}
+/* 每月合计行（inst-total）也要明显区分 */
+[data-theme="dark"] table.install-table thead th.inst-total.past { text-shadow: 0 0 8px rgba(74,222,128,.35) !important; }
+/* 分期月份格：已还绿、未还白 */
+[data-theme="dark"] table.install-table td.col-month.paid input { color: #4ade80 !important; }
+[data-theme="dark"] table.install-table td.col-month.pending input { color: #e8e2f4 !important; }
+/* 月份表头「26年8月」字号小一点才放得下 */
+table.install-table thead th.inst-ym { font-size: 12px !important; white-space: nowrap !important; }
 </style>
 </head>
 <body>
@@ -2435,7 +2452,7 @@ function toggleTheme() {
   toast(theme === 'dark' ? '已切换到反色主题' : '已切换到浅色主题');
 }
 
-const APP_VER = 'v8.01';
+const APP_VER = 'v8.02';
 const LS_KEY = 'flow_grid_v5';
 const SUMMARY_STATE_KEY = 'flow_summary_state_v3';
 // 流水表默认铺多少行空行。像 Excel 一样随手往下填，不用先点「新增」。
@@ -2517,6 +2534,14 @@ const ymParse = v => {
   return null;
 };
 const ymShort = ym => String(ym).slice(-4);
+// 月份表头显示：202608 → 26年8月（自动去掉前导 0）
+const ymCn = ym => {
+  const s = String(ym || '').replace(/\D/g, '');
+  if (s.length < 6) return s;
+  const y = s.slice(2, 4);
+  const m = parseInt(s.slice(4, 6), 10);
+  return y + '年' + m + '月';
+};
 
 if (!Array.isArray(state.installments)) state.installments = [];
 
@@ -4606,7 +4631,7 @@ function renderInstall(main, footer) {
   let head1 = '', head2 = '';
   months.forEach(ym => {
     head1 += `<th class="col-month inst-total" data-ym="${ym}">—</th>`;
-    head2 += `<th class="col-month inst-ym" data-ym="${ym}">${ymShort(ym)}</th>`;
+    head2 += `<th class="col-month inst-ym" data-ym="${ym}">${ymCn(ym)}</th>`;
   });
   table.innerHTML = `
     <thead>
