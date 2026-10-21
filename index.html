@@ -2656,6 +2656,30 @@ table.subsum-table tbody td { font-size: var(--layout-fs) !important; }
 .layout-grid { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; }
 .layout-grid > label { flex: 1 1 calc(33% - 8px); min-width: 92px; display: flex; align-items: center; gap: 4px; font-size: 12px; color: var(--text-muted); }
 .layout-grid > label > input { width: 52px; height: 28px; padding: 0 4px; box-sizing: border-box; font-size: 13px; text-align: center; border: 1px solid var(--border); border-radius: 5px; background: var(--bg-main); color: var(--text-main); }
+/* 浅色主题：汇总类型标签行也用暗紫（和深色面板栏按钮同色 #2a2140） */
+table#summary-table tbody tr.cat-row > td,
+table#summary-table tbody tr.cat-row > td.col-seq,
+table#summary-table tbody tr.cat-row > td.col-cat,
+table#summary-table tbody tr.cat-row > td.col-sub,
+table#summary-table tbody tr.cat-row > td.col-code,
+table#summary-table tbody tr.cat-row > td.col-name,
+table#summary-table tbody tr.cat-row > td.cat-sum,
+table#summary-table tbody tr.cat-row > td.col-bal,
+table#summary-table tbody tr.cat-row > td.col-out,
+table#summary-table tbody tr.cat-row > td.col-in,
+table#summary-table tbody tr.cat-row > td.col-hout,
+table#summary-table tbody tr.cat-row > td.col-hin,
+table#summary-table tbody tr.cat-row > td.col-open,
+table#summary-table tbody tr.cat-row > td.col-bill,
+table#summary-table tbody tr.cat-row > td.col-repay {
+  background: #2a2140 !important;
+  color: #ffffff !important;
+  border-bottom: 1px solid #3b2f59 !important;
+}
+table#summary-table tbody tr.cat-row > td.col-seq {
+  color: #c9b8ff !important;
+  font-weight: 700 !important;
+}
 </style>
 </head>
 <body>
@@ -2756,7 +2780,7 @@ function toggleTheme() {
   toast(theme === 'dark' ? '已切换到反色主题' : '已切换到浅色主题');
 }
 
-const APP_VER = 'v8.34';
+const APP_VER = 'v8.35';
 const LS_KEY = 'flow_grid_v5';
 const SUMMARY_STATE_KEY = 'flow_summary_state_v3';
 // 流水表默认铺多少行空行。像 Excel 一样随手往下填，不用先点「新增」。
