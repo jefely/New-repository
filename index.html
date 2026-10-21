@@ -3607,6 +3607,45 @@ table#flow-table.cols-custom { width: auto; }
 [data-theme="dark"] .bal-table tr.bal-total td { border-top-color: #3b2f59; }
 [data-theme="dark"] .bal-table td.good { color: #4ade80; }
 [data-theme="dark"] .bal-table td.bad { color: #ff8a8a; }
+/* ===== 流水表列宽：彻底交给 colgroup =====
+   根因：th.col-date{width:14%} 这类百分比宽度，在 table-layout:fixed 下
+   会按容器宽重新分配；拖一列时其它列被重新计算，看起来就是"等比例缩放"。
+   这里把百分比全部清成 auto，宽度只认 JS 写进 colgroup 的 px。 */
+table#flow-table th.col-date,   table#flow-table td.col-date,
+table#flow-table th.col-from,   table#flow-table td.col-from,
+table#flow-table th.col-to,     table#flow-table td.col-to,
+table#flow-table th.col-amount, table#flow-table td.col-amount,
+table#flow-table th.col-note,   table#flow-table td.col-note {
+  width: auto;
+  min-width: 0;
+  max-width: none;
+}
+/* 序号列原来是写死的 54px，也交给 colgroup */
+table#flow-table th.col-seq, table#flow-table td.col-seq {
+  width: auto;
+  min-width: 0;
+  max-width: none;
+}
+/* 去掉会把表格拉满/撑开的约束 */
+table#flow-table {
+  width: auto;
+  min-width: 0;
+  max-width: none;
+  table-layout: fixed !important;
+}
+table#flow-table.cols-custom { width: auto; }
+/* 分类统计表同样清掉百分比/写死宽度 */
+table#cat-table th, table#cat-table td {
+  width: auto;
+  min-width: 0;
+  max-width: none;
+}
+table#cat-table {
+  width: auto;
+  min-width: 0;
+  max-width: none;
+  table-layout: fixed !important;
+}
 </style>
 </head>
 <body>
@@ -3796,7 +3835,7 @@ async function encryptWithSession(text) {
   return b64u(catBytes(_sessionSalt, iv, ct));
 }
 
-const APP_VER = 'v8.79';
+const APP_VER = 'v8.80';
 const LS_KEY = 'flow_grid_v5';
 const SUMMARY_STATE_KEY = 'flow_summary_state_v3';
 // 流水表默认铺多少行空行。像 Excel 一样随手往下填，不用先点「新增」。
