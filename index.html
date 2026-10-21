@@ -3800,6 +3800,33 @@ table#fixed-table input:disabled { color: var(--text-light); }
 [data-theme="dark"] .vflow { color: #e8e2f4; }
 [data-theme="dark"] .vflow b { color: #c9b8ff; }
 [data-theme="dark"] .vnote { color: #9a94ad; }
+/* ============================================================
+   v9.35 最终修正
+   ============================================================ */
+
+/* ① 列宽手柄被表头 overflow:hidden 裁掉一半。
+   .col-resizer 是 right:-12px / width:24px，有一半落在 th 外面，
+   被 th 的 overflow:hidden 切掉，实际可点宽度只有 12px（窄屏 16px）。
+   放开 overflow 让它完整显示 —— 分期表早就这么做了，这里推广到所有表。 */
+table.grid thead th { overflow: visible !important; }
+
+/* ② iOS Safari 对 font-size < 16px 的输入框聚焦时会自动放大可视区，
+   而且不会缩回来。全站 input 被压到 13px（暗色 12px、查询筛选 11px），
+   等于每点一格就放大一次。触屏设备统一提到 16px。 */
+@media (pointer: coarse) {
+  input, select, textarea { font-size: 16px !important; }
+  /* 表格里的输入框视觉上不要那么大：用 line-height 收一收 */
+  table.grid tbody td input { line-height: 1.15 !important; }
+}
+
+/* ③ 暗色主题下行悬停没有任何反馈（亮色有）。97 行的 tr:hover 没有 !important，
+   被暗色斑马纹的 !important 压掉。补一条同权重但带 !important 的。 */
+[data-theme="dark"] table.grid tbody tr:not(.cat-row):hover > td { background: #202030 !important; }
+
+/* ④ 触屏上工具栏按钮偏小（28px 高），提到 34px 便于点击 */
+@media (pointer: coarse) {
+  .toolbar.bar1 button, .toolbar.flow-bar button { min-height: 34px; }
+}
 </style>
 </head>
 <body>
@@ -4004,7 +4031,7 @@ async function encryptWithSession(text) {
 // 网站二维码（内嵌 base64，离线可显示），扫码打开 https://jefely.github.io/New-repository/
 const QR_DATA_URL = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAUoAAAFKCAIAAAD0S4FSAAAFCUlEQVR42u3dS3IUMRBF0VcE+9+y2QETIfKjc+YGd7VvqAYZqe/n5yfARr88ApA3IG9A3oC8AXkD8gZ5A/IG5A3IG5A3IG+QNyBvQN6AvAF5A/KGl/0++eHv+5Y9jr9vnjv5vD3/5Xub9nr+v/v+Jp3e4OUckDcgb0DegLwBeQPyBnkDeWpqLdembe7pOdV071nt+xZOPtFrf5NOb/ByDsgbkDcgb0DegLxB3oC8gTw1tZaiSZ2Jk0n3NrFVPcmTn636vPv+Jp3e4OUckDcgb0DegLwBeYO8AXkDMbUW94du2eI2cQ7P6Q3IG5A3IG9A3oC8Qd6AvAF5AzG1Nsi9Oa2qGzPNpTm9AXkD8gbkDcgbkDfIG5A3IG8gj0yt9bzHs+eutZP/t+qWz33fr9MbkDcgb0DegLxB3oC8AXkD8gbSfGpt37ate7vH/Gz+yxzeaxvgnN4gb0DegLwBeQPyBuQN8gbkDTT07dsvNXGmrWrWque3f+9JOr0BeQPyBuQNyBuQN8gbkDcgbyCjd63ZiZUGe+nu3Vta9S303MTW835Ypzd4OQfkDcgbkDcgb0DegLxB3kCemlq7N8djB9j0ezxTNNM2cRry3l+O0xu8nAPyBuQNyBuQNyBvkDcgbyDLbgidOAM0cU6ranbwtcnCqp91egPyBuQN8gbkDcgbkDcgb0DeELvWsne2rOd+uJ4zTz3vh616GhM/r9MbvJwD8gbkDcgbkDcgb5A3IG8gT02tnUzb3JtMujfTNnHyrGqLW9Wz2vcdOb3Byzkgb0DegLwBeQPyBuQN8gZiai29p4smburqOePVczNZ1ed1egPyBuQNyBvkDcgbkDcgb0DeQEZPraXlBNi+XVwZeIvra1OJTm9A3iBvQN6AvAF5A/IG5A3yBmJqLb3nw3rOD1VNU937vFUzbVX70ibOLDq9wcs5IG9A3oC8AXkD8gZ5A/IGGvp6zuJMvKux52ayqttFe86W7XuSTm/wcg7IG5A3IG9A3oC8AXmDvIE8NbVWtU/r3oRQ1bTcaxvReu482/f37PQGL+eAvAF5A/IG5A3IG+QNyBvIshtCM3BfWtUEWNZNcU18VlUzbVX/stMbvJwD8gbkDcgbkDcgb5A3IG8gT02t5bHpohTNllU9jbScw6uahzt5znatAfIG5A3yBuQNyBuQNyBvQN4QN4SWTwhNvNfy3u/sW9jN1Bogb0DeIG9A3oC8AXkD8gbkDTG1xpo7QHvuh/NbOb0BeQPyBnkD8gbkDcgbkDcgb4gbQjNniisDt16d7B6ruuVz4u2iE39npzcgb0DeIG9A3oC8AXkD8gbkDTG1lt4TYDFp136LW9W3XzV32HPSzukNXs4BeQPyBuQNyBuQN8gbkDeQp6bWUjQ99toOsJMnee9OzHvfb9Xc4ck3WDXh5/QGL+eAvAF5A/IG5A3IG+QNyBuIqbW8ures6g7Qe7NlPSfees4sVs20Ob3Byzkgb0DegLwBeQPyBnkD8gZiai2v3qe577eq2g+Xoj1tVbvlnN6AvEHegLwBeQPyBuQNyBvkDcTUWvZOgGXgRNTEaap7E289b2Kt+o6c3uDlHJA3IG9A3oC8AXmDvAF5Aw19EzdmpeVNjml5R2TVJFbcLur0BuQNyBuQN8gbkDcgb0DegLyB/OupNcDpDcgbkDcgb5A3IG9A3oC8AXkD8gbkDfIG5A3IG5A3IG9A3iBvQN5AU38AW3Unpg+CBHwAAAAASUVORK5CYII=';
 
-const APP_VER = 'v9.30';
+const APP_VER = 'v9.36';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -4233,18 +4260,21 @@ function runFixedExpenses() {
   const today = todayISO();
   const day = now.getDate();
   const ym = today.slice(0, 7);
+  // run-key 必须按账本分开：否则同一天切到另一个账本，那边的固定收支当天全不写
+  const runKey = FIXED_RUN_KEY + ':' + ((typeof currentBook === 'function' && currentBook()) ? currentBook().id : 'b1');
   let ranToday = false;
-  try { ranToday = localStorage.getItem(FIXED_RUN_KEY) === today; } catch (e) {}
+  try { ranToday = localStorage.getItem(runKey) === today; } catch (e) {}
   if (ranToday) return 0;
+  // 「每月 31 号」在 30 天月和 2 月必须夹取到当月最后一天，否则永不触发
+  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
   let added = 0;
   for (const f of state.fixed) {
     const isDaily = f.freq === 'day';
     if (isDaily) {
-      // 每天：按「日」去重
       if (f.lastDate === today) continue;
     } else {
-      // 每月：到号才触发，按「月」去重
-      if (day < (f.day || 1)) continue;
+      const targetDay = Math.min(Math.max(1, parseInt(f.day, 10) || 1), daysInMonth);
+      if (day < targetDay) continue;
       if (f.lastMonth === ym) continue;
     }
     if (!String(f.from || '').trim() && !String(f.to || '').trim()) continue;
@@ -4258,7 +4288,7 @@ function runFixedExpenses() {
     });
     if (isDaily) f.lastDate = today; else f.lastMonth = ym;
   }
-  try { localStorage.setItem(FIXED_RUN_KEY, today); } catch (e) {}
+  try { localStorage.setItem(runKey, today); } catch (e) {}
   if (added) { reseq(); save(); }
   return added;
 }
@@ -5384,9 +5414,7 @@ function openImportXlsxDialog() {
     </div>`;
   document.body.appendChild(mask);
   const close = () => mask.remove();
-  mask.addEventListener('click', e => {
-    if (e.target === mask || (e.target.dataset && e.target.dataset.act === 'close')) close();
-  });
+  bindMaskClose(mask, close);
   const fileInp = mask.querySelector('#xi-file');
   const info = mask.querySelector('#xi-info');
   const listEl = mask.querySelector('#xi-list');
@@ -5640,9 +5668,7 @@ function openImportTextDialog() {
   const slot = mask.querySelector('#book-slot');
   if (slot) slot.appendChild(buildBookSection());
   const close = () => mask.remove();
-  mask.addEventListener('click', e => {
-    if (e.target === mask || (e.target.dataset && e.target.dataset.act === 'close')) close();
-  });
+  bindMaskClose(mask, close);
   const ta = mask.querySelector('#imp-text');
   const pv = mask.querySelector('#imp-preview');
   const fileInp = mask.querySelector('#imp-file');
@@ -5782,9 +5808,7 @@ function openColWidthsDialog() {
     </div>`;
   document.body.appendChild(mask);
   const close = () => mask.remove();
-  mask.addEventListener('click', e => {
-    if (e.target === mask || (e.target.dataset && e.target.dataset.act === 'close')) close();
-  });
+  bindMaskClose(mask, close);
   const cnt = mask.querySelector('#cw-count');
   if (cnt) cnt.textContent = String(Object.keys(colWidths || {}).length);
   const mwEl = mask.querySelector('#cw-mw');
@@ -5903,9 +5927,7 @@ function openResetDialog() {
   const go = mask.querySelector('#reset-do');
   input.oninput = () => { go.disabled = input.value.trim() !== '重置'; };
   go.onclick = () => { if (input.value.trim() !== '重置') return; close(); doReset(); };
-  mask.addEventListener('click', e => {
-    if (e.target === mask || (e.target.dataset && e.target.dataset.act === 'close')) close();
-  });
+  bindMaskClose(mask, close);
   setTimeout(() => { try { input.focus(); } catch (e) {} }, 60);
 }
 
@@ -6017,17 +6039,42 @@ const normalizeAmount = v => {
   const s = String(v == null ? '' : v).replace(/[¥￥$，,\s]/g, '');
   if (s === '' || s === '-') return '';
   const n = parseFloat(s);
-  return isNaN(n) ? '' : n;
+  if (!isNaN(n) && !Number.isFinite(n)) return '';       // 1e999 → Infinity，拒绝
+  if (isNaN(n)) return '';
+  if (Math.abs(n) > 1e12) return '';                      // 业务上限，防显示成指数
+  return n;
 };
 
 // 负数写成 -¥1,234.56（负号在货币符号前），而不是 ¥-1,234.56
 const fmtMoney = n => {
-  n = Number(n) || 0;
-  const s = Math.abs(n).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  const raw = Number(n);
+  if (!Number.isFinite(raw)) return '—';                  // NaN / Infinity 不要伪装成 ¥0.00
+  n = raw;
+  const abs = Math.abs(n);
+  // 超过万亿用「万亿」作单位，避免出现 1e+20 这种指数形式
+  if (abs >= 1e12) {
+    const t = abs / 1e12;
+    return (n < 0 ? '-' : '') + '¥' + t.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',') + ' 万亿';
+  }
+  const s = abs.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
   return (n < 0 ? '-' : '') + '¥' + s;
 };
 // 金额显示用：空值保持空（不要变成 ¥0.00），有值就 ¥1,234.56
 const fmtMoneyOrBlank = v => (v === '' || v == null) ? '' : fmtMoney(v);
+// 对话框关闭的统一绑定。
+// 不能直接判 click 的 target：click 的 target 是 mousedown 与 mouseup 的最近公共祖先，
+// 在 textarea 里按下、拖到遮罩上松手，公共祖先就是 mask → 会被误判成「点了遮罩」而关掉整个框。
+// 所以要求「按下时就在遮罩上」才算数。
+function bindMaskClose(mask, close) {
+  let downOnMask = false;
+  mask.addEventListener('pointerdown', e => { downOnMask = (e.target === mask); }, true);
+  mask.addEventListener('click', e => {
+    const isCloseBtn = e.target && e.target.dataset && e.target.dataset.act === 'close';
+    if (isCloseBtn || (e.target === mask && downOnMask)) close();
+    downOnMask = false;
+  });
+}
+
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
 /* 轻提示：替代 alert / confirm。不打断操作，几秒后自己消失，可挂一个撤销按钮。 */
@@ -6271,31 +6318,28 @@ function buildRangeToolbar(opts) {
   bar2.querySelectorAll('.plan-y').forEach(b => {
     b.onclick = () => opts.onYear && opts.onYear(parseInt(b.dataset.y, 10));
   });
-  // 智能解析区间日期：26 → 2026 / 2601 → 2026-01 / 260112 → 2026-01-12
-  const normRange = (raw) => {
-    const s = String(raw || '').trim().replace(/[^\d]/g, '');
-    if (!s) return '';
-    if (s.length <= 2) return s.length === 2 ? '20' + s : s;
-    if (s.length === 4) return '20' + s.slice(0, 2) + '-' + s.slice(2);
-    if (s.length === 6) return '20' + s.slice(0, 2) + '-' + s.slice(2, 4) + '-' + s.slice(4);
-    if (s.length === 8) return s.slice(0, 4) + '-' + s.slice(4, 6) + '-' + s.slice(6);
-    return raw;
-  };
-  // 显示用的友好格式：2026-01-12 → 2026-1-12（去掉前导 0）
-  const prettyRange = (iso) => {
-    if (!iso) return '';
-    const m = /^(\d{4})-(\d{2})(?:-(\d{2}))?$/.exec(iso);
-    if (!m) return iso;
-    let s = m[1] + '-' + parseInt(m[2], 10);
-    if (m[3]) s += '-' + parseInt(m[3], 10);
-    return s;
-  };
   const si = bar2.querySelector('.plan-start'), ei = bar2.querySelector('.plan-end');
+  // 用 parseRangeInput（支持 YY / YYYY / YYMM / YYYYMM / YYMMDD / YYYYMMDD）。
+  // 关键：不再把解析结果「美化后回写输入框」—— 回写会引入第二轮解析，
+  // 2026-01 → 2026-1 → 再拼成 2020-26-1，区间被静默改坏。
+  let _lastSig = '';
   const apply = (doRender) => {
-    const a = normRange(si ? si.value : '');
-    const b = normRange(ei ? ei.value : '');
-    if (si) si.value = prettyRange(a) || (si.value || '');
-    if (ei) ei.value = prettyRange(b) || (ei.value || '');
+    const rawA = si ? si.value : '';
+    const rawB = ei ? ei.value : '';
+    const a = parseRangeInput(rawA, 'start') || '';
+    const b = parseRangeInput(rawB, 'end') || '';
+    if (!rawA && !rawB) return;
+    if ((rawA && !a) || (rawB && !b)) {
+      toast('日期格式无法识别（可写 26 / 2601 / 260112）', { type: 'error' });
+      return;
+    }
+    if (a && b && a > b) {
+      toast('起始日期晚于结束日期', { type: 'error' });
+      return;
+    }
+    const sig = a + '|' + b;
+    if (sig === _lastSig) return;          // change 与 blur 会连着触发，同一组值只跑一次
+    _lastSig = sig;
     opts.onRange && opts.onRange(a, b, doRender);
   };
   [si, ei].forEach((el, i) => {
@@ -6358,13 +6402,31 @@ function syncToolbarWidth() {
   apply(null);
 }
 
+// 每个页面自己的滚动位置。切标签页时必须各记各的，否则会把上一页的
+// scrollTop 套到新页面上（汇总页原本停在顶部，切过来直接落到最底部）。
+const _scrollMemo = Object.create(null);   // key: tabName || 'tab:idx' → {top, left}
+
+function _scrollKeyOf(tab, el, idx) {
+  return tab + ':' + idx + (el.dataset && el.dataset.scrollKey ? ':' + el.dataset.scrollKey : '');
+}
+
+let _lastRenderedTab = null;   // 上一次真正画出来的页面（用来决定滚动位置存到哪个 key）
+
 function render() {
   const main = document.getElementById('main');
   const footer = document.getElementById('footer');
-  // 记住滚动位置（删一行时不跳回顶部）
-  const _prevWrap = main.querySelector('.grid-wrap');
-  const _keepScroll = _prevWrap ? _prevWrap.scrollTop : 0;
-  const _keepScrollX = _prevWrap ? _prevWrap.scrollLeft : 0;
+  // ① 保存「上一次渲染的那一页」的滚动位置。
+  // 关键：保存要用 _lastRenderedTab，不能用 currentTab —— 切页签时 currentTab
+  // 在 render() 之前就已经变成新页面了，用它会把这些位置错记到新页面名下。
+  const saveTab = _lastRenderedTab;
+  if (saveTab) {
+    _scrollMemo[saveTab + ':main'] = { top: main.scrollTop, left: main.scrollLeft };
+    main.querySelectorAll('.grid-wrap').forEach((el, idx) => {
+      _scrollMemo[_scrollKeyOf(saveTab, el, idx)] = { top: el.scrollTop, left: el.scrollLeft };
+    });
+  }
+  // ② 本次要还原的位置，取「当前页面」自己的记录（首次进入就是 0）
+  const _savedMain = _scrollMemo[currentTab + ':main'] || { top: 0, left: 0 };
   document.querySelectorAll('.tabbar button').forEach(b => b.classList.toggle('active', b.dataset.tab === currentTab));
   main.innerHTML = '';
   // 页脚只放一行文本（「重置列宽」入口已按要求取消）
@@ -6382,10 +6444,16 @@ function render() {
   if (currentTab === 'flow' || currentTab === 'summary') {
     try { applyDataIssues(); } catch (e) {}
   }
+  // ③ 还原：本页每个滚动容器逐个还原（查询页有 3 个各带滚动条的面板）
   try {
-    const w = main.querySelector('.grid-wrap');
-    if (w && (_keepScroll || _keepScrollX)) { w.scrollTop = _keepScroll; w.scrollLeft = _keepScrollX; }
+    main.scrollTop = _savedMain.top || 0;
+    main.scrollLeft = _savedMain.left || 0;
+    main.querySelectorAll('.grid-wrap').forEach((el, idx) => {
+      const sv = _scrollMemo[_scrollKeyOf(currentTab, el, idx)];
+      if (sv) { el.scrollTop = sv.top; el.scrollLeft = sv.left; }
+    });
   } catch (e) {}
+  _lastRenderedTab = currentTab;
   try { syncToolbarWidth(); } catch (e) {}
 }
 
@@ -6944,9 +7012,7 @@ function openBalanceDialog() {
     </div>`;
   document.body.appendChild(mask);
   const close = () => mask.remove();
-  mask.addEventListener('click', e => {
-    if (e.target === mask || (e.target.dataset && e.target.dataset.act === 'close')) close();
-  });
+  bindMaskClose(mask, close);
   const go = mask.querySelector('#bal-go');
   if (go) go.onclick = () => {
     target.opening = (Number(target.opening) || 0) + gap;
@@ -7105,16 +7171,22 @@ function renderSummary(main, footer) {
   });
 
   initColResize(table, 'summary');
-// 汇总表前四列（序号 / 分类 / 简码 / 账户名称）横向滚动时固定在左侧。
-// 列宽是百分比，left 必须按实际渲染宽度累加，所以每次渲染/改宽后重算一次。
+  // 汇总页的可编辑单元格（类型/分类/简码/名称/期初/账单日/还款日）全靠这个绑定，
+  // 之前漏了调用 → 手打的内容不进 state、切页就回滚、页脚永远空。
+  bindSummaryEvents(tbody);
+  applySummarySticky();
+  updateSummaryFooter(footer, range);
+  syncSummaryDelBorder();
+}
+
+// 汇总表「序号」「账户名称」两列横向滚动时固定在左侧。
+// 列宽是百分比，left 必须按实际渲染宽度累加，所以每次渲染/改宽/改窗口后重算一次。
+// 注意：必须在模块作用域（顶层 resize 处理器也要调它）。
 function applySummarySticky() {
   const table = document.getElementById('summary-table');
   if (!table) return;
   const headRow = table.querySelector('thead tr');
   if (!headRow) return;
-  // 只固定「序号」和「账户名称」；分类 / 简码照常滚动。
-  // 账户名称紧贴序号（left = 序号宽度），这样滚动后它正好盖住分类+简码的位置，
-  // 中间不会露出被滚过来的其它列。未滚动时它仍待在原位。
   const seqTh = headRow.querySelector('th.col-seq');
   if (!seqTh) return;
   const seqW = Math.round(seqTh.getBoundingClientRect().width);
@@ -7122,11 +7194,6 @@ function applySummarySticky() {
     if (cell.classList.contains('col-seq')) cell.style.left = '0px';
     else if (cell.classList.contains('col-name')) cell.style.left = seqW + 'px';
   });
-}
-  applySummarySticky();
-  syncSummaryDelBorder();
-
-
 }
 
 // 汇总页两条工具栏的右边界：都对齐表格「期初」列的右边框。
@@ -9800,9 +9867,7 @@ function showExportDone(name, size, url, dataUrl, info) {
     </div>`;
   document.body.appendChild(mask);
   const close = () => mask.remove();
-  mask.addEventListener('click', e => {
-    if (e.target === mask || (e.target.dataset && e.target.dataset.act === 'close')) close();
-  });
+  bindMaskClose(mask, close);
   // 「复制文件到剪贴板」：华为浏览器唯一能走通的路 —— 复制后去微信/邮件里粘贴
   const copyBtn = mask.querySelector('#x-copy-file');
   if (copyBtn) {
@@ -9855,9 +9920,7 @@ function openSyncDialog() {
     </div>`;
   document.body.appendChild(mask);
   const close = () => mask.remove();
-  mask.addEventListener('click', e => {
-    if (e.target === mask || (e.target.dataset && e.target.dataset.act === 'close')) close();
-  });
+  bindMaskClose(mask, close);
 
   // 二维码：内嵌的 base64 PNG，离线也能显示
   const qr = mask.querySelector('#sync-qr');
@@ -10154,8 +10217,7 @@ function initColResize(table, key) {
         grip.classList.remove('dragging');
         if (moved) {
           saveColWidths(); syncFlowTitleWidth(); syncGridRight(); try { syncToolbarWidth(); } catch (e) {} try { syncToolbarWidth(); } catch (e) {}
-          // applySummarySticky 是 renderSummary 内部的局部函数，非汇总页时不存在
-          if (typeof applySummarySticky === 'function') { try { applySummarySticky(); } catch (e) {} }
+          try { applySummarySticky(); } catch (e) {}
         }
       };
       grip.addEventListener('pointermove', onMove);
@@ -10209,12 +10271,16 @@ document.addEventListener('keydown', ev => {
   if (ev.key !== 'Escape' && ev.key !== 'Esc') return;
   const masks = document.querySelectorAll('.confirm-mask');
   if (!masks.length) return;
+  const top = masks[masks.length - 1];
+  // 密码锁屏不可用 Esc 关闭：它的 Promise 只在提交成功时 resolve，
+  // 直接 remove 会让 bootWithLock 永远挂着，页面只剩空壳。
+  if (top.dataset && top.dataset.lock === '1') return;
   ev.preventDefault();
   ev.stopPropagation();
-  // 关最上面那层
-  const top = masks[masks.length - 1];
-  const cancelBtn = top.querySelector('[data-act="close"]');
-  if (cancelBtn) cancelBtn.click();
+  // 依次尝试 close → cancel 按钮，都没有才直接移除（不能无脑 remove，
+  // 否则 askConfirm 的 onCancel 不执行，界面会停在「没生效」的值上）
+  const btn = top.querySelector('[data-act="close"]') || top.querySelector('[data-act="cancel"]');
+  if (btn) btn.click();
   else top.remove();
 }, true);
 
@@ -10272,6 +10338,7 @@ function showLockScreen(mode, payload) {
     const isSetup = mode === 'setup';
     const mask = document.createElement('div');
     mask.className = 'confirm-mask';
+  mask.dataset.lock = '1';   // Esc 不可关闭（见全局 keydown 处理器）
     mask.style.zIndex = '99999';
     mask.innerHTML = `
       <div class="sync-box" style="max-width:min(92vw,380px)">
