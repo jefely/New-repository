@@ -2290,11 +2290,13 @@ table.query-table tr.q-head-row > th { font-size: 13px !important; padding: 5px 
 .cat-total-row td {
   font-weight: 700 !important;
   background: var(--bg-gray) !important;
-  border-top: 2px solid var(--border) !important;
+  border-top: none !important;
+  border-bottom: 1px solid var(--border-light) !important;
 }
 [data-theme="dark"] .cat-total-row td {
-  background: #16121f !important;
-  border-top: 2px solid #332852 !important;
+  background: #1c1c1c !important;
+  border-top: none !important;
+  border-bottom: 1px solid #2a2a2a !important;
   color: #ffffff !important;
 }
 /* 分类汇总：汇总分类列居中 */
@@ -2496,7 +2498,7 @@ function toggleTheme() {
   toast(theme === 'dark' ? '已切换到反色主题' : '已切换到浅色主题');
 }
 
-const APP_VER = 'v8.04';
+const APP_VER = 'v8.05';
 const LS_KEY = 'flow_grid_v5';
 const SUMMARY_STATE_KEY = 'flow_summary_state_v3';
 // 流水表默认铺多少行空行。像 Excel 一样随手往下填，不用先点「新增」。
@@ -2942,7 +2944,6 @@ function renderCat(main, footer) {
 
   let seq = 1;
   const bodyParts = [];
-  const totalRows = [];
   for (const cat of ordered) {
     const list = groups.get(cat);
     let sBal = 0, sOut = 0, sIn = 0;
@@ -2961,7 +2962,8 @@ function renderCat(main, footer) {
     }
     // 整类全 0 连小计也不显示
     if (isZero(sBal) && isZero(sOut) && isZero(sIn)) continue;
-    totalRows.push(`<tr class="cat-total-row">
+    // 小计行紧跟本组最后一行，一起放进 tbody
+    bodyParts.push(`<tr class="cat-total-row">
       <td colspan="3" class="center">${esc(cat)} 合计</td>
       <td class="num">${money0(sBal)}</td>
       <td class="num">${money0(sOut)}</td>
@@ -2974,8 +2976,7 @@ function renderCat(main, footer) {
       <th class="center">序号</th><th>汇总分类</th><th class="center">类型</th>
       <th class="num">当前结余</th><th class="num">转出</th><th class="num">转入</th>
     </tr></thead>
-    <tbody>${bodyParts.length ? bodyParts.join('') : '<tr><td colspan="6" class="query-empty">这个时间段还没有数据</td></tr>'}</tbody>
-    <tfoot>${totalRows.join('') || '<tr><td colspan="6"></td></tr>'}</tfoot>`;
+    <tbody>${bodyParts.length ? bodyParts.join('') : '<tr><td colspan="6" class="query-empty">这个时间段还没有数据</td></tr>'}</tbody>`;
   wrap.appendChild(table);
   main.appendChild(wrap);
   initColResize(table, 'cat');
