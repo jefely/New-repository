@@ -757,7 +757,7 @@ table.install-table tr.inst-i td.col-name input:focus { background: #f3f1fb; }
 .month-bar { display: flex; align-items: flex-start; gap: 8px; width: 100%; overflow-x: auto; padding-bottom: 0; }
 .month-bar::-webkit-scrollbar { height: 0; }
 /* 年份框右边缘要对齐「月份」按钮的右边缘。按钮宽度随内边距变化（62 → 54 就错过一次），
-   所以真实宽度由 syncYearWidth() 量出来写进 flex-basis，这里的 116px 只是首帧兜底。
+   宽度由 CSS flex 自适应，这里的值是首帧兜底。
    必须带 min-width:0 —— input 默认 size=20 的固有宽度会被 flex 的
    min-width:auto 当成下限，否则 flex-basis 会被顶到 200px 宽。 */
 .year-input { flex: 0 0 96px; min-width: 0; height: 28px; padding: 0; font-size: 14px; font-weight: 700; text-align: center; border: 1px solid var(--border); border-radius: var(--radius); }
@@ -884,9 +884,7 @@ td.query-empty { text-align: center; color: var(--text-light); padding: 40px 12p
 .col-resizer::after { content: ''; position: absolute; top: 25%; bottom: 25%; left: 3px; width: 2px; border-radius: 1px; background: transparent; transition: background .15s; }
 .col-resizer:hover::after, .col-resizer.dragging::after { background: var(--primary); }
 /* 触屏上 8px 太难点中，加宽命中区，并让把手常显（触屏没有 hover，否则用户以为没这功能） */
-@media (pointer: coarse) {
-  .col-resizer { width: 14px; }
-  .col-resizer::after { left: 6px; background: #cbd5e1; }
+
   .col-resizer.dragging::after { background: var(--primary); }
 }
 
@@ -1339,7 +1337,7 @@ table#summary-table { min-width: 800px !important; }
   gap: 6px !important;
   padding: 4px 6px !important;
   box-sizing: border-box !important;
-  /* 宽度由 syncToolbarWidth() 按表格实际宽度设定（内联 style），
+  /* 宽度由工具栏自身布局决定（内联 style），
      这里绝不能写 !important，否则会压掉 JS 设的值 */
   min-width: 0 !important;
   position: sticky;
@@ -4000,13 +3998,6 @@ async function deriveKey(password, salt) {
 }
 
 // 明文 → 'ENC1:base64(salt|iv|ct)'
-async function encryptText(text, password) {
-  const salt = randBytes(16);
-  const iv = randBytes(12);
-  const key = await deriveKey(password, salt);
-  const ct = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, new TextEncoder().encode(text)));
-  return b64u(catBytes(salt, iv, ct));
-}
 
 // 'base64(salt|iv|ct)' → 明文
 async function decryptText(b64, password) {
@@ -4031,7 +4022,7 @@ async function encryptWithSession(text) {
 // 网站二维码（内嵌 base64，离线可显示），扫码打开 https://jefely.github.io/New-repository/
 const QR_DATA_URL = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAUoAAAFKCAIAAAD0S4FSAAAFCUlEQVR42u3dS3IUMRBF0VcE+9+y2QETIfKjc+YGd7VvqAYZqe/n5yfARr88ApA3IG9A3oC8AXkD8gZ5A/IG5A3IG5A3IG+QNyBvQN6AvAF5A/KGl/0++eHv+5Y9jr9vnjv5vD3/5Xub9nr+v/v+Jp3e4OUckDcgb0DegLwBeQPyBnkDeWpqLdembe7pOdV071nt+xZOPtFrf5NOb/ByDsgbkDcgb0DegLxB3oC8gTw1tZaiSZ2Jk0n3NrFVPcmTn636vPv+Jp3e4OUckDcgb0DegLwBeYO8AXkDMbUW94du2eI2cQ7P6Q3IG5A3IG9A3oC8Qd6AvAF5AzG1Nsi9Oa2qGzPNpTm9AXkD8gbkDcgbkDfIG5A3IG8gj0yt9bzHs+eutZP/t+qWz33fr9MbkDcgb0DegLxB3oC8AXkD8gbSfGpt37ate7vH/Gz+yxzeaxvgnN4gb0DegLwBeQPyBuQN8gbkDTT07dsvNXGmrWrWque3f+9JOr0BeQPyBuQNyBuQN8gbkDcgbyCjd63ZiZUGe+nu3Vta9S303MTW835Ypzd4OQfkDcgbkDcgb0DegLxB3kCemlq7N8djB9j0ezxTNNM2cRry3l+O0xu8nAPyBuQNyBuQNyBvkDcgbyDLbgidOAM0cU6ranbwtcnCqp91egPyBuQN8gbkDcgbkDcgb0DeELvWsne2rOd+uJ4zTz3vh616GhM/r9MbvJwD8gbkDcgbkDcgb5A3IG8gT02tnUzb3JtMujfTNnHyrGqLW9Wz2vcdOb3Byzkgb0DegLwBeQPyBuQN8gZiai29p4smburqOePVczNZ1ed1egPyBuQNyBvkDcgbkDcgb0DeQEZPraXlBNi+XVwZeIvra1OJTm9A3iBvQN6AvAF5A/IG5A3yBmJqLb3nw3rOD1VNU937vFUzbVX70ibOLDq9wcs5IG9A3oC8AXkD8gZ5A/IGGvp6zuJMvKux52ayqttFe86W7XuSTm/wcg7IG5A3IG9A3oC8AXmDvIE8NbVWtU/r3oRQ1bTcaxvReu482/f37PQGL+eAvAF5A/IG5A3IG+QNyBvIshtCM3BfWtUEWNZNcU18VlUzbVX/stMbvJwD8gbkDcgbkDcgb5A3IG8gT02t5bHpohTNllU9jbScw6uahzt5znatAfIG5A3yBuQNyBuQNyBvQN4QN4SWTwhNvNfy3u/sW9jN1Bogb0DeIG9A3oC8AXkD8gbkDTG1xpo7QHvuh/NbOb0BeQPyBnkD8gbkDcgbkDcgb4gbQjNniisDt16d7B6ruuVz4u2iE39npzcgb0DeIG9A3oC8AXkD8gbkDTG1lt4TYDFp136LW9W3XzV32HPSzukNXs4BeQPyBuQNyBuQN8gbkDeQp6bWUjQ99toOsJMnee9OzHvfb9Xc4ck3WDXh5/QGL+eAvAF5A/IG5A3IG+QNyBuIqbW8ures6g7Qe7NlPSfees4sVs20Ob3Byzkgb0DegLwBeQPyBnkD8gZiai2v3qe577eq2g+Xoj1tVbvlnN6AvEHegLwBeQPyBuQNyBvkDcTUWvZOgGXgRNTEaap7E289b2Kt+o6c3uDlHJA3IG9A3oC8AXmDvAF5Aw19EzdmpeVNjml5R2TVJFbcLur0BuQNyBuQN8gbkDcgb0DegLyB/OupNcDpDcgbkDcgb5A3IG9A3oC8AXkD8gbkDfIG5A3IG5A3IG9A3iBvQN5AU38AW3Unpg+CBHwAAAAASUVORK5CYII=';
 
-const APP_VER = 'v9.36';
+const APP_VER = 'v9.44';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -4053,6 +4044,25 @@ let bookState = (() => {
   try { localStorage.setItem(BOOKS_KEY, JSON.stringify(st)); } catch (e) {}
   return st;
 })();
+
+// ---------- 多标签页并发保护 ----------
+// 写盘是「整份 JSON 加密后覆盖」，两个标签页各持旧 state 时，后写的会把先写的全部抹掉。
+// 做法：存盘前后比对一个单调递增的版本号（同一个加密串里存），冲突时提示而不是覆盖。
+let _storageWarned = false;
+
+function watchOtherTabs() {
+  try {
+    window.addEventListener('storage', (e) => {
+      if (!e || e.key !== lsKey()) return;
+      if (_storageWarned) return;
+      _storageWarned = true;
+      toast('本账本已在另一个标签页被修改。请刷新页面以载入最新数据，避免互相覆盖。', {
+        type: 'error', duration: 12000,
+        action: { label: '刷新', onClick: () => location.reload() }
+      });
+    });
+  } catch (e) {}
+}
 
 function saveBooks() {
   try { localStorage.setItem(BOOKS_KEY, JSON.stringify(bookState)); } catch (e) {}
@@ -4303,13 +4313,7 @@ function attachFixedCheckbox(tr) {
   chk.className = 'fixed-chk';
   chk.title = '加入固定收支（每月按这一天的金额自动记一笔）';
   chk.checked = !!fixedBySource(tr.dataset.id);
-  chk.addEventListener('click', (ev) => {
-    ev.stopPropagation();
-    if (chk.checked) addFixedFromTx(tr.dataset.id);
-    else removeFixedBySource(tr.dataset.id);
-    save();
-    toast(chk.checked ? '已加入固定收支' : '已取消固定收支');
-  });
+  // 监听器不再逐行绑定（1000 行就是 1000 个闭包），统一由 bindFlowEvents 的 tbody 委托处理
   noteTd.appendChild(chk);
 }
 
@@ -4527,7 +4531,7 @@ function renderFixed(main, footer) {
     const tip = document.createElement('div');
     tip.className = 'fixed-daily-tip';
     tip.textContent = '其中「每天」的条目：收入 ' + fmtMoney(dailyIn) + ' / 天，支出 ' + fmtMoney(dailyOut) + ' / 天'
-      + '（按月约 ' + fmtMoney(dailyOut * 30) + ' 支出）';
+      + '（按月约 ' + fmtMoney(Math.round(dailyOut * 30.44)) + ' 支出）';
     main.appendChild(tip);
   }
 
@@ -4728,7 +4732,7 @@ function renderFixed(main, footer) {
     const dayRaw = parseInt(String(nd.value).replace(/\D/g, ''), 10);
     const amt = normalizeAmount(amtRaw);
     // 没有账户也没有金额 → 视为空行，不建
-    if (!from && !to && (amt === '' || amt === '0') && !note) return false;
+    if (!from && !to && (amt === '' || amt === 0) && !note) return false;
     if (!from && !to) { toast('至少填一个账户（转出或转入）', { type: 'error' }); return false; }
     if (freq === 'month' && (isNaN(dayRaw) || dayRaw < 1)) {
       toast('「每月」需要填几号', { type: 'error' }); return false;
@@ -6206,11 +6210,14 @@ function getCurrentRange() {
 function computeStats(acc, range) {
   let pOut = 0, pIn = 0, hOut = 0, hIn = 0, tOut = 0, tIn = 0;
   const name = acc.name;
-  if (name) {
+  const aid = acc.id;
+  if (name || aid) {
     for (const t of state.transactions) {
       const amt = Number(t.amount) || 0;
-      const isOut = t.from === name;
-      const isIn = t.to === name;
+      // 优先按账户 id 匹配（改名、删了再建同名都不会串账）；
+      // 老数据没有 fromId/toId，回退到按名字比较
+      const isOut = t.fromId ? (t.fromId === aid) : (t.from === name);
+      const isIn  = t.toId   ? (t.toId === aid)   : (t.to === name);
       if (!isOut && !isIn) continue;
       if (isOut) tOut += amt;
       if (isIn) tIn += amt;
@@ -6358,49 +6365,6 @@ function buildRangeToolbar(opts) {
   return { bar1, bar2 };
 }
 
-function syncToolbarWidth() {
-  // 已停用：按钮改为固定宽度靠左排列，工具栏不再跟随表格宽度。
-  // 保留函数名避免旧调用点报错。
-  if (true) return;
-  const main = document.getElementById('main');
-  if (!main) return;
-  // 同一页可能有多个工具栏（汇总/分类各两行），它们对齐同一张表。
-  let group = [];
-  const measureNatural = (bar) => {
-    // 用 max-content 量「内容真实需要多宽」—— 不能用 auto，
-    // 那会让 flex 容器直接撑满父级，量出来永远是父级宽度。
-    const prev = bar.style.width;
-    bar.style.width = 'max-content';
-    const w = Math.ceil(bar.getBoundingClientRect().width) || 0;
-    bar.style.width = prev;
-    return w;
-  };
-  const apply = (table) => {
-    if (!group.length) return;
-    if (!table) { group = []; return; }
-    const tw = Math.max(table.scrollWidth || 0, Math.ceil(table.getBoundingClientRect().width) || 0);
-    if (!tw) { group = []; return; }
-    for (const bar of group) {
-      // 宽度就取表格宽度，不加任何兜底 —— 兜底会把它撑回父容器宽
-      bar.style.width = tw + 'px';
-      bar.style.maxWidth = 'none';
-      bar.style.height = 'auto';
-      bar.style.minHeight = '34px';
-      bar.dataset.synced = '1';
-    }
-    group = [];
-  };
-  for (const el of Array.from(main.children)) {
-    if (el.classList && el.classList.contains('toolbar')) {
-      group.push(el);
-      continue;
-    }
-    const table = el.tagName === 'TABLE' ? el
-      : (el.querySelector ? el.querySelector('table') : null);
-    if (table) apply(table);
-  }
-  apply(null);
-}
 
 // 每个页面自己的滚动位置。切标签页时必须各记各的，否则会把上一页的
 // scrollTop 套到新页面上（汇总页原本停在顶部，切过来直接落到最底部）。
@@ -6454,7 +6418,6 @@ function render() {
     });
   } catch (e) {}
   _lastRenderedTab = currentTab;
-  try { syncToolbarWidth(); } catch (e) {}
 }
 
 // 页脚文字统一入口
@@ -6523,7 +6486,7 @@ function renderFlow(main, footer) {
   const txs = state.transactions.slice().sort((a, b) => (a.seq || 0) - (b.seq || 0));
 
   // 分批渲染：每行 6 个 input，一次性铺几百行会让页面明显卡顿。
-  // 先渲染前 FLOW_BATCH 行，滚到底部再追加一批。
+  // 先渲染前 FLOW_BATCH 行，点底部的提示行再追加一批。
   const shown = txs.slice(0, flowShown);
   const frag = document.createDocumentFragment();
   shown.forEach(t => frag.appendChild(makeFlowRow(t, 0, false)));
@@ -6772,7 +6735,21 @@ function bindFlowEvents(tbody) {
   }, true);
 
   // Excel / WPS 复制粘贴：多行多列的制表符文本直接铺进表里
-  tbody.addEventListener('paste', e => {
+    // 「加入固定收支」勾选框：事件委托（原来每行一个监听器，1000 行 = 1000 个闭包）
+  tbody.addEventListener('click', (ev) => {
+    const chk = ev.target && ev.target.closest ? ev.target.closest('.fixed-chk') : null;
+    if (!chk) return;
+    ev.stopPropagation();
+    const tr = chk.closest('tr');
+    const id = tr && tr.dataset ? tr.dataset.id : '';
+    if (!id) return;
+    if (chk.checked) addFixedFromTx(id);
+    else removeFixedBySource(id);
+    save();
+    toast(chk.checked ? '已加入固定收支' : '已取消固定收支');
+  });
+
+tbody.addEventListener('paste', e => {
     const input = e.target && e.target.closest ? e.target.closest('input') : null;
     if (!input || !input.dataset.field) return;
     const clip = e.clipboardData || window.clipboardData;
@@ -6923,6 +6900,22 @@ function deleteAccount(id) {
   const idx = state.accounts.findIndex(a => a.id === id);
   if (idx < 0) return;
   const removed = state.accounts[idx];
+  // 统计有多少流水引用它：删了之后这些流水就失去归属，金额会从汇总里消失
+  const refTx = (state.transactions || []).filter(t =>
+    (t.fromId && t.fromId === id) || (t.toId && t.toId === id) ||
+    (!t.fromId && removed.name && t.from === removed.name) ||
+    (!t.toId && removed.name && t.to === removed.name)
+  ).length;
+  const refFixed = (state.fixed || []).filter(f => f.from === removed.name || f.to === removed.name).length;
+  if (refTx || refFixed) {
+    const parts = [];
+    if (refTx) parts.push(refTx + ' 笔流水');
+    if (refFixed) parts.push(refFixed + ' 条固定收支');
+    const msg = '「' + (removed.name || '(未命名)') + '」还被 ' + parts.join('、') + ' 引用。\n\n'
+      + '删掉账户后，这些流水会失去归属，金额将从汇总统计里消失（流水本身保留，可在查询页看到）。\n\n'
+      + '确定删除？';
+    if (!confirm(msg)) return;
+  }
   state.accounts.splice(idx, 1);
   save(); render();
   toast(`已删除账户「${removed.name || '(未命名)'}」`, {
@@ -6949,6 +6942,27 @@ function updateFlowFooter(footer) {
 // 而录入时是插入顺序 —— 同一张表两套顺序。排序交由查询/汇总各自处理。
 function reseq() {
   state.transactions.forEach((t, i) => { t.seq = i + 1; });
+  syncFlowAccountIds();     // 顺手把新写入的 from/to 解析成 id
+}
+
+// 按名字把流水的 fromId / toId 补上（找不到就留空，仍走名字回退）
+function syncFlowAccountIds() {
+  if (!Array.isArray(state.transactions) || !Array.isArray(state.accounts)) return 0;
+  const byName = new Map();
+  for (const a of state.accounts) {
+    const n = (a.name || '').trim();
+    if (n && !byName.has(n)) byName.set(n, a.id);
+  }
+  let n = 0;
+  for (const t of state.transactions) {
+    const fid = t.from ? byName.get(String(t.from).trim()) : null;
+    const tid = t.to ? byName.get(String(t.to).trim()) : null;
+    if (fid && t.fromId !== fid) { t.fromId = fid; n++; }
+    if (tid && t.toId !== tid) { t.toId = tid; n++; }
+    if (!fid && t.fromId) { delete t.fromId; n++; }
+    if (!tid && t.toId) { delete t.toId; n++; }
+  }
+  return n;
 }
 
 /* ============================================================
@@ -7257,7 +7271,6 @@ function syncGridRight() {
 // 所以实时量取，而不是写死一个像素值。
 // 年份框改成固定宽度（CSS：桌面 96px、窄屏 72px），不再按月份按钮实时测量。
 // 保留这个空函数，是因为 resize 与首次渲染里都还有调用点。
-function syncYearWidth() {}
 
 // 汇总表粘贴：按行覆盖已有账户，多出来的行新建账户
 function applySummaryPaste(matrix, startRow, startCol) {
@@ -7500,6 +7513,13 @@ function bindSummaryEvents(tbody) {
   }, true);
 }
 
+// 名字唯一性检查：流水按名字回退匹配，同名账户会导致金额被双计
+function findDuplicateAccountName(name, exceptId) {
+  const n = String(name || '').trim();
+  if (!n) return null;
+  return (state.accounts || []).find(a => a.id !== exceptId && (a.name || '').trim() === n) || null;
+}
+
 function refreshSummaryCells() {
   const tbody = document.querySelector('#summary-table tbody');
   if (!tbody) return;
@@ -7618,7 +7638,7 @@ window.addEventListener('resize', () => {
   const nowNarrow = window.innerWidth < 768;
   if (nowNarrow !== _wasNarrow) { _wasNarrow = nowNarrow; render(); return; }
   if (currentTab === 'flow') syncFlowTitleWidth();
-  if (currentTab === 'summary') { syncYearWidth(); syncGridRight(); applySummarySticky(); }
+  if (currentTab === 'summary') { syncGridRight(); applySummarySticky(); }
 });
 
 function bindQuerySection(sec, idx, footer) {
@@ -7677,7 +7697,7 @@ function doQuery(idx, footer) {
     if (q.date && !qIsDateMatch(t.date, q.date)) return false;
     if (q.from && (t.from || '') !== q.from) return false;
     if (q.to && (t.to || '') !== q.to) return false;
-    if (q.amount) { const n = parseFloat(q.amount); if (!isNaN(n) ? Number(t.amount) !== n : String(t.amount || '') !== q.amount) return false; }
+    if (q.amount) { const n = parseFloat(q.amount); if (!isNaN(n) ? Math.abs((Number(t.amount) || 0) - n) > 0.005 ? false : true : String(t.amount || '') !== q.amount) return false; }
     // 备注是「关键词搜索」而不是整串相等：输入「午饭」能匹配到「午饭，含逗号」
     if (q.note && (t.note || '').toLowerCase().indexOf(q.note.toLowerCase()) < 0) return false;
     return true;
@@ -7717,7 +7737,9 @@ function updateQueryFooter(footer) {
    ============================================================ */
 function installMonths() {
   const out = [];
-  const from = ymIdx(installState.from), to = ymIdx(installState.to);
+  let from = ymIdx(installState.from), to = ymIdx(installState.to);
+  if (!isFinite(from) || !isFinite(to)) return out;
+  if (from > to) { const t = from; from = to; to = t; }   // 起止写反了自动对调，否则整页月份列会消失
   for (let i = from; i <= to && out.length < 120; i++) out.push(ymAt(i));
   return out;
 }
@@ -7729,8 +7751,12 @@ function instPending(ym, repayDay, today) {
   if (idx > ref) return true;
   if (idx < ref) return false;
   if (repayDay > 0) {
-    const due = new Date(Math.floor(ym / 100), (ym % 100) - 1, repayDay);
-    return due > today;
+    const y = Math.floor(ym / 100), m = ym % 100;
+    const dim = new Date(y, m, 0).getDate();              // 当月天数
+    const rd = Math.min(Math.max(1, parseInt(repayDay, 10) || 1), dim);   // 31 号在 30 天月夹到 30
+    // 用日期字符串比较：new Date(..., 0点) > today(带时分秒) 会让「还款日当天」就被判成已还
+    const dueStr = y + '-' + String(m).padStart(2, '0') + '-' + String(rd).padStart(2, '0');
+    return dueStr > todayISO();
   }
   return true;
 }
@@ -7959,7 +7985,6 @@ function renderInstall(main, footer) {
         g.classList.remove('dragging');
         if (moved) {
           colWidths[KEY] = ws.slice(); saveColWidths();
-          try { syncToolbarWidth(); } catch (e) {}
         }
       };
       g.addEventListener('pointermove', onMv);
@@ -7999,7 +8024,6 @@ try {
         if (moved) {
           const w = parseInt(table.style.getPropertyValue('--inst-mw'), 10) || 62;
           try { localStorage.setItem('flow_inst_mw_v1', String(w)); } catch (e) {}
-          try { syncToolbarWidth(); } catch (e) {}
           toast('月份列宽 ' + w + 'px');
         }
       };
@@ -8329,61 +8353,13 @@ const SEP = '，';
 
 // 备注/账户名里出现全角逗号时，导出再导入会被截断（"午饭，含逗号" → "午饭"）。
 // 导出时把 \ 和分隔符转义，导入时还原；旧文件不带转义，走同一条路径结果不变。
-const escField = s => String(s == null ? '' : s).replace(/\\/g, '\\\\').replace(/，/g, '\\，');
 
-function splitEscaped(line, sep) {
-  const out = []; let cur = ''; let esc = false;
-  for (const ch of line) {
-    if (esc) { cur += ch; esc = false; }
-    else if (ch === '\\') { esc = true; }
-    else if (ch === sep) { out.push(cur); cur = ''; }
-    else cur += ch;
-  }
-  if (esc) cur += '\\';
-  out.push(cur);
-  return out;
-}
 
-// 导出文件。手机上很多浏览器（微信、夸克、部分国产内核）会拦掉 a[download]，
-// 所以优先走系统分享面板，退而求其次才用下载，最后再兜底复制到剪贴板。
-async function downloadTXT(filename, text) {
-  const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
-  // 常规下载
-  try {
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = filename; a.rel = 'noopener';
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 4000);
-    return;
-  } catch (e) { /* 掉到下面的复制兜底 */ }
 
-  // 3) 兜底：复制到剪贴板，让用户自己粘到备忘录 / 微信
-  if (copyText(text)) toast('导出被浏览器拦截，内容已复制到剪贴板，可粘贴保存', { duration: 6000 });
-  else toast('导出失败，请换 Chrome 打开本页再试', { type: 'error', duration: 6000 });
-}
 
 /* 导出：一个文件装两段 —— 先是汇总（账户），再是流水。
    账户段列序：序号、分类、简码、账户名称、期初 [,账单日,还款日]
    账单日和还款日只对负债类导出，所以资产类等行少两列；每行末尾统一带一个空字段（结尾逗号）。 */
-function exportAllTXT() {
-  const lines = ['[账户]'];
-  state.accounts.forEach((a, i) => {
-    const isDebt = (a.cat || '') === '负债类';
-    const cols = [String(i + 1), a.cat || '', a.code || '', a.name || '', Number(a.opening || 0).toFixed(2)];
-    if (isDebt) cols.push(a.billDay || '', a.repayDay || '');
-    cols.push('');
-    lines.push(cols.map(escField).join(SEP));
-  });
-  lines.push('');
-  lines.push('[流水]');
-  state.transactions.slice().sort((a, b) => (a.seq || 0) - (b.seq || 0)).forEach(t => {
-    lines.push([t.date ? toYYMMDD(t.date) : '', t.from || '', t.to || '', t.amount === '' || t.amount == null ? '' : Number(t.amount).toFixed(2), t.note || ''].map(escField).join(SEP));
-  });
-  downloadTXT(`流水账_${todayISO()}.txt`, lines.join('\n'));
-}
 
 
 /* ============================================================
@@ -8401,11 +8377,6 @@ const XLSM_SHEET_SUM = '汇总';
 const _xenc = new TextEncoder();
 const _xdec = new TextDecoder();
 
-function _xDecompress(bytes) {
-  const ds = new DecompressionStream('deflate-raw');
-  const w = ds.writable.getWriter(); w.write(bytes); w.close();
-  return new Response(ds.readable).arrayBuffer().then(b => new Uint8Array(b));
-}
 function _xCompress(bytes) {
   const cs = new CompressionStream('deflate-raw');
   const w = cs.writable.getWriter(); w.write(bytes); w.close();
@@ -8422,38 +8393,6 @@ function _crc32(bytes) {
   return (crc ^ 0xFFFFFFFF) >>> 0;
 }
 // 读 ZIP → Map<name, Uint8Array>
-async function xlsmUnzip(buf) {
-  const dv = new DataView(buf);
-  const u8 = new Uint8Array(buf);
-  let eocd = -1;
-  for (let i = buf.byteLength - 22; i >= Math.max(0, buf.byteLength - 65558); i--) {
-    if (dv.getUint32(i, true) === 0x06054b50) { eocd = i; break; }
-  }
-  if (eocd < 0) throw new Error('不是有效的 Excel 文件（.xlsm/.xlsx）');
-  const count = dv.getUint16(eocd + 10, true);
-  let off = dv.getUint32(eocd + 16, true);
-  const map = new Map();
-  const order = [];
-  for (let k = 0; k < count; k++) {
-    if (dv.getUint32(off, true) !== 0x02014b50) break;
-    const method = dv.getUint16(off + 10, true);
-    const compSize = dv.getUint32(off + 20, true);
-    const nameLen = dv.getUint16(off + 28, true);
-    const extraLen = dv.getUint16(off + 30, true);
-    const cmtLen = dv.getUint16(off + 32, true);
-    const localOff = dv.getUint32(off + 42, true);
-    const name = _xdec.decode(u8.subarray(off + 46, off + 46 + nameLen));
-    const lNameLen = dv.getUint16(localOff + 26, true);
-    const lExtraLen = dv.getUint16(localOff + 28, true);
-    const dataStart = localOff + 30 + lNameLen + lExtraLen;
-    const raw = u8.subarray(dataStart, dataStart + compSize);
-    const data = method === 0 ? raw.slice() : await _xDecompress(raw);
-    map.set(name.replace(/^\//, ''), data);
-    order.push({ name: name.replace(/^\//, ''), data });
-    off += 46 + nameLen + extraLen + cmtLen;
-  }
-  return { map, order };
-}
 function xlsmZip(entries) {
   return (async () => {
     const parts = [], central = [];
@@ -8498,9 +8437,6 @@ function xlsmZip(entries) {
 function _xEsc(s) {
   return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
-function _xUnesc(s) {
-  return String(s).replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&amp;/g, '&');
-}
 function _xColName(n) {
   let s = '';
   while (n > 0) { const m = (n - 1) % 26; s = String.fromCharCode(65 + m) + s; n = Math.floor((n - 1) / 26); }
@@ -8513,201 +8449,13 @@ function _xSerial(iso) {
   return Math.floor((Date.UTC(y, m - 1, d) - Date.UTC(1899, 11, 30)) / 86400000);
 }
 // 序列号 → ISO
-function _xFromSerial(n) {
-  const days = Number(n);
-  if (!isFinite(days)) return '';
-  const t = Date.UTC(1899, 11, 30) + days * 86400000;
-  const d = new Date(t);
-  return d.getUTCFullYear() + '-' + String(d.getUTCMonth() + 1).padStart(2, '0') + '-' + String(d.getUTCDate()).padStart(2, '0');
-}
-function _xShared(map) {
-  const out = [];
-  const ss = map.get('xl/sharedStrings.xml');
-  if (!ss) return out;
-  const x = _xdec.decode(ss);
-  const re = /<si>([\s\S]*?)<\/si>/g;
-  let m;
-  while ((m = re.exec(x))) {
-    let t = '';
-    const tr = /<t[^>]*>([\s\S]*?)<\/t>/g;
-    let tm;
-    while ((tm = tr.exec(m[1]))) t += tm[1];
-    out.push(_xUnesc(t));
-  }
-  return out;
-}
 // 解析一张 sheet → { rows: Map<rowNum, [{col, v, s}]>, xml }
-function _xParseSheet(xml, shared) {
-  const rows = new Map();
-  const re = /<row r="(\d+)"[^>]*>([\s\S]*?)<\/row>/g;
-  let m;
-  while ((m = re.exec(xml))) {
-    const r = parseInt(m[1], 10);
-    const cells = [];
-    const cre = /<c r="([A-Z]+)(\d+)"([^>]*?)(?:\/>|>([\s\S]*?)<\/c>)/g;
-    let cm;
-    while ((cm = cre.exec(m[2]))) {
-      const col = cm[1], attrs = cm[3] || '', body = cm[4] || '';
-      const tm2 = /t="([^"]+)"/.exec(attrs);
-      const t = tm2 ? tm2[1] : 'n';
-      let val = '';
-      if (t === 's') { const v = /<v>(\d+)<\/v>/.exec(body); if (v) val = shared[+v[1]] ?? ''; }
-      else if (t === 'inlineStr') { let s2 = ''; const tr = /<t[^>]*>([\s\S]*?)<\/t>/g; let x2; while ((x2 = tr.exec(body))) s2 += x2[1]; val = _xUnesc(s2); }
-      else { const v = /<v>([^<]*)<\/v>/.exec(body); if (v) val = v[1]; }
-      const sm = /s="(\d+)"/.exec(attrs);
-      cells.push({ col, v: val, s: sm ? +sm[1] : null, type: t });
-    }
-    rows.set(r, cells);
-  }
-  return rows;
-}
-// 重写 sheetData：保留 keepThrough 之前的行，之后换成 newRows
-function _xRebuild(xml, keepThrough, newRows, styleFor) {
-  const iOpen = xml.indexOf('<sheetData');
-  const iStart = xml.indexOf('>', iOpen) + 1;
-  const iEnd = xml.indexOf('</sheetData>');
-  if (iOpen < 0 || iEnd < 0) throw new Error('工作表结构异常');
-  const head = xml.slice(0, iStart), tail = xml.slice(iEnd);
-  const body = xml.slice(iStart, iEnd);
-  const keep = [];
-  const re = /<row r="(\d+)"[^>]*>[\s\S]*?<\/row>/g;
-  let m;
-  while ((m = re.exec(body))) {
-    const r = parseInt(m[1], 10);
-    if (r <= keepThrough) keep.push(m[0]);
-  }
-  const gen = [];
-  newRows.forEach((cells, i) => {
-    const r = keepThrough + 1 + i;
-    const parts = [];
-    cells.forEach(([colIdx, val, isNum]) => {
-      const ref = _xColName(colIdx) + r;
-      const s = styleFor ? styleFor(colIdx) : null;
-      const sAttr = s == null ? '' : ' s="' + s + '"';
-      // 值为空但有样式的列，仍写一个带样式的空单元格 —— 否则边框会缺一块
-      if (val === '' || val == null) {
-        if (s != null) parts.push('<c r="' + ref + '"' + sAttr + '/>');
-        return;
-      }
-      if (isNum) parts.push('<c r="' + ref + '"' + sAttr + '><v>' + val + '</v></c>');
-      else parts.push('<c r="' + ref + '"' + sAttr + ' t="inlineStr"><is><t xml:space="preserve">' + _xEsc(val) + '</t></is></c>');
-    });
-    if (parts.length) gen.push('<row r="' + r + '">' + parts.join('') + '</row>');
-  });
-  return head + keep.join('') + gen.join('') + tail;
-}
-// 找出名为「流水」「汇总」的 sheet 路径
-function _xFindSheets(map) {
-  const wb = map.get('xl/workbook.xml'), rels = map.get('xl/_rels/workbook.xml.rels');
-  if (!wb || !rels) throw new Error('缺少 workbook 结构');
-  const relMap = new Map();
-  const rx = _xdec.decode(rels);
-  const re = /<Relationship([^>]*)\/>/g;
-  let m;
-  while ((m = re.exec(rx))) {
-    const a = m[1];
-    const id = (/Id="([^"]+)"/.exec(a) || [])[1];
-    let target = (/Target="([^"]+)"/.exec(a) || [])[1] || '';
-    target = target.replace(/^\.\.\//, '').replace(/^\//, '');
-    if (!/^xl\//.test(target)) target = 'xl/' + target;
-    if (id) relMap.set(id, target.replace(/\/+/g, '/'));
-  }
-  const out = {};
-  const wx = _xdec.decode(wb);
-  const sre = /<sheet\s[^>]*\/>/g;
-  while ((m = sre.exec(wx))) {
-    const tag = m[0];
-    const name = (/name="([^"]*)"/.exec(tag) || [])[1];
-    const rid = (/r:id="([^"]+)"/.exec(tag) || [])[1];
-    if (!name || !rid) continue;
-    const nm = name.trim();
-    if (nm === XLSM_SHEET_FLOW) out.flow = relMap.get(rid);
-    if (nm === XLSM_SHEET_SUM) out.sum = relMap.get(rid);
-    if (nm === '分期') out.inst = relMap.get(rid);
-    if (nm === '查询') out.query = relMap.get(rid);
-  }
-  if (!out.flow || !out.sum) throw new Error('模板里必须有两个工作表：「流水」和「汇总」');
-  return out;
-}
-// 模板存取
-function getXlsmTemplate() { return localStorage.getItem(XLSM_KEY) || ''; }
-function saveXlsmTemplate(b64) { localStorage.setItem(XLSM_KEY, b64); }
-function _b64ToBytes(b64) {
-  const bin = atob(b64);
-  const u8 = new Uint8Array(bin.length);
-  for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
-  return u8;
-}
-function _bytesToB64(bytes) {
-  let s = '';
-  const CH = 0x8000;
-  for (let i = 0; i < bytes.length; i += CH) s += String.fromCharCode.apply(null, bytes.subarray(i, i + CH));
-  return btoa(s);
-}
+
 
 /* 「添加」：读 TXT，把里面的流水追加到当前账本（账户按文件内容替换）。
    和 Excel 的「添加流水」语义一致：账户替换、流水追加并去重。 */
-// 纯流水格式：每行「日期，转出，转入，金额，备注」，没有 [账户] / [流水] 段标记。
-// 例如：261021，ZHC，XJ，1000，备用金，
-function parsePlainFlow(text) {
-  const out = [];
-  for (const raw of String(text || '').replace(/\r\n?/g, '\n').split('\n')) {
-    const line = raw.replace(/[ ]+$/, '');
-    if (!line.trim()) continue;
-    if (/^\[.+?\]$/.test(line.trim())) continue;          // 残留的段标记直接跳过
-    const sep = line.indexOf('\t') >= 0 ? '\t' : (line.indexOf('，') >= 0 ? '，' : ',');
-    const cols = splitEscaped(line, sep);
-    const rawDate = String(cols[0] || '').trim();
-    // 日期必须是 6 位（261021）或 8 位（20261021），否则当表头/垃圾行跳过
-    const digits = rawDate.replace(/[-/.年月日]/g, '');
-    if (!/^\d{6}$|^\d{8}$/.test(digits)) continue;
-    const amtRaw = String(cols[3] == null ? '' : cols[3]).replace(/[^\d.-]/g, '');
-    out.push({
-      date: parseDateInput(rawDate) || '',
-      from: String(cols[1] || '').trim(),
-      to: String(cols[2] || '').trim(),
-      amount: amtRaw === '' ? '' : Number(amtRaw),
-      note: String(cols[4] || '').trim()
-    });
-  }
-  return out;
-}
 
-async function addFlowFromTXT(e, footer) {
-  const f = e.target.files && e.target.files[0];
-  if (!f) return;
-  const text = await f.text();
-  // 有 [账户] / [流水] 标记的老格式走两段解析；纯流水行（日期,转出,转入,金额,备注）走新解析
-  const hasSection = /^\s*\[(账户|流水)\]/m.test(text);
-  let parsed;
-  if (hasSection) {
-    parsed = parseBookTXT(text);
-  } else {
-    parsed = { txs: parsePlainFlow(text), accs: [] };
-  }
-  if (!parsed.accs.length && !parsed.txs.length) {
-    toast('这个文件里没读到流水（每行应是：日期，转出，转入，金额，备注）', { type: 'error', duration: 6000 });
-    e.target.value = '';
-    return;
-  }
-  // 全部追加，不做重复判断：同一天同账户同金额的多笔本来就可能都是真交易
-  let added = 0;
-  for (const t of parsed.txs) {
-    state.transactions.push({
-      id: 't' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6) + (added++),
-      seq: 0,
-      date: t.date || '',
-      from: resolveCode(t.from || ''),
-      to: resolveCode(t.to || ''),
-      amount: t.amount === '' || t.amount == null ? '' : t.amount,
-      note: t.note || ''
-    });
-  }
-  if (parsed.accs.length) state.accounts = parsed.accs;
-  reseq(); save(); render();
-  e.target.value = '';
-  toast('已添加 ' + added + ' 笔流水；账户 ' + state.accounts.length + ' 个', { duration: 5000 });
-}
+
 
 // ---------- 数据体检：返回各类问题的集合，供渲染时标红 ----------
 function dataIssues() {
@@ -8778,67 +8526,8 @@ function applyDataIssues() {
 }
 
 
-function parseBookTXT(text) {
-  text = String(text).replace(/\r\n?/g, '\n');
-  const txs = [], accs = [];
-  let section = null;
-  for (const raw of text.split('\n')) {
-    // 只去掉行尾空格，不能连 tab 一起去 —— tab 分隔的文件末尾空字段会被吃掉，列数就不对了
-    const line = raw.replace(/[ ]+$/, '');
-    if (!line.trim()) continue;
-    const mh = line.match(/^\[(.+?)\]$/);
-    if (mh) { section = mh[1].trim() === '流水' ? 'tx' : mh[1].trim() === '账户' ? 'acc' : null; continue; }
-    // tab 优先判定：原来先看有没有全角逗号，导致 tab 分隔的文件只要备注里带逗号就整行错位
-    const sep = line.indexOf('\t') >= 0 ? '\t' : (line.indexOf('，') >= 0 ? '，' : ',');
-    const cols = splitEscaped(line, sep);
-
-    if (section === 'tx') {
-      const date = parseDateInput(cols[0] || ''), from = (cols[1] || '').trim(), to = (cols[2] || '').trim(), amt = parseFloat(cols[3]), note = (cols[4] || '').trim();
-      if (date || from || to || !isNaN(amt)) txs.push({ id: uid(), date: date || todayISO(), from, to, amount: isNaN(amt) ? '' : amt, note });
-    } else if (section === 'acc') {
-      // 第一列是纯数字就当序号剥掉（分类是中文，不会撞车）；旧的 6 列文件没有序号，原样读
-      const c = /^\d+$/.test((cols[0] || '').trim()) ? cols.slice(1) : cols;
-      const cat = (c[0] || '').trim(), code = (c[1] || '').trim(), name = (c[2] || '').trim();
-      const op = parseFloat(c[3]) || 0, billDay = (c[4] || '').trim(), repayDay = (c[5] || '').trim();
-      if (cat || code || name) accs.push({ id: uid(), cat: cat || '资产类', code, name, opening: op, billDay, repayDay });
-    }
-  }
-  return { txs, accs };
-}
 
 /* 导入：账户段「全部替换」，流水段「追加」—— 两段各自独立，只带其中一段的文件也能用。 */
-function importAllTXT(e, footer) {
-  const f = e.target.files[0]; if (!f) return;
-  const r = new FileReader();
-  r.onload = () => {
-    try {
-      const { txs, accs } = parseBookTXT(r.result);
-      if (!accs.length && !txs.length) return toast('TXT 里没有可识别的数据', { type: 'error' });
-      const prevAccs = state.accounts, prevTxs = state.transactions;
-      const msg = [];
-
-      if (accs.length) {
-        state.accounts = accs;
-        msg.push(`账户 ${prevAccs.length} → ${accs.length} 个（替换）`);
-      }
-      if (txs.length) {
-        const before = state.transactions.length;
-        state.transactions = state.transactions.concat(txs.map(t => ({ ...t, seq: 0 })));
-        reseq();
-        msg.push(`流水追加 ${txs.length} 笔（${before} → ${state.transactions.length}）`);
-      }
-      save(); render();
-      toast(`已导入：${msg.join('，')}`, {
-        action: {
-          label: '撤销',
-          onClick: () => { state.accounts = prevAccs; state.transactions = prevTxs; save(); render(); toast('已撤销导入'); }
-        }
-      });
-    } catch (err) { toast('导入失败：' + err.message, { type: 'error' }); }
-    finally { e.target.value = ''; }
-  };
-  r.readAsText(f, 'utf-8');
-}
 
 /* ============================================================
    跨设备同步码 (Sync Code)
@@ -8974,158 +8663,8 @@ async function applySyncCode(code) {
 
 
 // ===== 导出：把当前数据填进模板，保留 VBA =====
-async function exportXLSM() {
-  const b64 = getXlsmTemplate();
-  if (!b64) { toast('还没有 Excel 模板，请先在「Excel」里上传一次 .xlsm 模板', { type: 'error', duration: 5000 }); return; }
-  const bin = _b64ToBytes(b64);
-  const { map, order } = await xlsmUnzip(bin.buffer.slice(bin.byteOffset, bin.byteOffset + bin.byteLength));
-  const shared = _xShared(map);
-  const paths = _xFindSheets(map);
-
-  // --- 流水表：保留 r1（标题）r2（表头），r3 起写数据 ---
-  const flowXml = _xdec.decode(map.get(paths.flow));
-  const flowRows = _xParseSheet(flowXml, shared);
-  const flowStyle = (col) => {
-    const base = flowRows.get(3) || [];
-    const cn = _xColName(col);
-    const hit = base.find(c => c.col === cn);
-    return hit ? hit.s : null;
-  };
-  const flowData = state.transactions.slice().sort((a, b) => (a.seq || 0) - (b.seq || 0)).map((t, i) => {
-    const ser = t.date ? _xSerial(t.date) : null;
-    return [
-      [1, String(i + 1), true],
-      [2, ser == null ? '' : String(ser), true],
-      [3, t.from || '', false],
-      [4, t.to || '', false],
-      [5, t.amount === '' || t.amount == null ? '' : Number(t.amount).toFixed(2), true],
-      [6, t.note || '', false]
-    ];
-  });
-  const newFlowXml = _xRebuild(flowXml, 2, flowData, flowStyle);
-
-  // --- 汇总表：保留 r1（起止日期/标题）r2（表头），r3 起写账户 ---
-  const sumXml = _xdec.decode(map.get(paths.sum));
-  const sumRows = _xParseSheet(sumXml, shared);
-  const sumStyle = (col) => {
-    const base = sumRows.get(3) || [];
-    const cn = _xColName(col);
-    const hit = base.find(c => c.col === cn);
-    return hit ? hit.s : null;
-  };
-  const accData = state.accounts.map((a, i) => {
-    const isDebt = (a.cat || '') === '负债类';
-    const row = [
-      [1, String(i + 1), true],
-      [2, a.cat || '', false],
-      [3, a.code || '', false],
-      [4, a.name || '', false],
-      [10, String(Number(a.opening || 0).toFixed(2)), true]
-    ];
-    if (isDebt) { row.push([12, a.billDay || '', false]); row.push([13, a.repayDay || '', false]); }
-    return row;
-  });
-  // 把 r1 里的年/月也更新成本次导出的
-  let sumHead = sumXml;
-  const newSumXml = _xRebuild(sumHead, 2, accData, sumStyle);
-
-  // --- 重新打包：替换两张表 + 强制重算 ---
-  const outEntries = order.map(e => {
-    if (e.name === paths.flow) return { name: e.name, data: _xenc.encode(newFlowXml) };
-    if (e.name === paths.sum) return { name: e.name, data: _xenc.encode(newSumXml) };
-    if (e.name === 'xl/workbook.xml') {
-      let wb = _xdec.decode(e.data);
-      if (!/fullCalcOnLoad/.test(wb)) wb = wb.replace(/<calcPr([^>]*)\/>/, '<calcPr$1 fullCalcOnLoad="1"/>');
-      return { name: e.name, data: _xenc.encode(wb) };
-    }
-    return e;
-  });
-  const out = await xlsmZip(outEntries);
-  const name = '流水账_' + todayISO() + '.xlsm';
-  const blob = new Blob([out], { type: 'application/vnd.ms-excel.sheet.macroEnabled.12' });
-  try {
-    const file = new File([blob], name, { type: blob.type });
-    if (navigator.canShare && navigator.canShare({ files: [file] })) {
-      await navigator.share({ files: [file], title: name });
-      toast('已生成 .xlsm（含 VBA），通过系统分享保存');
-      return;
-    }
-  } catch (e) { if (e && e.name === 'AbortError') return; }
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a'); a.href = url; a.download = name;
-  document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 4000);
-  toast('已导出 ' + name + '（含 VBA）');
-}
 
 // ===== 导入：读 .xlsm → 覆盖当前数据 =====
-async function readXLSMFile(file) {
-  const bin = new Uint8Array(await file.arrayBuffer());
-  const { map } = await xlsmUnzip(bin.buffer.slice(bin.byteOffset, bin.byteOffset + bin.byteLength));
-  const shared = _xShared(map);
-  const paths = _xFindSheets(map);
-
-  // 汇总表 → 账户。表头在 r2，数据从 r3 起；遇到空行（A 列没有序号）就跳过
-  const sumRows = _xParseSheet(_xdec.decode(map.get(paths.sum)), shared);
-  const accs = [];
-  const colOf = (cells, name) => {
-    const idx = (sumHeader || []).indexOf(name);
-    return idx < 0 ? null : (cells.find(c => c.col === _xColName(idx + 1)) || {}).v;
-  };
-  const sumHeader = [];
-  (sumRows.get(2) || []).forEach(c => {
-    let i = 0, n = 0;
-    for (const ch of c.col) n = n * 26 + (ch.charCodeAt(0) - 64);
-    i = n - 1;
-    sumHeader[i] = c.v;
-  });
-  for (const [r, cells] of [...sumRows.entries()].sort((a, b) => a[0] - b[0])) {
-    if (r <= 2) continue;
-    const name = colOf(cells, '账户名称');
-    if (!name) continue;
-    accs.push({
-      id: 'a' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
-      cat: colOf(cells, '分类') || '',
-      code: colOf(cells, '简码') || '',
-      name,
-      opening: colOf(cells, '期初') || '',
-      billDay: colOf(cells, '账单日') || '',
-      repayDay: colOf(cells, '还款日') || ''
-    });
-  }
-
-  // 流水表 → 交易。表头在 r2，数据从 r3 起
-  const flowRows = _xParseSheet(_xdec.decode(map.get(paths.flow)), shared);
-  const flowHeader = [];
-  (flowRows.get(2) || []).forEach(c => {
-    let n = 0;
-    for (const ch of c.col) n = n * 26 + (ch.charCodeAt(0) - 64);
-    flowHeader[n - 1] = c.v;
-  });
-  const tx = [];
-  let seq = 0;
-  for (const [r, cells] of [...flowRows.entries()].sort((a, b) => a[0] - b[0])) {
-    if (r <= 2) continue;
-    const val = (name) => {
-      const idx = flowHeader.indexOf(name);
-      if (idx < 0) return '';
-      const hit = cells.find(c => c.col === _xColName(idx + 1));
-      return hit ? hit.v : '';
-    };
-    const dateRaw = val('日期'), from = val('转出账户'), to = val('转入账户'), amt = val('金额'), note = val('备注');
-    if (!dateRaw && !from && !to && !amt && !note) continue;
-    seq++;
-    tx.push({
-      id: 't' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
-      seq,
-      date: dateRaw ? (/^\d+(\.\d+)?$/.test(dateRaw) ? _xFromSerial(dateRaw) : dateRaw) : '',
-      from, to,
-      amount: amt === '' ? '' : Number(amt),
-      note
-    });
-  }
-  return { accounts: accs, transactions: tx };
-}
 
 
 /* ============================================================
@@ -9514,256 +9053,8 @@ async function buildXlsxBytes() {
    ============================================================ */
 const XLSX_TPL_IDB = 'flow_xlsx_template_v2';
 
-function _idbOpen() {
-  return new Promise((res, rej) => {
-    const rq = indexedDB.open('ledger_files', 1);
-    rq.onupgradeneeded = () => { const db = rq.result; if (!db.objectStoreNames.contains('files')) db.createObjectStore('files'); };
-    rq.onsuccess = () => res(rq.result);
-    rq.onerror = () => rej(rq.error);
-  });
-}
-async function idbPut(key, value) {
-  const db = await _idbOpen();
-  return new Promise((res, rej) => {
-    const tx = db.transaction('files', 'readwrite');
-    tx.objectStore('files').put(value, key);
-    tx.oncomplete = () => res();
-    tx.onerror = () => rej(tx.error);
-  });
-}
-async function idbGet(key) {
-  const db = await _idbOpen();
-  return new Promise((res, rej) => {
-    const tx = db.transaction('files', 'readonly');
-    const rq = tx.objectStore('files').get(key);
-    rq.onsuccess = () => res(rq.result || null);
-    rq.onerror = () => rej(rq.error);
-  });
-}
 
 // 用模板 + 当前数据生成 .xlsx
-async function buildXlsxFromTemplate(tplBytes) {
-  const { map, order } = await xlsmUnzip(tplBytes.buffer.slice(tplBytes.byteOffset, tplBytes.byteOffset + tplBytes.byteLength));
-  const shared = _xShared(map);
-  const paths = _xFindSheets(map);
-  const today = todayISO();
-  const endD = new Date(today + 'T00:00:00');
-  const startD = new Date(endD.getFullYear() - 1, endD.getMonth(), endD.getDate());
-  const startIso = startD.getFullYear() + '-' + pad2(startD.getMonth() + 1) + '-' + pad2(startD.getDate());
-  const range = { start: startIso, end: today };
-
-  // ---------- 流水 ----------
-  const flowXml = _xdec.decode(map.get(paths.flow));
-  const flowRows = _xParseSheet(flowXml, shared);
-  const styleAt = (rows, rowNum) => (col) => {
-    const base = rows.get(rowNum) || [];
-    const cn = _xColName(col);
-    const hit = base.find(c => c.col === cn);
-    return hit ? hit.s : null;
-  };
-  const flowStyleRaw = styleAt(flowRows, 3);
-  // 模板里备注列（F）没有样式 → 没有边框。这里让 F 沿用 E 的样式补上，
-  // 否则打印/查看时右侧会缺一条框线。
-  const flowStyle = (col) => {
-    const own = flowStyleRaw(col);
-    if (own != null) return own;
-    for (let back = col - 1; back >= 1; back--) {
-      const s = flowStyleRaw(back);
-      if (s != null) return s;
-    }
-    return null;
-  };
-  const flowData = state.transactions.slice().sort((a, b) => (a.seq || 0) - (b.seq || 0)).map((t, i) => {
-    const ser = t.date ? _xSerial(t.date) : null;
-    return [
-      [1, String(i + 1), true],
-      [2, ser == null ? '' : String(ser), true],
-      [3, t.from || '', false],
-      [4, t.to || '', false],
-      [5, t.amount === '' || t.amount == null ? '' : Number(t.amount).toFixed(2), true],
-      [6, t.note || '', false]
-    ];
-  });
-  let newFlow = _xRebuild(flowXml, 2, flowData, flowStyle);
-  // 模板里流水表冻结了很多行，重置成「前两行」（标题 + 表头）
-  newFlow = newFlow.replace(/<pane[^>]*\/>/, '<pane ySplit="2" topLeftCell="A3" activePane="bottomLeft" state="frozen"/>');
-
-  // ---------- 汇总：保留 r1（起止日期/标题）r2（表头），只改 B1/D1 的日期 + r3 起数据 ----------
-  let sumXml = _xdec.decode(map.get(paths.sum));
-  const sumRows = _xParseSheet(sumXml, shared);
-  const sumStyleRaw = styleAt(sumRows, 3);
-  const sumStyle = (col) => {
-    const own = sumStyleRaw(col);
-    if (own != null) return own;
-    for (let back = col - 1; back >= 1; back--) {
-      const s = sumStyleRaw(back);
-      if (s != null) return s;
-    }
-    return null;
-  };
-  // 更新 r1 的起始/结束日期（B1 / D1）
-  const s1 = _xSerial(startIso), s2 = _xSerial(today);
-  if (s1 != null && s2 != null) {
-    sumXml = sumXml
-      .replace(/(<c r="B1"[^>]*>)<v>[^<]*<\/v>/,
-        '$1<v>' + s1 + '</v>')
-      .replace(/(<c r="D1"[^>]*>)<v>[^<]*<\/v>/,
-        '$1<v>' + s2 + '</v>');
-  }
-  const accData = state.accounts.map((a, i) => {
-    const st = computeStats(a, range);
-    const isDebt = (a.cat || '') === '负债类';
-    const row = [
-      [1, String(i + 1), true],
-      [2, a.cat || '', false],
-      [3, a.code || '', false],
-      [4, a.name || '', false],
-      [5, Number(st.balance).toFixed(2), true],
-      [6, Number(st.mOut).toFixed(2), true],
-      [7, Number(st.mIn).toFixed(2), true],
-      [8, Number(st.hOut).toFixed(2), true],
-      [9, Number(st.hIn).toFixed(2), true],
-      [10, Number(a.opening || 0).toFixed(2), true]
-    ];
-    if (isDebt) { row.push([12, a.billDay || '', false]); row.push([13, a.repayDay || '', false]); }
-    return row;
-  });
-  const newSum = _xRebuild(sumXml, 2, accData, sumStyle);
-
-  // ---------- 分期：保留 r1（表头）r2（月份），r3 起每分期两行 ----------
-  const instXml = _xdec.decode(map.get(paths.inst));
-  const instRows = _xParseSheet(instXml, shared);
-  // 动态找表头行：A 列写着「账户名称」的那行；下一行是月份，再下一行开始才是数据。
-  // 模板以后再加/减标题行时不用改代码。
-  let headRow = 2;
-  for (const [rn, cells] of [...instRows.entries()].sort((a, b) => a[0] - b[0])) {
-    const ac = cells.find((c) => c.col === 'A');
-    if (ac && /账户名称/.test(String(ac.v))) { headRow = rn; break; }
-  }
-  const monthRow = headRow + 1;
-  const dataStart = headRow + 2;
-  const instStyleP = styleAt(instRows, dataStart);
-  const instStyleI = styleAt(instRows, dataStart + 1);
-  const months = installMonths();
-  // 2 行表头之后：本金行 + 利息行交替
-  const instData = [];
-  (state.installments || []).forEach(inst => {
-    let sumP = 0, sumI = 0;
-    months.forEach(ym => { const cc = inst.cells && inst.cells[ym]; if (cc) { sumP += Number(cc.p) || 0; sumI += Number(cc.i) || 0; } });
-    const pRow = [
-      [1, inst.name || '', false],
-      [2, inst.billDay || '', false],
-      [3, sumP ? sumP.toFixed(2) : '', true]
-    ];
-    const iRow = [
-      [1, inst.principal || '', true],
-      [2, inst.repayDay || '', false],
-      [3, sumI ? sumI.toFixed(2) : '', true]
-    ];
-    months.forEach((ym, k) => {
-      const cc = inst.cells && inst.cells[ym];
-      const colP = 4 + k;
-      pRow.push([colP, cc && cc.p !== '' && cc.p != null ? cc.p : '', true]);
-      iRow.push([colP, cc && cc.i !== '' && cc.i != null ? cc.i : '', true]);
-    });
-    instData.push(pRow);
-    instData.push(iRow);
-  });
-  // 分期两张行样式不同：奇数行用 r3 的样式，偶数行用 r4 的
-  // 表头两行也要重写：r1 的旧合计值清空、r2 的月份换成当前区间的月份
-  let instHead = instXml;
-  const h1 = instRows.get(headRow) || [];
-  const h2 = instRows.get(monthRow) || [];
-  const headCells = [];
-  const pushCell = (cells, col, val, isNum) => {
-    const cn = _xColName(col);
-    const hit = cells.find(c => c.col === cn);
-    const s = hit ? hit.s : null;
-    const sAttr = s == null ? '' : ' s="' + s + '"';
-    const ref = cn + dataStart;
-    if (val === '' || val == null) return;
-    headCells.push('<c r="' + ref + '"' + sAttr + (isNum ? '><v>' + val + '</v></c>' : ' t="inlineStr"><is><t xml:space="preserve">' + _xEsc(String(val)) + '</t></is></c>'));
-  };
-  // r1：A/B/C 是合并表头，D 列起是「该月所有分期的本金合计」，按当前数据重算
-  const h1Parts = [];
-  ['A', 'B', 'C'].forEach(cn => {
-    const hit = h1.find(c => c.col === cn);
-    if (!hit) return;
-    const sAttr = hit.s == null ? '' : ' s="' + hit.s + '"';
-    if (hit.v && hit.v.trim()) {
-      h1Parts.push('<c r="' + cn + headRow + '"' + sAttr + ' t="inlineStr"><is><t xml:space="preserve">' + _xEsc(hit.v) + '</t></is></c>');
-    } else if (hit.s != null) {
-      h1Parts.push('<c r="' + cn + headRow + '" s="' + hit.s + '"/>');
-    }
-  });
-  months.forEach((ym, k) => {
-    const cn = _xColName(4 + k);
-    const hit = h1.find(c => c.col === cn);
-    const sAttr = hit && hit.s != null ? ' s="' + hit.s + '"' : '';
-    let total = 0;
-    (state.installments || []).forEach(inst => {
-      const cc = inst.cells && inst.cells[ym];
-      if (cc) total += Number(cc.p) || 0;
-    });
-    h1Parts.push(total ? '<c r="' + cn + headRow + '"' + sAttr + '><v>' + total.toFixed(2) + '</v></c>'
-      : '<c r="' + cn + headRow + '"' + sAttr + '/>');
-  });
-  const h1Row = h1Parts.join('');
-  // r2 的月份：前 3 格留空，第 4 格起写月份日期
-  const h2Parts = [];
-  [1, 2, 3].forEach(col => {
-    const hit = h2.find(c => c.col === _xColName(col));
-    if (hit && hit.s != null) h2Parts.push('<c r="' + _xColName(col) + monthRow + '" s="' + hit.s + '"/>');
-  });
-  months.forEach((ym, k) => {
-    const col = 4 + k, cn = _xColName(col);
-    const hit = h2.find(c => c.col === cn);
-    const s = hit ? hit.s : null;
-    const sAttr = s == null ? '' : ' s="' + s + '"';
-    const yy = Math.floor(ym / 100), mm = ym % 100;
-    const ser = _xSerial(yy + '-' + pad2(mm) + '-01');
-    h2Parts.push('<c r="' + cn + monthRow + '"' + sAttr + '><v>' + ser + '</v></c>');
-  });
-  instHead = instHead
-    .replace(new RegExp('<row r="' + headRow + '"[^>]*>[\\s\\S]*?</row>'), (mm2) => mm2.replace(/>[\s\S]*<\/row>$/, '>' + h1Row + '</row>'))
-    .replace(new RegExp('<row r="' + monthRow + '"[^>]*>[\\s\\S]*?</row>'), (mm2) => mm2.replace(/>[\s\S]*<\/row>$/, '>' + h2Parts.join('') + '</row>'));
-  const newInst = _xRebuild(instHead, dataStart - 1, instData, (col) => instStyleP(col));
-
-  // ---------- 查询表：清掉模板里的旧流水，只留表头和公式 ----------
-  let newQuery = null;
-  if (paths.query) {
-    const qXml = _xdec.decode(map.get(paths.query));
-    const qRows = _xParseSheet(qXml, shared);
-    const keepRows = 3;   // r1 标题 / r2 条件 / r3 表头
-    let q = qXml;
-    // 找出所有 row r="N"（N > 3）整段删掉
-    for (const rn of [...qRows.keys()].sort((a, b) => b - a)) {
-      if (rn <= keepRows) continue;
-      const re = new RegExp('<row r="' + rn + '"[^>]*>[\\s\\S]*?</row>', 'g');
-      q = q.replace(re, '');
-      const re2 = new RegExp('<row r="' + rn + '"[^>]*/>', 'g');
-      q = q.replace(re2, '');
-    }
-    // 顺便把 dimension 收到 A1:X3 附近，避免 Excel 停在巨大的空表上
-    q = q.replace(/<dimension ref="[^"]*"\/>/, '<dimension ref="A1:X3"/>');
-    newQuery = q;
-  }
-
-  // ---------- 打包 ----------
-  const outEntries = order.map(e => {
-    if (e.name === paths.flow) return { name: e.name, data: _xenc.encode(newFlow) };
-    if (e.name === paths.sum) return { name: e.name, data: _xenc.encode(newSum) };
-    if (e.name === paths.inst) return { name: e.name, data: _xenc.encode(newInst) };
-    if (newQuery != null && e.name === paths.query) return { name: e.name, data: _xenc.encode(newQuery) };
-    if (e.name === 'xl/workbook.xml') {
-      let wb = _xdec.decode(e.data);
-      if (!/fullCalcOnLoad/.test(wb)) wb = wb.replace(/<calcPr([^>]*?)\/>/, '<calcPr$1 fullCalcOnLoad="1"/>');
-      return { name: e.name, data: _xenc.encode(wb) };
-    }
-    return e;
-  });
-  return await xlsmZip(outEntries);
-}
 
 // 「Excel」按钮：有模板就走模板，没有就提示选文件
 async function exportXLSX() {
@@ -9886,6 +9177,8 @@ function showExportDone(name, size, url, dataUrl, info) {
   }
 }
 
+try { watchOtherTabs(); } catch (e) {}
+
 function openSyncDialog() {
   const mask = document.createElement('div');
   mask.className = 'confirm-mask';
@@ -9963,10 +9256,6 @@ function openSyncDialog() {
 }
 
 
-function normShares(arr) {
-  const sum = arr.reduce((a, b) => a + (Number(b) > 0 ? Number(b) : 0), 0) || 1;
-  return arr.map(v => Math.max(0, Number(v) || 0) / sum);
-}
 
 // 默认列宽（用户调好的，作为新用户 / 重置后的初始值）
 const DEFAULT_COL_WIDTHS = {
@@ -10072,6 +9361,8 @@ function ensureColgroup(table) {
 
 // 列宽下限（像素）。之前定义在别处，被重写时弄丢了，这里补回。
 const COL_MIN = 44;
+let _widthRaf = 0;            // 列宽拖拽的 rAF 句柄
+let _pendingWidths = null;    // 本帧待写入的列宽
 
 // 当前各列的实际像素宽度（拖动过程中始终以屏幕上真实渲染的宽度为基准）
 function widthsOf(table) {
@@ -10149,7 +9440,7 @@ function fitWidth(table, idx) {
 
 function initColResize(table, key) {
   // 拖完列宽后让工具栏重新对齐表格宽度
-  const _syncLater = () => { try { syncToolbarWidth(); } catch (e) {} };
+  const _syncLater = () => { try { syncGridRight(); } catch (e) {} };
   if (!table) return;
   table.dataset.colkey = key;
   const headRow = colHeadRow(table);
@@ -10208,7 +9499,14 @@ function initColResize(table, key) {
           next[idx] = Math.max(COL_MIN, base[idx] + delta);
         }
         moved = true;
-        paintWidths(key, next);
+        _pendingWidths = next;
+        // 每个 pointermove 都同步写一遍样式会让 1000 行的表明显发滞，用 rAF 合并到每帧一次
+        if (!_widthRaf) {
+          _widthRaf = requestAnimationFrame(() => {
+            _widthRaf = 0;
+            if (_pendingWidths) { paintWidths(key, _pendingWidths); _pendingWidths = null; }
+          });
+        }
       };
       const onUp = () => {
         grip.removeEventListener('pointermove', onMove);
@@ -10216,7 +9514,7 @@ function initColResize(table, key) {
         grip.removeEventListener('pointercancel', onUp);
         grip.classList.remove('dragging');
         if (moved) {
-          saveColWidths(); syncFlowTitleWidth(); syncGridRight(); try { syncToolbarWidth(); } catch (e) {} try { syncToolbarWidth(); } catch (e) {}
+          saveColWidths(); syncFlowTitleWidth(); syncGridRight();
           try { applySummarySticky(); } catch (e) {}
         }
       };
@@ -10304,6 +9602,30 @@ async function bootWithLock() {
 }
 
 // 载入后清一次历史脏值（旧版本可能把 110 这种存进了 billDay / repayDay）
+// 给老流水补上账户 id（按名字解析一次）。跑完之后流水就与名字解绑，
+// 改名/删号再建同名都不会串账。解析不到的（账户已删）保持 undefined，仍走名字回退。
+function migrateFlowAccountIds() {
+  const byName = new Map();
+  for (const a of (state.accounts || [])) {
+    const n = (a.name || '').trim();
+    if (n && !byName.has(n)) byName.set(n, a.id);
+  }
+  let n = 0;
+  for (const t of (state.transactions || [])) {
+    let changed = false;
+    if (!t.fromId && t.from) {
+      const id = byName.get(String(t.from).trim());
+      if (id) { t.fromId = id; changed = true; }
+    }
+    if (!t.toId && t.to) {
+      const id = byName.get(String(t.to).trim());
+      if (id) { t.toId = id; changed = true; }
+    }
+    if (changed) n++;
+  }
+  return n;
+}
+
 function sanitizeAccountDays() {
   let fixed = 0;
   for (const a of (state.accounts || [])) {
@@ -10324,6 +9646,10 @@ function afterUnlock() {
   try {
     const nDay = sanitizeAccountDays();
     if (nDay) { save(); toast('已修正 ' + nDay + ' 个非法的账单日 / 还款日（只允许 1~31）', { duration: 5000 }); }
+  } catch (e) {}
+  try {
+    const nId = migrateFlowAccountIds();
+    if (nId) save();
   } catch (e) {}
   render();
 }
