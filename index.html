@@ -1955,6 +1955,23 @@ table#summary-table { min-width: 800px !important; }
   flex: 0 0 31px !important; width: 31px !important; min-width: 31px !important; max-width: 31px !important;
   font-size: 12px !important;
 }
+/* 区间单框 */
+.toolbar.plan-bar2 > input.range-one {
+  flex: 0 0 132px !important;
+  width: 132px !important;
+  min-width: 132px !important;
+  max-width: 132px !important;
+  height: 28px !important;
+  padding: 0 8px !important;
+  font-size: 14px !important;
+  text-align: center !important;
+  box-sizing: border-box !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 5px !important;
+  background: var(--bg-main) !important;
+  color: var(--text-main) !important;
+}
+.toolbar.plan-bar2 > input.range-one:focus { border-color: var(--primary) !important; outline: none !important; }
 </style>
 </head>
 <body>
@@ -2055,7 +2072,7 @@ function toggleTheme() {
   toast(theme === 'dark' ? '已切换到反色主题' : '已切换到浅色主题');
 }
 
-const APP_VER = 'v7.79';
+const APP_VER = 'v7.81';
 const LS_KEY = 'flow_grid_v5';
 const SUMMARY_STATE_KEY = 'flow_summary_state_v3';
 // 流水表默认铺多少行空行。像 Excel 一样随手往下填，不用先点「新增」。
@@ -2412,7 +2429,9 @@ function catRangeOf() {
     return { start: catYear + '-01-01', end: catYear + '-12-31' };
   }
   if (catMode === 'range') {
-    return { start: catRange.start || '2000-01-01', end: catRange.end || todayISO() };
+    const s = catRange.start, e = catRange.end;
+    if (!s && !e) return { start: '9999-99-99', end: '0000-00-00' };
+    return { start: s || '0000-00-00', end: e || '9999-99-99' };
   }
   const y = summaryMonth.year, m = summaryMonth.month;
   const last = new Date(y, m, 0).getDate();
@@ -2448,14 +2467,10 @@ function renderCat(main, footer) {
       saveSummaryState(); render();
     },
     onMonth: (m) => { catMode = 'month'; summaryMonth.month = m; saveSummaryState(); render(); },
-    onRange: (s, e) => {
-      const conv = (v) => {
-        if (!v) return '';
-        const iso = parseRangeInput ? parseRangeInput(v, true) : null;
-        return iso || '';
-      };
-      catRange = { start: conv(s) || s, end: conv(e) || e };
-      render();
+    onRange: (s, e, doRender) => {
+      catRange = { start: s, end: e };
+      saveSummaryState();
+      if (doRender !== false) render();
     }
   });
   main.appendChild(bar1);
@@ -2754,9 +2769,9 @@ function getCurrentRange() {
   }
   if (summaryMode === 'range') {
     const s = summaryRange.start, e = summaryRange.end;
-    const sIso = s ? (parseRangeInput ? parseRangeInput(s, true) : null) : null;
-    const eIso = e ? (parseRangeInput ? parseRangeInput(e, false) : null) : null;
-    return { start: sIso || s || '2000-01-01', end: eIso || e || todayISO() };
+    // 两个都空 → 不计算（返回一个不可能命中的区间）
+    if (!s && !e) return { start: '9999-99-99', end: '0000-00-00' };
+    return { start: s || '0000-00-00', end: e || '9999-99-99' };
   }
   const y = summaryMonth.year, m = summaryMonth.month;
   const last = new Date(y, m, 0).getDate();
@@ -2765,6 +2780,10 @@ function getCurrentRange() {
 
 // 计算单个账户的各项指标
 function computeStats(acc, range) {
+  // 区间为空（start=9999-99-99）表示「不计算」，一律返回 0
+  if (range && range.start === '9999-99-99') {
+    return { balance: 0, mOut: 0, mIn: 0, hOut: 0, hIn: 0 };
+  }
   let pOut = 0, pIn = 0, hOut = 0, hIn = 0, tOut = 0, tIn = 0;
   const name = acc.name;
   if (name) {
@@ -2848,22 +2867,12 @@ function buildRangeToolbar(opts) {
     }
     bar2.innerHTML = `<div class="month-row plan-years">${cells}</div>`;
   } else if (mode === 'range') {
-    // 年 / 月 / 日 三段，各自固定宽、各自校验
-    const parts = (v) => {
-      const m = /^(\d{4})?[-\/.]?(\d{1,2})?[-\/.]?(\d{1,2})?$/.exec(String(v || '').trim());
-      if (!m) return { y: '', mo: '', d: '' };
-      return { y: m[1] || '', mo: m[2] || '', d: m[3] || '' };
-    };
-    const sp = parts(range.start), ep = parts(range.end);
-    const box = (cls, v) => `
-      <span class="range-box">
-        <input class="r-y ${cls}-y" inputmode="numeric" maxlength="4" placeholder="年" value="${esc(v.y)}">
-        <i>-</i>
-        <input class="r-m ${cls}-m" inputmode="numeric" maxlength="2" placeholder="月" value="${esc(v.mo)}">
-        <i>-</i>
-        <input class="r-d ${cls}-d" inputmode="numeric" maxlength="2" placeholder="日" value="${esc(v.d)}">
-      </span>`;
-    bar2.innerHTML = box('s', sp) + '<span class="tilde">至</span>' + box('e', ep);
+    // 单框输入，支持 26 / 2601 / 260112 / 2026-01-12 等写法，失焦后自动规整
+    bar2.innerHTML = `
+      <input class="range-one plan-start" inputmode="numeric" placeholder="起始 260112" value="${esc(range.start || '')}">
+      <span class="tilde">至</span>
+      <input class="range-one plan-end" inputmode="numeric" placeholder="结束 261231" value="${esc(range.end || '')}">
+    `;
   } else {
     bar2.innerHTML = `<span style="font-size:12px;color:var(--text-muted);padding:0 4px">不限制时间，统计全部数据</span>`;
   }
@@ -2890,46 +2899,45 @@ function buildRangeToolbar(opts) {
   bar2.querySelectorAll('.plan-y').forEach(b => {
     b.onclick = () => opts.onYear && opts.onYear(parseInt(b.dataset.y, 10));
   });
-  const q = (c) => { const e = bar2.querySelector('.' + c); return e ? String(e.value || '').trim() : ''; };
-  const clampWrite = (el, lo, hi) => {
-    if (!el) return;
-    let v = String(el.value || '').replace(/\D/g, '');
-    if (v === '') { el.value = ''; el.classList.remove('bad'); return; }
-    let n = parseInt(v, 10);
-    if (isNaN(n)) { el.value = ''; return; }
-    if (n > hi) n = hi;
-    if (v.length >= (el.getAttribute('maxlength') | 0) && n < lo) { el.classList.add('bad'); } else { el.classList.remove('bad'); }
-    el.value = v.length === 1 ? v : String(n);
+  // 智能解析区间日期：26 → 2026 / 2601 → 2026-01 / 260112 → 2026-01-12
+  const normRange = (raw) => {
+    const s = String(raw || '').trim().replace(/[^\d]/g, '');
+    if (!s) return '';
+    if (s.length <= 2) return s.length === 2 ? '20' + s : s;
+    if (s.length === 4) return '20' + s.slice(0, 2) + '-' + s.slice(2);
+    if (s.length === 6) return '20' + s.slice(0, 2) + '-' + s.slice(2, 4) + '-' + s.slice(4);
+    if (s.length === 8) return s.slice(0, 4) + '-' + s.slice(4, 6) + '-' + s.slice(6);
+    return raw;
   };
-  const join = () => {
-    const y = q('s-y'), mo = q('s-m'), d = q('s-d');
-    const y2 = q('e-y'), mo2 = q('e-m'), d2 = q('e-d');
-    const mk = (Y, M, D) => {
-      if (!Y || Y.length < 4) return '';
-      let s = Y;
-      if (M) s += '-' + String(M).padStart(2, '0');
-      if (D) s += '-' + String(D).padStart(2, '0');
-      return s;
-    };
-    return [mk(y, mo, d), mk(y2, mo2, d2)];
+  // 显示用的友好格式：2026-01-12 → 2026-1-12（去掉前导 0）
+  const prettyRange = (iso) => {
+    if (!iso) return '';
+    const m = /^(\d{4})-(\d{2})(?:-(\d{2}))?$/.exec(iso);
+    if (!m) return iso;
+    let s = m[1] + '-' + parseInt(m[2], 10);
+    if (m[3]) s += '-' + parseInt(m[3], 10);
+    return s;
   };
-  const fire = () => { const [s, e] = join(); opts.onRange && opts.onRange(s, e); };
-  const wire = (cls, lo, hi, nextCls) => {
-    const el = bar2.querySelector('.' + cls);
+  const si = bar2.querySelector('.plan-start'), ei = bar2.querySelector('.plan-end');
+  const apply = (doRender) => {
+    const a = normRange(si ? si.value : '');
+    const b = normRange(ei ? ei.value : '');
+    if (si) si.value = prettyRange(a) || (si.value || '');
+    if (ei) ei.value = prettyRange(b) || (ei.value || '');
+    opts.onRange && opts.onRange(a, b, doRender);
+  };
+  [si, ei].forEach((el, i) => {
     if (!el) return;
+    // 输入过程中只做数字过滤，不动 DOM、不重绘（否则焦点会丢）
     el.addEventListener('input', () => {
-      el.value = String(el.value || '').replace(/\D/g, '').slice(0, el.getAttribute('maxlength') | 0);
-      const max = el.getAttribute('maxlength') | 0;
-      if (el.value.length >= max && nextCls) {
-        const nx = bar2.querySelector('.' + nextCls);
-        if (nx) { try { nx.focus(); nx.select && nx.select(); } catch (e) {} }
-      }
+      el.value = String(el.value || '').replace(/[^\d\-]/g, '').slice(0, 10);
     });
-    el.addEventListener('change', () => { clampWrite(el, lo, hi); fire(); });
-    el.addEventListener('blur', () => { clampWrite(el, lo, hi); fire(); });
-  };
-  wire('s-y', 1900, 2999, 's-m'); wire('s-m', 1, 12, 's-d'); wire('s-d', 1, 31, null);
-  wire('e-y', 1900, 2999, 'e-m'); wire('e-m', 1, 12, 'e-d'); wire('e-d', 1, 31, null);
+    el.addEventListener('keydown', (ev) => {
+      if (ev.key === 'Enter') { ev.preventDefault(); apply(true); el.blur(); }
+    });
+    el.addEventListener('change', () => apply(true));
+    el.addEventListener('blur', () => apply(true));
+  });
 
   return { bar1, bar2 };
 }
@@ -3489,9 +3497,10 @@ function renderSummary(main, footer) {
       saveSummaryState(); render();
     },
     onMonth: (m) => { summaryMode = 'month'; summaryMonth.month = m; saveSummaryState(); render(); },
-    onRange: (s, e) => {
+    onRange: (s, e, doRender) => {
       summaryRange = { start: s, end: e };
-      saveSummaryState(); render();
+      saveSummaryState();
+      if (doRender !== false) render();
     }
   });
   main.appendChild(bar1);
