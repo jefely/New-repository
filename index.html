@@ -3467,6 +3467,33 @@ table#flow-table thead th.col-note { padding-left: 6px !important; padding-right
 @media (max-width: 767px) {
   .inst-resizer, .inst-fx-resizer { right: -16px !important; width: 32px !important; }
 }
+/* ===== 校验页 ===== */
+.audit-wrap { padding: 12px; display: flex; flex-direction: column; gap: 12px; }
+.audit-card { background: var(--bg-main); border: 1px solid var(--border-light); border-radius: 8px; padding: 12px 14px; }
+.audit-title { font-size: 15px; font-weight: 800; color: var(--text-main); display: flex; align-items: center; gap: 8px; }
+.audit-sub { font-size: 12px; color: var(--text-muted); margin: 4px 0 10px; line-height: 1.6; }
+.audit-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.audit-table td { padding: 6px 4px; border-bottom: 1px solid var(--border-light); }
+.audit-table td.num { text-align: right; font-variant-numeric: tabular-nums; }
+.audit-table td.dim { color: var(--text-light); }
+.audit-table td.good { color: #059669; font-weight: 700; }
+.audit-table td.bad { color: #dc2626; font-weight: 700; }
+.audit-table tfoot td { border-bottom: none; padding-top: 8px; font-weight: 800; }
+.audit-total td { background: var(--bg-gray-light); }
+.audit-badge { margin-left: auto; font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: 10px; }
+.audit-badge.ok { background: #d1fae5; color: #059669; }
+.audit-badge.bad { background: #fee2e2; color: #dc2626; }
+.audit-note { font-size: 12px; color: #b45309; background: #fef3c7; border-radius: 6px; padding: 8px 10px; }
+[data-theme="dark"] .audit-card { background: #141414; border-color: #2a2a2a; }
+[data-theme="dark"] .audit-title { color: #ffffff; }
+[data-theme="dark"] .audit-sub { color: #9a94ad; }
+[data-theme="dark"] .audit-table td { border-bottom-color: #2a2a2a; color: #e8e2f4; }
+[data-theme="dark"] .audit-table td.good { color: #4ade80; }
+[data-theme="dark"] .audit-table td.bad { color: #ff8a8a; }
+[data-theme="dark"] .audit-total td { background: #1c1c1c; }
+[data-theme="dark"] .audit-badge.ok { background: rgba(74,222,128,.15); color: #4ade80; }
+[data-theme="dark"] .audit-badge.bad { background: rgba(255,138,138,.15); color: #ff8a8a; }
+[data-theme="dark"] .audit-note { background: rgba(180,83,9,.18); color: #fbbf24; }
 </style>
 </head>
 <body>
@@ -3478,6 +3505,7 @@ table#flow-table thead th.col-note { padding-left: 6px !important; padding-right
   <button data-tab="query">查询</button>
   <button data-tab="install">分期</button>
   <button data-tab="fixed">固定</button>
+  <button data-tab="audit">校验</button>
 </div>
 
 <main id="main"></main>
@@ -3655,7 +3683,7 @@ async function encryptWithSession(text) {
   return b64u(catBytes(_sessionSalt, iv, ct));
 }
 
-const APP_VER = 'v8.70';
+const APP_VER = 'v8.71';
 const LS_KEY = 'flow_grid_v5';
 const SUMMARY_STATE_KEY = 'flow_summary_state_v3';
 // 流水表默认铺多少行空行。像 Excel 一样随手往下填，不用先点「新增」。
@@ -3891,6 +3919,133 @@ function attachFixedCheckbox(tr) {
     toast(chk.checked ? '已加入固定收支' : '已取消固定收支');
   });
   noteTd.appendChild(chk);
+}
+
+/* ============================================================
+   校验页（借贷校验）
+   ------------------------------------------------------------
+   用户把「转出」定义为借方、「转入」定义为贷方。
+   本页做三件事：
+     ① 发生额平衡：Σ转出 必须 = Σ转入
+     ② 会计恒等式：资产 = 负债 + 权益 + (收入 - 费用)
+     ③ 数据完整性：账户表里找不到的往来名称、只有单边的流水
+   ============================================================ */
+function renderAudit(main, footer) {
+  const CATS = ['资产类', '负债类', '收入类', '权益类', '费用类'];
+  const accByName = new Map();
+  for (const a of state.accounts) {
+    const n = String(a.name || '').trim();
+    if (n) accByName.set(n, a);
+  }
+
+  // —— ① 发生额 ——
+  let sumOut = 0, sumIn = 0, nTx = 0, nNoFrom = 0, nNoTo = 0, nZero = 0;
+  const missing = new Map();     // 名称 → { count, amount }
+  for (const t of state.transactions) {
+    const amt = Number(t.amount) || 0;
+    const from = String(t.from || '').trim();
+    const to = String(t.to || '').trim();
+    if (!from && !to) continue;
+    nTx++;
+    if (!amt) { nZero++; continue; }
+    if (!from) nNoFrom++;
+    if (!to) nNoTo++;
+    sumOut += amt; sumIn += amt;
+    for (const nm of [from, to]) {
+      if (nm && !accByName.has(nm)) {
+        const rec = missing.get(nm) || { count: 0, amount: 0 };
+        rec.count++; rec.amount += amt;
+        missing.set(nm, rec);
+      }
+    }
+  }
+  const diffFlow = sumOut - sumIn;
+
+  // —— ② 各类余额 ——
+  const range = { start: '0000-01-01', end: '9999-12-31' };
+  const byCat = {};
+  for (const c of CATS) byCat[c] = { n: 0, opening: 0, out: 0, in: 0, bal: 0 };
+  let orphanBal = 0;
+  for (const a of state.accounts) {
+    const st = computeStats(a, range);
+    const c = CATS.includes(a.cat) ? a.cat : null;
+    if (!c) { orphanBal += st.balance; continue; }
+    byCat[c].n++;
+    byCat[c].opening += Number(a.opening) || 0;
+    byCat[c].out += st.mOut;
+    byCat[c].in += st.mIn;
+    byCat[c].bal += st.balance;
+  }
+  const A = byCat['资产类'].bal;
+  const L = byCat['负债类'].bal;
+  const E = byCat['权益类'].bal;
+  const I = byCat['收入类'].bal;
+  const X = byCat['费用类'].bal;
+  const rhs = L + E + (I - X);
+  const diffSheet = A - rhs;
+
+  const ok = v => Math.abs(v) < 0.005;
+  const fmt2 = v => (v < 0 ? '-¥' : '¥') + Math.abs(v).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const badge = (good) => good
+    ? '<span class="audit-badge ok">通过</span>'
+    : '<span class="audit-badge bad">不平衡</span>';
+
+  // —— 组装 ——
+  const wrap = document.createElement('div');
+  wrap.className = 'audit-wrap';
+
+  const card = (title, sub, head, rowsHtml, footHtml) => `
+    <div class="audit-card">
+      <div class="audit-title">${title}${head || ''}</div>
+      <div class="audit-sub">${sub}</div>
+      <table class="audit-table">
+        <tbody>${rowsHtml}</tbody>
+        ${footHtml ? `<tfoot>${footHtml}</tfoot>` : ''}
+      </table>
+    </div>`;
+
+  // ①
+  const r1 = `
+    <tr><td>流水笔数</td><td class="num">${nTx}</td></tr>
+    <tr><td>左方（转出）合计</td><td class="num">${fmt2(sumOut)}</td></tr>
+    <tr><td>右方（转入）合计</td><td class="num">${fmt2(sumIn)}</td></tr>`;
+  const f1 = `<tr class="audit-total"><td>差额</td><td class="num ${ok(diffFlow) ? 'good' : 'bad'}">${fmt2(diffFlow)}</td></tr>`;
+
+  // ②
+  const rows2 = CATS.map(c => {
+    const d = byCat[c];
+    return `<tr><td>${c}</td><td class="num dim">${d.n} 个</td><td class="num">${fmt2(d.bal)}</td></tr>`;
+  }).join('');
+  const f2 = `<tr class="audit-total"><td>资产 − (负债 + 权益 + 收入 − 费用)</td><td class="num"></td><td class="num ${ok(diffSheet) ? 'good' : 'bad'}">${fmt2(diffSheet)}</td></tr>`;
+
+  // ③
+  const missRows = [...missing.entries()].sort((a, b) => b[1].amount - a[1].amount);
+  const rows3 = missRows.length
+    ? missRows.map(([nm, r]) => `<tr><td class="bad">${esc(nm)}</td><td class="num">${r.count} 笔</td><td class="num">${fmt2(r.amount)}</td></tr>`).join('')
+    : `<tr><td colspan="3" class="dim">账户表里的名字和流水里的名字全部对得上</td></tr>`;
+
+  wrap.innerHTML = `
+    ${card('① 发生额平衡',
+      '每笔流水左方（转出）与右方（转入）金额相等，两边合计必须一致。',
+      badge(ok(diffFlow)), r1, f1)}
+    ${card('② 会计恒等式',
+      '资产 = 负债 + 权益 +（收入 − 费用）。期初余额成对录入时这里应为 0。',
+      badge(ok(diffSheet)), rows2, f2)}
+    ${card('③ 数据完整性',
+      '统计时对不上账户的往来名称。这些名字会让该笔金额从两边统计里同时消失，余额会少算。',
+      '',
+      rows3,
+      `<tr class="audit-total"><td>对不上的名称</td><td class="num">${missRows.length} 个</td><td class="num">${nNoFrom + nNoTo} 笔单边 / ${nZero} 笔零额</td></tr>`)}
+  `;
+  if (orphanBal !== 0) {
+    const tip = document.createElement('div');
+    tip.className = 'audit-note';
+    tip.textContent = '注意：有 ' + fmt2(orphanBal) + ' 的余额来自「类型」不是五大类的账户，未计入恒等式。';
+    wrap.appendChild(tip);
+  }
+  main.appendChild(wrap);
+
+  setFooterText(nTx + ' 笔流水 · ' + state.accounts.length + ' 个账户 · 校验完成');
 }
 
 // 固定收支页
@@ -4791,6 +4946,7 @@ function render() {
   else if (currentTab === 'install') renderInstall(main, footer);
   else if (currentTab === 'fixed') renderFixed(main, footer);
   else if (currentTab === 'query') renderQuery(main, footer);
+  else if (currentTab === 'audit') renderAudit(main, footer);
 
   // 数据体检：标红重复/异常项（flow 和 summary 页才有可标的地方）
   if (currentTab === 'flow' || currentTab === 'summary') {
