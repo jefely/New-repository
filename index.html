@@ -2861,6 +2861,51 @@ table#summary-table td.col-del .row-del:hover {
 }
 [data-theme="dark"] table#summary-table td.col-del .row-del { color: #7a7290 !important; }
 [data-theme="dark"] table#summary-table td.col-del .row-del:hover { color: #ff6b6b !important; background: rgba(255,107,107,.14) !important; }
+/* 账单日 / 还款日两列：不要斑马纹底色、不要填充，只保留类型标签行下方那条下划线 */
+table#summary-table tbody td.col-bill,
+table#summary-table tbody td.col-repay,
+[data-theme="dark"] table#summary-table tbody td.col-bill,
+[data-theme="dark"] table#summary-table tbody td.col-repay,
+[data-theme="dark"] table#summary-table tbody tr:nth-child(odd) > td.col-bill,
+[data-theme="dark"] table#summary-table tbody tr:nth-child(odd) > td.col-repay,
+[data-theme="dark"] table#summary-table tbody tr:nth-child(even) > td.col-bill,
+[data-theme="dark"] table#summary-table tbody tr:nth-child(even) > td.col-repay,
+[data-theme="dark"] table#summary-table tbody tr.cat-row > td.col-bill,
+[data-theme="dark"] table#summary-table tbody tr.cat-row > td.col-repay,
+[data-theme="dark"] table#summary-table tbody tr.cat-row:nth-child(odd) > td.col-bill,
+[data-theme="dark"] table#summary-table tbody tr.cat-row:nth-child(odd) > td.col-repay,
+[data-theme="dark"] table#summary-table tbody tr.cat-row:nth-child(even) > td.col-bill,
+[data-theme="dark"] table#summary-table tbody tr.cat-row:nth-child(even) > td.col-repay {
+  background: transparent !important;
+  background-color: transparent !important;
+  border-top: none !important;
+  border-bottom: none !important;
+  border-left: none !important;
+  border-right: none !important;
+}
+/* 只有类型标签行下面画一条下划线 */
+table#summary-table tbody tr.cat-row > td.col-bill,
+table#summary-table tbody tr.cat-row > td.col-repay {
+  border-bottom: 1px solid var(--border-light) !important;
+}
+[data-theme="dark"] table#summary-table tbody tr.cat-row > td.col-bill,
+[data-theme="dark"] table#summary-table tbody tr.cat-row > td.col-repay,
+[data-theme="dark"] table#summary-table tbody tr.cat-row:nth-child(odd) > td.col-bill,
+[data-theme="dark"] table#summary-table tbody tr.cat-row:nth-child(odd) > td.col-repay,
+[data-theme="dark"] table#summary-table tbody tr.cat-row:nth-child(even) > td.col-bill,
+[data-theme="dark"] table#summary-table tbody tr.cat-row:nth-child(even) > td.col-repay {
+  border-bottom: 1px solid #2a2a2a !important;
+}
+/* 深色：类型标签行的账单/还款格保持该行底色 #2a2140（跟整行连成一片） */
+[data-theme="dark"] table#summary-table tbody tr.cat-row > td.col-bill,
+[data-theme="dark"] table#summary-table tbody tr.cat-row > td.col-repay,
+[data-theme="dark"] table#summary-table tbody tr.cat-row:nth-child(odd) > td.col-bill,
+[data-theme="dark"] table#summary-table tbody tr.cat-row:nth-child(odd) > td.col-repay,
+[data-theme="dark"] table#summary-table tbody tr.cat-row:nth-child(even) > td.col-bill,
+[data-theme="dark"] table#summary-table tbody tr.cat-row:nth-child(even) > td.col-repay {
+  background: #2a2140 !important;
+  border-bottom: 1px solid #2a2a2a !important;
+}
 </style>
 </head>
 <body>
@@ -2961,7 +3006,7 @@ function toggleTheme() {
   toast(theme === 'dark' ? '已切换到反色主题' : '已切换到浅色主题');
 }
 
-const APP_VER = 'v8.41';
+const APP_VER = 'v8.43';
 const LS_KEY = 'flow_grid_v5';
 const SUMMARY_STATE_KEY = 'flow_summary_state_v3';
 // 流水表默认铺多少行空行。像 Excel 一样随手往下填，不用先点「新增」。
