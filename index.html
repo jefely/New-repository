@@ -3536,6 +3536,36 @@ table#flow-table thead th.col-note { padding-left: 6px !important; padding-right
 @media (max-width: 767px) {
   .inst-resizer, .inst-fx-resizer { width: 14px !important; }
 }
+/* ===== 分类统计表：列宽模式对齐流水表 =====
+   之前 min-width + table-layout:auto 会让浏览器把多出来的宽度均摊给所有列，
+   拖动一列时其它列跟着变。改成 fixed 后每列只认 colgroup 给的宽度。 */
+table#cat-table {
+  table-layout: fixed !important;
+  width: auto !important;
+  min-width: 0 !important;
+}
+table#cat-table th,
+table#cat-table td {
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+/* 流水表也统一成 fixed，保证两边行为一致 */
+table#flow-table { table-layout: fixed !important; }
+/* 分类表：按 colgroup 的实际总宽渲染，不再被父容器拉满 */
+table#cat-table {
+  width: max-content !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  table-layout: fixed !important;
+}
+table#cat-table col { width: auto; }
+/* 流水表同样处理，保证两表行为一致 */
+table#flow-table {
+  width: max-content !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  table-layout: fixed !important;
+}
 </style>
 </head>
 <body>
@@ -3725,7 +3755,7 @@ async function encryptWithSession(text) {
   return b64u(catBytes(_sessionSalt, iv, ct));
 }
 
-const APP_VER = 'v8.73';
+const APP_VER = 'v8.75';
 const LS_KEY = 'flow_grid_v5';
 const SUMMARY_STATE_KEY = 'flow_summary_state_v3';
 // 流水表默认铺多少行空行。像 Excel 一样随手往下填，不用先点「新增」。
@@ -4344,7 +4374,7 @@ function renderCat(main, footer) {
 
   table.innerHTML = `
     <thead><tr>
-      <th class="center">序</th><th>汇总分类</th>
+      <th class="center">序</th><th>分类</th>
       <th class="num">当前结余</th><th class="num">转出</th><th class="num">转入</th>
     </tr></thead>
     <tbody>${bodyParts.length ? bodyParts.join('') : '<tr><td colspan="5" class="query-empty">这个时间段还没有数据</td></tr>'}</tbody>`;
