@@ -64,7 +64,7 @@
   --bar-text: #ffffff;
   --bar-text-dim: #c8c8c8;
   /* 分期账户名的深暗蓝 */
-  --deep-blue: #2a2a4a;
+  --deep-blue: #2a2140;  /* 和按钮背景统一 */
 }
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; font-family: var(--font-sys); }
@@ -974,7 +974,7 @@ table#summary-table tbody tr.cat-row > td .cat-col {
 [data-theme="dark"] table.install-table tbody tr.inst-p > td.col-name,
 [data-theme="dark"] table.install-table tbody tr.inst-p:nth-child(odd) > td.col-name,
 [data-theme="dark"] table.install-table tbody tr.inst-p:nth-child(even) > td.col-name {
-  background-color: #2a2a4a !important;
+  background-color: #2a2140 !important;
 }
 [data-theme="dark"] table.install-table tbody tr.inst-p > td.col-name input,
 [data-theme="dark"] table.install-table tbody tr.inst-p > td.col-name input:focus {
@@ -985,7 +985,7 @@ table#summary-table tbody tr.cat-row > td .cat-col {
 [data-theme="dark"] table.install-table tbody tr.inst-i:nth-child(odd) > td.col-name { background-color: #0d0d0d !important; }
 [data-theme="dark"] table.install-table tbody tr.inst-i:nth-child(even) > td.col-name { background-color: #1a1a1a !important; }
 /* 浅色主题同步：本金行深紫底白字 */
-table.install-table tbody tr.inst-p > td.col-name { background-color: #2a2a4a !important; }
+table.install-table tbody tr.inst-p > td.col-name { background-color: #2a2140 !important; }
 table.install-table tbody tr.inst-p > td.col-name input { color: #ffffff !important; font-weight: 700; }
 
 /* 2. 汇总分类行：包括「账户名称」在内的每一格都必须和所在行同色 */
@@ -2265,6 +2265,38 @@ table.query-table tr.q-head-row > th { font-size: 13px !important; padding: 5px 
   border-radius: 5px !important;
 }
 [data-theme="dark"] .toolbar input::placeholder { color: #7d72a0 !important; }
+/* 分期页「账户名称」单元格：深色下和按钮背景统一为 #2a2140 */
+[data-theme="dark"] table.install-table tbody tr.inst-p > td.col-name,
+[data-theme="dark"] table.install-table tbody tr.inst-i > td.col-name,
+[data-theme="dark"] table.install-table tbody td.col-name {
+  background: #2a2140 !important;
+  color: #ffffff !important;
+}
+/* 分期页表格其它底色也跟着暗紫体系 */
+[data-theme="dark"] table.install-table thead th {
+  background: #16121f !important;
+  color: #ffffff !important;
+  border-color: #241d33 !important;
+}
+[data-theme="dark"] table.install-table tbody td {
+  background: #0d0a14 !important;
+  color: #f4f1fd !important;
+  border-color: #1e1830 !important;
+}
+[data-theme="dark"] table.install-table tbody tr:nth-child(even) td {
+  background: #12102010 !important;
+}
+/* 分类汇总：按类型小计行 */
+.cat-total-row td {
+  font-weight: 700 !important;
+  background: var(--bg-gray) !important;
+  border-top: 2px solid var(--border) !important;
+}
+[data-theme="dark"] .cat-total-row td {
+  background: #16121f !important;
+  border-top: 2px solid #332852 !important;
+  color: #ffffff !important;
+}
 </style>
 </head>
 <body>
@@ -2365,7 +2397,7 @@ function toggleTheme() {
   toast(theme === 'dark' ? '已切换到反色主题' : '已切换到浅色主题');
 }
 
-const APP_VER = 'v7.93';
+const APP_VER = 'v7.97';
 const LS_KEY = 'flow_grid_v5';
 const SUMMARY_STATE_KEY = 'flow_summary_state_v3';
 // 流水表默认铺多少行空行。像 Excel 一样随手往下填，不用先点「新增」。
@@ -2784,30 +2816,51 @@ function renderCat(main, footer) {
   const table = document.createElement('table');
   table.className = 'grid subsum-table';
   table.id = 'cat-table';
-  let totBal = 0, totOut = 0, totInn = 0;
-  const body = rows.map((g, i) => {
-    totBal += g.bal; totOut += g.out; totInn += g.inn;
-    return `<tr>
-      <td class="center">${i + 1}</td>
-      <td class="cat-name">${esc(g.sub)}</td>
-      <td class="center">${esc(g.mainCat)}</td>
-      <td class="num">${fmtMoney(g.bal)}</td>
-      <td class="num">${fmtMoney(g.out)}</td>
-      <td class="num">${fmtMoney(g.inn)}</td>
-    </tr>`;
-  }).join('');
+  // 按「账本类型」(cat) 分组合计：每类一行小计，最后不再出一个混合总数
+  const CAT_ORDER = ['资产类', '负债类', '收入类', '权益类', '费用类'];
+  const groups = new Map();
+  for (const g of rows) {
+    const k = g.mainCat || '未分类';
+    if (!groups.has(k)) groups.set(k, []);
+    groups.get(k).push(g);
+  }
+  const ordered = [...groups.keys()].sort((a, b) => {
+    const ia = CAT_ORDER.indexOf(a), ib = CAT_ORDER.indexOf(b);
+    return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib);
+  });
+
+  let seq = 1;
+  const bodyParts = [];
+  const totalRows = [];
+  for (const cat of ordered) {
+    const list = groups.get(cat);
+    let sBal = 0, sOut = 0, sIn = 0;
+    for (const g of list) {
+      sBal += g.bal; sOut += g.out; sIn += g.inn;
+      bodyParts.push(`<tr>
+        <td class="center">${seq++}</td>
+        <td class="cat-name">${esc(g.sub)}</td>
+        <td class="center">${esc(g.mainCat)}</td>
+        <td class="num">${fmtMoney(g.bal)}</td>
+        <td class="num">${fmtMoney(g.out)}</td>
+        <td class="num">${fmtMoney(g.inn)}</td>
+      </tr>`);
+    }
+    totalRows.push(`<tr class="cat-total-row">
+      <td colspan="3" class="center">${esc(cat)} 合计</td>
+      <td class="num">${fmtMoney(sBal)}</td>
+      <td class="num">${fmtMoney(sOut)}</td>
+      <td class="num">${fmtMoney(sIn)}</td>
+    </tr>`);
+  }
+
   table.innerHTML = `
     <thead><tr>
       <th class="center">序号</th><th>汇总分类</th><th class="center">类型</th>
       <th class="num">当前结余</th><th class="num">转出</th><th class="num">转入</th>
     </tr></thead>
-    <tbody>${body || '<tr><td colspan="6" class="query-empty">这个时间段还没有数据</td></tr>'}</tbody>
-    <tfoot><tr class="total-row">
-      <td colspan="3" class="center">合计</td>
-      <td class="num">${fmtMoney(totBal)}</td>
-      <td class="num">${fmtMoney(totOut)}</td>
-      <td class="num">${fmtMoney(totInn)}</td>
-    </tr></tfoot>`;
+    <tbody>${bodyParts.length ? bodyParts.join('') : '<tr><td colspan="6" class="query-empty">这个时间段还没有数据</td></tr>'}</tbody>
+    <tfoot>${totalRows.join('') || '<tr><td colspan="6"></td></tr>'}</tfoot>`;
   wrap.appendChild(table);
   main.appendChild(wrap);
   initColResize(table, 'cat');
