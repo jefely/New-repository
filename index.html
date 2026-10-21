@@ -3164,6 +3164,73 @@ table#summary-table tbody tr.cat-row:not(.debt-row):nth-child(even) > td.col-rep
   background-color: transparent !important;
   border: none !important;
 }
+/* 删除/账单日/还款日 三列：背景一律与数据填写区保持一致（同一个值），
+   删除列的左边框在所有行保持同一宽度，不能在类型标签行变细 */
+table#summary-table tbody tr.cat-row > td.col-del,
+[data-theme="dark"] table#summary-table tbody tr.cat-row > td.col-del,
+table#summary-table tbody tr.cat-row > td.col-bill,
+[data-theme="dark"] table#summary-table tbody tr.cat-row > td.col-bill,
+table#summary-table tbody tr.cat-row > td.col-repay,
+[data-theme="dark"] table#summary-table tbody tr.cat-row > td.col-repay,
+table#summary-table tbody tr.cat-row:nth-child(odd) > td.col-del,
+[data-theme="dark"] table#summary-table tbody tr.cat-row:nth-child(odd) > td.col-del,
+table#summary-table tbody tr.cat-row:nth-child(odd) > td.col-bill,
+[data-theme="dark"] table#summary-table tbody tr.cat-row:nth-child(odd) > td.col-bill,
+table#summary-table tbody tr.cat-row:nth-child(odd) > td.col-repay,
+[data-theme="dark"] table#summary-table tbody tr.cat-row:nth-child(odd) > td.col-repay,
+table#summary-table tbody tr.cat-row:nth-child(even) > td.col-del,
+[data-theme="dark"] table#summary-table tbody tr.cat-row:nth-child(even) > td.col-del,
+table#summary-table tbody tr.cat-row:nth-child(even) > td.col-bill,
+[data-theme="dark"] table#summary-table tbody tr.cat-row:nth-child(even) > td.col-bill,
+table#summary-table tbody tr.cat-row:nth-child(even) > td.col-repay,
+[data-theme="dark"] table#summary-table tbody tr.cat-row:nth-child(even) > td.col-repay {
+  background: var(--billcell-bg, transparent) !important;
+  background-color: var(--billcell-bg, transparent) !important;
+}
+:root { --billcell-bg: transparent; }
+[data-theme="dark"] { --billcell-bg: transparent; }
+/* 删除列左边框：所有行统一 1px */
+table#summary-table tbody td.col-del,
+table#summary-table tbody tr.cat-row > td.col-del,
+table#summary-table tbody tr.cat-row:nth-child(odd) > td.col-del,
+table#summary-table tbody tr.cat-row:nth-child(even) > td.col-del,
+[data-theme="dark"] table#summary-table tbody td.col-del,
+[data-theme="dark"] table#summary-table tbody tr.cat-row > td.col-del,
+[data-theme="dark"] table#summary-table tbody tr.cat-row:nth-child(odd) > td.col-del,
+[data-theme="dark"] table#summary-table tbody tr.cat-row:nth-child(even) > td.col-del {
+  border-left: 1px solid var(--border-light) !important;
+  border-top: none !important;
+  border-right: none !important;
+  border-bottom: none !important;
+}
+[data-theme="dark"] table#summary-table tbody td.col-del,
+[data-theme="dark"] table#summary-table tbody tr.cat-row > td.col-del,
+[data-theme="dark"] table#summary-table tbody tr.cat-row:nth-child(odd) > td.col-del,
+[data-theme="dark"] table#summary-table tbody tr.cat-row:nth-child(even) > td.col-del {
+  border-left: 1px solid #2a2a2a !important;
+}
+/* 负债标签行下方的横线仍然保留 */
+table#summary-table tbody tr.cat-row.debt-row > td.col-bill,
+table#summary-table tbody tr.cat-row.debt-row > td.col-repay {
+  border-bottom: 1px solid #b9a6ff !important;
+}
+/* 删除列：任何行（含类型标签行）左边框都统一 1px，只清掉其它三边 */
+table#summary-table tbody tr.cat-row > td.col-del,
+[data-theme="dark"] table#summary-table tbody tr.cat-row > td.col-del,
+table#summary-table tbody tr.cat-row:nth-child(odd) > td.col-del,
+[data-theme="dark"] table#summary-table tbody tr.cat-row:nth-child(odd) > td.col-del,
+table#summary-table tbody tr.cat-row:nth-child(even) > td.col-del,
+[data-theme="dark"] table#summary-table tbody tr.cat-row:nth-child(even) > td.col-del {
+  border-top: none !important;
+  border-right: none !important;
+  border-bottom: none !important;
+  border-left: 1px solid var(--border-light) !important;
+}
+[data-theme="dark"] table#summary-table tbody tr.cat-row > td.col-del,
+[data-theme="dark"] table#summary-table tbody tr.cat-row:nth-child(odd) > td.col-del,
+[data-theme="dark"] table#summary-table tbody tr.cat-row:nth-child(even) > td.col-del {
+  border-left: 1px solid #2a2a2a !important;
+}
 </style>
 </head>
 <body>
@@ -3254,17 +3321,19 @@ const defaultAccounts = ACC_RAW.map((r, i) => ({
 const THEME_KEY = 'flow_theme_v1';
 let theme = (() => { try { return localStorage.getItem(THEME_KEY) === 'dark' ? 'dark' : 'light'; } catch (e) { return 'light'; } })();
 function applyTheme() {
+  try { syncSummaryDelBorder(); } catch (e) {}
   document.documentElement.dataset.theme = theme;
   document.documentElement.style.colorScheme = theme === 'dark' ? 'dark' : 'light';
 }
 function toggleTheme() {
+  setTimeout(() => { try { syncSummaryDelBorder(); } catch (e) {} }, 0);
   theme = theme === 'dark' ? 'light' : 'dark';
   try { localStorage.setItem(THEME_KEY, theme); } catch (e) {}
   applyTheme();
   toast(theme === 'dark' ? '已切换到反色主题' : '已切换到浅色主题');
 }
 
-const APP_VER = 'v8.49';
+const APP_VER = 'v8.53';
 const LS_KEY = 'flow_grid_v5';
 const SUMMARY_STATE_KEY = 'flow_summary_state_v3';
 // 流水表默认铺多少行空行。像 Excel 一样随手往下填，不用先点「新增」。
@@ -5019,6 +5088,7 @@ function applySummarySticky() {
   });
 }
   applySummarySticky();
+  syncSummaryDelBorder();
 
 
 }
@@ -5026,6 +5096,25 @@ function applySummarySticky() {
 // 汇总页两条工具栏的右边界：都对齐表格「期初」列的右边框。
 // 这样右端的「导出/导入」和下面的统计区间落在同一条竖线上，也不会探到表格外面。
 // 变量写在根元素上，两条工具栏都能继承到同一个值。
+// 删除列左边框：所有行统一 1px。旧规则里有 `tr.cat-row > td { border: ... !important }`
+// 会把类型标签行清成 0，CSS 层面压不过，所以用内联样式强制统一。
+function syncSummaryDelBorder() {
+  const table = document.getElementById('summary-table');
+  if (!table) return;
+  // 直接读主题变量，避免 theme 属性更新时序问题
+  let color = 'rgb(226, 232, 240)';
+  try {
+    const v = getComputedStyle(document.documentElement).getPropertyValue('--border-light').trim();
+    if (v) color = v;
+  } catch (e) {}
+  table.querySelectorAll('tbody td.col-del, thead th.col-del').forEach(td => {
+    td.style.setProperty('border-top', 'none', 'important');
+    td.style.setProperty('border-right', 'none', 'important');
+    td.style.setProperty('border-bottom', 'none', 'important');
+    td.style.setProperty('border-left', '1px solid ' + color, 'important');
+  });
+}
+
 function syncGridRight() {
   const table = document.getElementById('summary-table');
   if (!table) return;
