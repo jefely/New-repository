@@ -1511,6 +1511,31 @@ table#summary-table { min-width: 800px !important; }
   .toolbar.bar2 > button,
   .toolbar.install-bar > button { min-width: 46px !important; max-width: 72px !important; padding: 0 4px !important; }
 }
+/* 工具栏：高度随内容涨，月份格子两行不被压 */
+.toolbar.flow-bar, .toolbar.bar1, .toolbar.bar2, .toolbar.install-bar {
+  height: auto !important;
+  min-height: 34px !important;
+  align-items: center !important;
+}
+.toolbar.bar1 .month-row, .toolbar.bar2 .month-row {
+  align-self: stretch !important;
+  min-height: 30px !important;
+}
+/* 工具栏标题：绝不能被 syncFlowTitleWidth 改成 absolute（那会让它铺满整条并居中） */
+.toolbar.flow-bar > .flow-title,
+.toolbar.install-bar > .bar-title,
+.toolbar.flow-bar > .bar-title,
+.toolbar.flow-bar > .fixed-title {
+  position: static !important;
+  left: auto !important;
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  text-align: left !important;
+  transform: none !important;
+  flex: 0 0 auto !important;
+  white-space: nowrap !important;
+}
 </style>
 </head>
 <body>
@@ -1611,7 +1636,7 @@ function toggleTheme() {
   toast(theme === 'dark' ? '已切换到反色主题' : '已切换到浅色主题');
 }
 
-const APP_VER = 'v7.62';
+const APP_VER = 'v7.65';
 const LS_KEY = 'flow_grid_v5';
 const SUMMARY_STATE_KEY = 'flow_summary_state_v3';
 // 流水表默认铺多少行空行。像 Excel 一样随手往下填，不用先点「新增」。
@@ -2386,34 +2411,40 @@ let currentTab = 'flow';
 function syncToolbarWidth() {
   const main = document.getElementById('main');
   if (!main) return;
-  // 关键：同一页可能有多个工具栏（汇总/分类各有两行），它们要对齐同一张表。
-  // 所以先收集连续的工具栏组，遇到 table 时整组统一设宽。
+  // 同一页可能有多个工具栏（汇总/分类各两行），它们对齐同一张表。
   let group = [];
+  const measureNatural = (bar) => {
+    // 用 max-content 量「内容真实需要多宽」—— 不能用 auto，
+    // 那会让 flex 容器直接撑满父级，量出来永远是父级宽度。
+    const prev = bar.style.width;
+    bar.style.width = 'max-content';
+    const w = Math.ceil(bar.getBoundingClientRect().width) || 0;
+    bar.style.width = prev;
+    return w;
+  };
   const apply = (table) => {
-    if (!group.length || !table) { group = []; return; }
+    if (!group.length) return;
+    if (!table) { group = []; return; }
     const tw = Math.max(table.scrollWidth || 0, Math.ceil(table.getBoundingClientRect().width) || 0);
     if (!tw) { group = []; return; }
     for (const bar of group) {
-      bar.style.width = '';
+      // 宽度就取表格宽度，不加任何兜底 —— 兜底会把它撑回父容器宽
+      bar.style.width = tw + 'px';
       bar.style.maxWidth = 'none';
-      const natural = Math.ceil(bar.scrollWidth) || 0;
-      bar.style.width = Math.max(tw, natural) + 'px';
-      bar.style.maxWidth = 'none';
+      bar.style.height = 'auto';
+      bar.style.minHeight = '34px';
       bar.dataset.synced = '1';
     }
     group = [];
   };
   for (const el of Array.from(main.children)) {
     if (el.classList && el.classList.contains('toolbar')) {
-      if (group.length && group._done) group = [];
       group.push(el);
-      el.style.width = '';
       continue;
     }
     const table = el.tagName === 'TABLE' ? el
       : (el.querySelector ? el.querySelector('table') : null);
-    if (table) { apply(table); continue; }
-    // 中间夹了非工具栏非表格的元素（比如提示条）：不解散分组，继续等表格
+    if (table) apply(table);
   }
   apply(null);
 }
