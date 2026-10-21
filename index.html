@@ -4004,7 +4004,7 @@ async function encryptWithSession(text) {
 // 网站二维码（内嵌 base64，离线可显示），扫码打开 https://jefely.github.io/New-repository/
 const QR_DATA_URL = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAUoAAAFKCAIAAAD0S4FSAAAFCUlEQVR42u3dS3IUMRBF0VcE+9+y2QETIfKjc+YGd7VvqAYZqe/n5yfARr88ApA3IG9A3oC8AXkD8gZ5A/IG5A3IG5A3IG+QNyBvQN6AvAF5A/KGl/0++eHv+5Y9jr9vnjv5vD3/5Xub9nr+v/v+Jp3e4OUckDcgb0DegLwBeQPyBnkDeWpqLdembe7pOdV071nt+xZOPtFrf5NOb/ByDsgbkDcgb0DegLxB3oC8gTw1tZaiSZ2Jk0n3NrFVPcmTn636vPv+Jp3e4OUckDcgb0DegLwBeYO8AXkDMbUW94du2eI2cQ7P6Q3IG5A3IG9A3oC8Qd6AvAF5AzG1Nsi9Oa2qGzPNpTm9AXkD8gbkDcgbkDfIG5A3IG8gj0yt9bzHs+eutZP/t+qWz33fr9MbkDcgb0DegLxB3oC8AXkD8gbSfGpt37ate7vH/Gz+yxzeaxvgnN4gb0DegLwBeQPyBuQN8gbkDTT07dsvNXGmrWrWque3f+9JOr0BeQPyBuQNyBuQN8gbkDcgbyCjd63ZiZUGe+nu3Vta9S303MTW835Ypzd4OQfkDcgbkDcgb0DegLxB3kCemlq7N8djB9j0ezxTNNM2cRry3l+O0xu8nAPyBuQNyBuQNyBvkDcgbyDLbgidOAM0cU6ranbwtcnCqp91egPyBuQN8gbkDcgbkDcgb0DeELvWsne2rOd+uJ4zTz3vh616GhM/r9MbvJwD8gbkDcgbkDcgb5A3IG8gT02tnUzb3JtMujfTNnHyrGqLW9Wz2vcdOb3Byzkgb0DegLwBeQPyBuQN8gZiai29p4smburqOePVczNZ1ed1egPyBuQNyBvkDcgbkDcgb0DeQEZPraXlBNi+XVwZeIvra1OJTm9A3iBvQN6AvAF5A/IG5A3yBmJqLb3nw3rOD1VNU937vFUzbVX70ibOLDq9wcs5IG9A3oC8AXkD8gZ5A/IGGvp6zuJMvKux52ayqttFe86W7XuSTm/wcg7IG5A3IG9A3oC8AXmDvIE8NbVWtU/r3oRQ1bTcaxvReu482/f37PQGL+eAvAF5A/IG5A3IG+QNyBvIshtCM3BfWtUEWNZNcU18VlUzbVX/stMbvJwD8gbkDcgbkDcgb5A3IG8gT02t5bHpohTNllU9jbScw6uahzt5znatAfIG5A3yBuQNyBuQNyBvQN4QN4SWTwhNvNfy3u/sW9jN1Bogb0DeIG9A3oC8AXkD8gbkDTG1xpo7QHvuh/NbOb0BeQPyBnkD8gbkDcgbkDcgb4gbQjNniisDt16d7B6ruuVz4u2iE39npzcgb0DeIG9A3oC8AXkD8gbkDTG1lt4TYDFp136LW9W3XzV32HPSzukNXs4BeQPyBuQNyBuQN8gbkDeQp6bWUjQ99toOsJMnee9OzHvfb9Xc4ck3WDXh5/QGL+eAvAF5A/IG5A3IG+QNyBuIqbW8ures6g7Qe7NlPSfees4sVs20Ob3Byzkgb0DegLwBeQPyBnkD8gZiai2v3qe577eq2g+Xoj1tVbvlnN6AvEHegLwBeQPyBuQNyBvkDcTUWvZOgGXgRNTEaap7E289b2Kt+o6c3uDlHJA3IG9A3oC8AXmDvAF5Aw19EzdmpeVNjml5R2TVJFbcLur0BuQNyBuQN8gbkDcgb0DegLyB/OupNcDpDcgbkDcgb5A3IG9A3oC8AXkD8gbkDfIG5A3IG5A3IG9A3iBvQN5AU38AW3Unpg+CBHwAAAAASUVORK5CYII=';
 
-const APP_VER = 'v9.27';
+const APP_VER = 'v9.30';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -5204,7 +5204,9 @@ function parseSheetRows(xml, shared) {
   while ((m = rowRe.exec(xml))) {
     const rIdx = parseInt(m[1], 10) - 1;
     const cells = [];
-    const cellRe = /<c\b([^>]*)(?:\/>|>([\s\S]*?)<\/c>)/g;
+    // [^>]* 必须非贪婪：贪婪会把自闭合 <c ... /> 的斜杠也吃掉，
+    // 导致空单元格后面那个有值的单元格被整段吞掉（还款日就是这样丢的）。
+    const cellRe = /<c\b([^>]*?)(?:\/>|>([\s\S]*?)<\/c>)/g;
     let c;
     while ((c = cellRe.exec(m[2]))) {
       const attrs = c[1] || '';
@@ -5410,15 +5412,16 @@ function openImportXlsxDialog() {
       const accs = sumSheet ? accountsFromSheet(sumSheet.rows) : [];
       pending = flows;
       pendingAccs = accs;
-      if (!flows.length) {
-        info.innerHTML = '找到工作表：' + esc(names) + '<br>但没从「' + esc(flowSheet.name) + '」里读到流水行。'
-          + '<br>确认表头是第 2 行、数据从第 3 行开始。';
+      if (!flows.length && !accs.length) {
+        info.innerHTML = '找到工作表：' + esc(names) + '<br>但「流水」和「汇总」都没读到数据。'
+          + '<br>确认表头那一行有「日期 / 转出」「账户名称 / 期初」这些字样。';
         return;
       }
       const bad = flows.filter(x => !x.from && !x.to).length;
       info.innerHTML = '找到工作表：' + esc(names) + '<br>从「<b>' + esc(flowSheet.name)
         + '</b>」读到 <b>' + flows.length + '</b> 笔流水'
         + (bad ? '（其中 ' + bad + ' 笔两边账户都空）' : '')
+        + (flows.length ? '' : '<br><span style="color:#b45309">「流水」表里没有数据行</span>')
         + (accs.length ? '<br>从「汇总」读到 <b>' + accs.length + '</b> 个账户（含期初、账单日、还款日）' : '<br><span style="color:#b45309">这个文件没有「汇总」表，账户表会保持不动</span>')
         + '<br><span style="color:#dc2626">点下方按钮后：先清空现有的 <b>' + state.transactions.length
         + '</b> 笔流水' + (accs.length ? ' 和 <b>' + state.accounts.length + '</b> 个账户' : '')
@@ -5436,7 +5439,7 @@ function openImportXlsxDialog() {
   };
 
   goBtn.onclick = () => {
-    if (!pending.length) return;
+    if (!pending.length && !pendingAccs.length) return;
     const beforeTx = state.transactions.length;
     const beforeAcc = state.accounts.length;
     // 必须先有汇总表才能重建账户 —— 没有汇总表就只换流水，账户保持原样
@@ -7307,9 +7310,7 @@ function makeSummaryRow(acc, idx, range) {
 
   // 账单日 / 还款日只对「负债类」有意义，其它分类这两格是空的、不可输入。
   // 新增行（还没填分类）仍然给输入框，否则用户没法录入。
-  // 账单日 / 还款日：原来只给「负债类」渲染输入框，导致其它类型的账户即使存了值
-  // 也看不见、也改不了，导出时看起来就像「没导全」。现在所有行都显示。
-  const showBilling = true;
+  const showBilling = isNew || (acc.cat || '') === '负债类';
   if (showBilling) tr.classList.add('debt-row');
   const emptyCell = cls => { const td = document.createElement('td'); td.className = cls; return td; };
 
