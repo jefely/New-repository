@@ -1972,6 +1972,19 @@ table#summary-table { min-width: 800px !important; }
   color: var(--text-main) !important;
 }
 .toolbar.plan-bar2 > input.range-one:focus { border-color: var(--primary) !important; outline: none !important; }
+/* 加载更多：做成明显的一条 */
+.flow-more-td {
+  padding: 12px 8px !important;
+  text-align: center !important;
+  font-size: 13px !important;
+  color: var(--primary) !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  background: var(--bg-gray) !important;
+}
+[data-theme="dark"] .flow-more-td { color: #b9a6ff !important; background: var(--bg-gray-light) !important; }
+/* 删除按钮不做任何滚动 */
+.row-del { scroll-margin: 0 !important; }
 </style>
 </head>
 <body>
@@ -2072,12 +2085,12 @@ function toggleTheme() {
   toast(theme === 'dark' ? '已切换到反色主题' : '已切换到浅色主题');
 }
 
-const APP_VER = 'v7.81';
+const APP_VER = 'v7.84';
 const LS_KEY = 'flow_grid_v5';
 const SUMMARY_STATE_KEY = 'flow_summary_state_v3';
 // 流水表默认铺多少行空行。像 Excel 一样随手往下填，不用先点「新增」。
 const FLOW_BLANK_ROWS = 30;
-const FLOW_BATCH = 150;        // 每次渲染/追加的流水行数
+const FLOW_BATCH = 1000;       // 每次渲染/追加的流水行数（1000 以内一次全渲染）
 let flowShown = FLOW_BATCH;    // 当前已渲染多少行
 // 可编辑的列顺序，粘贴时按这个映射
 const FLOW_FIELDS = ['date', 'from', 'to', 'amount', 'note'];
@@ -2101,7 +2114,7 @@ let state = (() => {
 if (!Array.isArray(state.fixed)) state.fixed = [];
 if (!Array.isArray(state.installments)) state.installments = [];
 
-let summaryMode = 'range';   // range | month | year | all（默认区间）
+let summaryMode = 'month';
 let summaryYear = new Date().getFullYear();
 let summaryRange = { start: '', end: '' };
 let summaryMonth = (() => {
@@ -2410,7 +2423,7 @@ function buildSubSummary(range) {
 }
 
 // 分类页：按「汇总分类」聚合，支持 月 / 年 / 区间 / 全部历史
-let catMode = 'range';          // range | month | year | all（默认区间）
+let catMode = 'month';
 let catYear = new Date().getFullYear();
 let catRange = { start: '', end: '' };
 
@@ -2430,7 +2443,15 @@ function catRangeOf() {
   }
   if (catMode === 'range') {
     const s = catRange.start, e = catRange.end;
-    if (!s && !e) return { start: '9999-99-99', end: '0000-00-00' };
+    if (!s && !e) {
+      let mn = '', mx = '';
+      for (const t of state.transactions) {
+        if (!t.date) continue;
+        if (!mn || t.date < mn) mn = t.date;
+        if (!mx || t.date > mx) mx = t.date;
+      }
+      return { start: mn || '0000-01-01', end: mx || '9999-12-31' };
+    }
     return { start: s || '0000-00-00', end: e || '9999-99-99' };
   }
   const y = summaryMonth.year, m = summaryMonth.month;
@@ -2459,7 +2480,7 @@ function renderCat(main, footer) {
     onClear: () => {
       catMode = 'range';
       catRange = { start: '', end: '' };
-      saveSummaryState(); render(); toast('已清空区间');
+      saveSummaryState(); render(); toast('已清空，显示全部');
     },
     onYear: (y) => {
       if (catMode === 'year') catYear = y;
@@ -2769,8 +2790,16 @@ function getCurrentRange() {
   }
   if (summaryMode === 'range') {
     const s = summaryRange.start, e = summaryRange.end;
-    // 两个都空 → 不计算（返回一个不可能命中的区间）
-    if (!s && !e) return { start: '9999-99-99', end: '0000-00-00' };
+    // 两个都空 → 视为全部
+    if (!s && !e) {
+      let mn = '', mx = '';
+      for (const t of state.transactions) {
+        if (!t.date) continue;
+        if (!mn || t.date < mn) mn = t.date;
+        if (!mx || t.date > mx) mx = t.date;
+      }
+      return { start: mn || '0000-01-01', end: mx || '9999-12-31' };
+    }
     return { start: s || '0000-00-00', end: e || '9999-99-99' };
   }
   const y = summaryMonth.year, m = summaryMonth.month;
@@ -2780,10 +2809,6 @@ function getCurrentRange() {
 
 // 计算单个账户的各项指标
 function computeStats(acc, range) {
-  // 区间为空（start=9999-99-99）表示「不计算」，一律返回 0
-  if (range && range.start === '9999-99-99') {
-    return { balance: 0, mOut: 0, mIn: 0, hOut: 0, hIn: 0 };
-  }
   let pOut = 0, pIn = 0, hOut = 0, hIn = 0, tOut = 0, tIn = 0;
   const name = acc.name;
   if (name) {
@@ -2844,7 +2869,6 @@ function buildRangeToolbar(opts) {
   })();
   bar1.innerHTML = `
     <span class="flow-title">${esc(title)}</span>
-    <button class="ghost plan-btn" data-mode="all" data-active="${mode === 'all'}">全部</button>
     <button class="ghost plan-btn" id="plan-clear" title="清空条件">清空</button>
     <button class="ghost plan-btn" data-mode="range" data-active="${mode === 'range'}">区间</button>
     <button class="ghost plan-btn" data-mode="year" data-active="${mode === 'year'}">年份</button>
@@ -2989,6 +3013,10 @@ function syncToolbarWidth() {
 function render() {
   const main = document.getElementById('main');
   const footer = document.getElementById('footer');
+  // 记住滚动位置（删一行时不跳回顶部）
+  const _prevWrap = main.querySelector('.grid-wrap');
+  const _keepScroll = _prevWrap ? _prevWrap.scrollTop : 0;
+  const _keepScrollX = _prevWrap ? _prevWrap.scrollLeft : 0;
   document.querySelectorAll('.tabbar button').forEach(b => b.classList.toggle('active', b.dataset.tab === currentTab));
   main.innerHTML = '';
   // 页脚只放一行文本（「重置列宽」入口已按要求取消）
@@ -3005,6 +3033,10 @@ function render() {
   if (currentTab === 'flow' || currentTab === 'summary') {
     try { applyDataIssues(); } catch (e) {}
   }
+  try {
+    const w = main.querySelector('.grid-wrap');
+    if (w && (_keepScroll || _keepScrollX)) { w.scrollTop = _keepScroll; w.scrollLeft = _keepScrollX; }
+  } catch (e) {}
   try { syncToolbarWidth(); } catch (e) {}
 }
 
@@ -3081,7 +3113,7 @@ function renderFlow(main, footer) {
   if (txs.length > flowShown) {
     const more = document.createElement('tr');
     more.className = 'flow-more';
-    more.innerHTML = '<td colspan="6" class="flow-more-td">已显示 ' + flowShown + ' / ' + txs.length
+    more.innerHTML = '<td colspan="6" class="flow-more-td">还有 ' + (txs.length - flowShown) + ' 笔没显示 · 已显示 ' + flowShown + ' / ' + txs.length
       + ' 笔 · <b>点击加载更多</b></td>';
     more.addEventListener('click', () => {
       flowShown = Math.min(txs.length, flowShown + FLOW_BATCH);
@@ -3486,10 +3518,10 @@ function renderSummary(main, footer) {
     range: summaryMode === 'range' ? summaryRange : { start: '', end: '' },
     onMode: (m) => { summaryMode = m; saveSummaryState(); render(); },
     onClear: () => {
-      // 清空后仍停「区间」，两个日期置空 → 不计算（全 0）
+      // 清空后仍停在「区间」，两个日期置空 → 显示全部
       summaryMode = 'range';
       summaryRange = { start: '', end: '' };
-      saveSummaryState(); render(); toast('已清空区间');
+      saveSummaryState(); render(); toast('已清空，显示全部');
     },
     onYear: (y) => {
       if (summaryMode === 'year') summaryYear = y;
