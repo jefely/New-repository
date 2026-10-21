@@ -2398,6 +2398,80 @@ table.install-table thead th.inst-ym { font-size: 12px !important; white-space: 
   background: #191919 !important;
   border-color: #6b5bc4 !important;
 }
+/* 查询页：只有列标题行（序号/日期/转出/转入/金额/备注）是深灰，
+   上面两行（清空行、查询筛选行）保持暗紫 */
+[data-theme="dark"] table.query-table tr.q-head-row > th {
+  background: #1a1a1a !important;
+  color: #ffffff !important;
+  border-color: #2a2a2a !important;
+}
+/* 第一行：清空按钮那一条 —— 暗紫 */
+[data-theme="dark"] table.query-table tr.q-title-row > th,
+[data-theme="dark"] table.query-table tr.q-title-row,
+[data-theme="dark"] table.query-table .q-title-inner {
+  background: #100c19 !important;
+  border-color: #1e1830 !important;
+}
+/* 第二行：查询 + 筛选输入 —— 稍亮的暗紫 */
+[data-theme="dark"] table.query-table tr.q-filter-row > th {
+  background: #16121f !important;
+  color: #ffffff !important;
+  border-color: #1e1830 !important;
+}
+/* 筛选输入框回到暗紫 */
+[data-theme="dark"] table.query-table tr.q-filter-row th input,
+[data-theme="dark"] table.query-table tr.q-filter-row th input.qf-date,
+[data-theme="dark"] table.query-table tr.q-filter-row th input.qf-from,
+[data-theme="dark"] table.query-table tr.q-filter-row th input.qf-to,
+[data-theme="dark"] table.query-table tr.q-filter-row th input.qf-amount,
+[data-theme="dark"] table.query-table tr.q-filter-row th input.qf-note {
+  background: #120e1c !important;
+  border: 1px solid #332852 !important;
+}
+[data-theme="dark"] table.query-table tr.q-filter-row th input:focus {
+  background: #1a1428 !important;
+  border-color: #6b5bc4 !important;
+}
+/* 清空按钮也回暗紫 */
+[data-theme="dark"] table.query-table button.q-clear {
+  background: #2f2549 !important;
+  color: #f4f1fd !important;
+}
+[data-theme="dark"] table.query-table button.q-clear:active { background: #3f3260 !important; }
+/* 分类汇总的类型合计行：暗紫背景 */
+.cat-total-row td {
+  background: #ece7fb !important;
+  color: #3d2d7a !important;
+  border-top: none !important;
+  border-bottom: 1px solid var(--border-light) !important;
+  font-weight: 800 !important;
+}
+[data-theme="dark"] .cat-total-row td {
+  background: #2a2140 !important;    /* 暗紫 */
+  color: #ffffff !important;
+  border-top: none !important;
+  border-bottom: 1px solid #3b2f59 !important;
+  font-weight: 800 !important;
+}
+/* 分类汇总的类型合计行：暗紫背景（高特异性压过斑马纹） */
+table.subsum-table tbody tr.cat-total-row > td,
+table.subsum-table tbody tr.cat-total-row:nth-child(odd) > td,
+table.subsum-table tbody tr.cat-total-row:nth-child(even) > td {
+  background: #ece7fb !important;
+  color: #3d2d7a !important;
+  border-top: none !important;
+  border-bottom: 1px solid var(--border-light) !important;
+  font-weight: 800 !important;
+}
+[data-theme="dark"] table.subsum-table tbody tr.cat-total-row > td,
+[data-theme="dark"] table.subsum-table tbody tr.cat-total-row:nth-child(odd) > td,
+[data-theme="dark"] table.subsum-table tbody tr.cat-total-row:nth-child(even) > td {
+  background: #2a2140 !important;
+  color: #ffffff !important;
+  border-top: none !important;
+  border-bottom: 1px solid #3b2f59 !important;
+  font-weight: 800 !important;
+}
 </style>
 </head>
 <body>
@@ -2498,7 +2572,7 @@ function toggleTheme() {
   toast(theme === 'dark' ? '已切换到反色主题' : '已切换到浅色主题');
 }
 
-const APP_VER = 'v8.05';
+const APP_VER = 'v8.08';
 const LS_KEY = 'flow_grid_v5';
 const SUMMARY_STATE_KEY = 'flow_summary_state_v3';
 // 流水表默认铺多少行空行。像 Excel 一样随手往下填，不用先点「新增」。
