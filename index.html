@@ -2756,7 +2756,7 @@ function toggleTheme() {
   toast(theme === 'dark' ? '已切换到反色主题' : '已切换到浅色主题');
 }
 
-const APP_VER = 'v8.27';
+const APP_VER = 'v8.29';
 const LS_KEY = 'flow_grid_v5';
 const SUMMARY_STATE_KEY = 'flow_summary_state_v3';
 // 流水表默认铺多少行空行。像 Excel 一样随手往下填，不用先点「新增」。
@@ -3243,6 +3243,53 @@ function renderCat(main, footer) {
 // 完全重置：清空流水/分期/固定，账户恢复成内置的 74 个（期初 0）
 // 导出当前列宽：显示一段 JSON，复制发回来就能写成默认值
 // 列宽面板：恢复默认 / 复制当前 / 粘贴导入
+// 把布局参数导出成可读的纯文本（按页面分节）
+function buildLayoutText() {
+  const mw = (() => { try { return parseInt(localStorage.getItem('flow_inst_mw_v1'), 10) || 62; } catch (e) { return 62; } })();
+  const arr = (a) => '[' + (a || []).join(', ') + ']';
+  const L = layoutCfg;
+  const lines = [];
+  lines.push('布局');
+  lines.push('');
+  lines.push('功能标签（顶部 流水/分类/汇总/查询/分期/固定）');
+  lines.push('行高：' + L.rowH + 'px，字号：' + L.fontSize + 'px');
+  lines.push('');
+  lines.push('流水记录');
+  lines.push('列宽：' + arr(colWidths.flow));
+  lines.push('表头行高：34px，字号：' + L.headerFontSize + 'px');
+  lines.push('数据行高：' + L.rowH + 'px，字号：' + L.fontSize + 'px');
+  lines.push('');
+  lines.push('账户汇总');
+  lines.push('列宽：' + arr(colWidths.summary));
+  lines.push('表头1行高：34px，字号：' + L.headerFontSize + 'px');
+  lines.push('表头2行高：34px，字号：' + L.headerFontSize + 'px');
+  lines.push('数据行高：' + L.rowH + 'px，字号：' + L.fontSize + 'px');
+  lines.push('');
+  lines.push('分类统计');
+  lines.push('列宽：' + arr(colWidths.cat));
+  lines.push('表头行高：34px，字号：' + L.headerFontSize + 'px');
+  lines.push('数据行高：' + L.rowH + 'px，字号：' + L.fontSize + 'px');
+  lines.push('');
+  lines.push('查询');
+  lines.push('列宽：' + arr(colWidths.query));
+  lines.push('表头1行高：34px，字号：' + L.headerFontSize + 'px');
+  lines.push('表头2行高：34px，字号：' + L.headerFontSize + 'px');
+  lines.push('数据行高：' + L.rowH + 'px，字号：' + L.fontSize + 'px');
+  lines.push('');
+  lines.push('分期');
+  lines.push('列宽（前三列）：' + arr(colWidths.installFixed));
+  lines.push('每月金额列宽：' + mw + 'px');
+  lines.push('表头1行高：34px，字号：' + L.headerFontSize + 'px');
+  lines.push('表头2行高：34px，字号：' + L.headerFontSize + 'px');
+  lines.push('数据行高：' + L.rowH + 'px，字号：' + L.fontSize + 'px');
+  lines.push('');
+  lines.push('固定收支');
+  lines.push('列宽：' + arr(colWidths.fixed));
+  lines.push('表头行高：34px，字号：' + L.headerFontSize + 'px');
+  lines.push('数据行高：' + L.rowH + 'px，字号：' + L.fontSize + 'px');
+  return lines.join('\n');
+}
+
 function openColWidthsDialog() {
   const mask = document.createElement('div');
   mask.className = 'confirm-mask';
@@ -3306,21 +3353,11 @@ function openColWidthsDialog() {
   };
 
   mask.querySelector('#cw-copy').onclick = async () => {
-    const mw = (() => { try { return parseInt(localStorage.getItem('flow_inst_mw_v1'), 10) || 62; } catch (e) { return 62; } })();
-    const data = {
-      _说明: 'widths 各表列宽(px)；layout 行高与字号；installMonthWidth 分期月份列宽',
-      layout: { rowH: layoutCfg.rowH, fontSize: layoutCfg.fontSize, headerFontSize: layoutCfg.headerFontSize },
-      installMonthWidth: mw,
-      widths: {
-        flow: colWidths.flow, summary: colWidths.summary, query: colWidths.query,
-        fixed: colWidths.fixed, cat: colWidths.cat, installFixed: colWidths.installFixed
-      }
-    };
-    const json = JSON.stringify(data, null, 2);
+    const txt = buildLayoutText();
     area.style.display = 'block';
-    ta.value = json;
+    ta.value = txt;
     try {
-      if (navigator.clipboard) await navigator.clipboard.writeText(json);
+      if (navigator.clipboard) await navigator.clipboard.writeText(txt);
       else { ta.focus(); ta.select(); document.execCommand('copy'); }
       toast('已复制布局参数');
     } catch (e) { ta.focus(); ta.select(); }
