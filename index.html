@@ -3494,6 +3494,48 @@ table#flow-table thead th.col-note { padding-left: 6px !important; padding-right
 [data-theme="dark"] .audit-badge.ok { background: rgba(74,222,128,.15); color: #4ade80; }
 [data-theme="dark"] .audit-badge.bad { background: rgba(255,138,138,.15); color: #ff8a8a; }
 [data-theme="dark"] .audit-note { background: rgba(180,83,9,.18); color: #fbbf24; }
+/* ===== 列宽拖动手柄：恢复最初的尺寸（8px，贴列内右侧） ===== */
+.col-resizer {
+  position: absolute !important;
+  top: 0 !important;
+  bottom: 0 !important;
+  right: 0 !important;
+  left: auto !important;
+  width: 8px !important;
+  cursor: col-resize !important;
+  z-index: 60 !important;
+  touch-action: none !important;
+  pointer-events: auto !important;
+}
+.col-resizer::after {
+  content: '' !important;
+  position: absolute !important;
+  top: 25% !important;
+  bottom: 25% !important;
+  left: 3px !important;
+  width: 2px !important;
+  border-radius: 1px !important;
+  background: transparent !important;
+  transition: background .15s !important;
+}
+.col-resizer:hover::after,
+.col-resizer.dragging::after { background: var(--primary) !important; }
+@media (max-width: 767px) {
+  .col-resizer { width: 14px !important; }
+  .col-resizer::after { left: 6px !important; background: #cbd5e1 !important; }
+  .col-resizer.dragging::after { background: var(--primary) !important; }
+}
+.inst-resizer, .inst-fx-resizer {
+  position: absolute !important;
+  top: 0 !important; bottom: 0 !important;
+  right: 0 !important;
+  width: 8px !important;
+  z-index: 70 !important;
+  touch-action: none !important;
+}
+@media (max-width: 767px) {
+  .inst-resizer, .inst-fx-resizer { width: 14px !important; }
+}
 </style>
 </head>
 <body>
@@ -3683,7 +3725,7 @@ async function encryptWithSession(text) {
   return b64u(catBytes(_sessionSalt, iv, ct));
 }
 
-const APP_VER = 'v8.71';
+const APP_VER = 'v8.73';
 const LS_KEY = 'flow_grid_v5';
 const SUMMARY_STATE_KEY = 'flow_summary_state_v3';
 // 流水表默认铺多少行空行。像 Excel 一样随手往下填，不用先点「新增」。
@@ -3950,7 +3992,9 @@ function renderAudit(main, footer) {
     if (!amt) { nZero++; continue; }
     if (!from) nNoFrom++;
     if (!to) nNoTo++;
-    sumOut += amt; sumIn += amt;
+    // 只有真的写了这一侧才计入 —— 否则「只填转出」会被两边同时累加，永远平
+    if (from) sumOut += amt;
+    if (to) sumIn += amt;
     for (const nm of [from, to]) {
       if (nm && !accByName.has(nm)) {
         const rec = missing.get(nm) || { count: 0, amount: 0 };
@@ -5111,14 +5155,30 @@ function makeFlowRow(t, idx, isNew) {
   });
 
   // 行尾独立一列：勾选框 + 删除按钮
+  // 空行（还没落库）也要渲染同样两个占位元素（不可见），否则 flex 只排一个子项，
+  // 勾选框会居中，和上面已有记录的 ×/☐ 位置对不齐。
   const tdDel = document.createElement('td');
   tdDel.className = 'col-del';
-  if (!isNew) {
-    const btn = document.createElement('button');
-    btn.type = 'button'; btn.className = 'row-del'; btn.textContent = '×';
-    btn.title = '删除这笔流水';
+  const btn = document.createElement('button');
+  btn.type = 'button'; btn.className = 'row-del'; btn.textContent = '×';
+  btn.title = '删除这笔流水';
+  if (isNew) {
+    // 内联 !important 才能压过 CSS 里 .fixed-chk/.row-del 的 visibility:visible
+    btn.style.setProperty('visibility', 'hidden', 'important');
+    btn.tabIndex = -1;
+  } else {
     btn.addEventListener('click', () => deleteFlowTx(t.id));
-    tdDel.appendChild(btn);
+  }
+  tdDel.appendChild(btn);
+  // 勾选框由 attachFixedCheckbox 补；空行补一个同样尺寸的不可见占位，保证 flex 间距一致
+  if (isNew) {
+    const ph = document.createElement('input');
+    ph.type = 'checkbox';
+    ph.className = 'fixed-chk';
+    ph.style.setProperty('visibility', 'hidden', 'important');
+    ph.tabIndex = -1;
+    ph.disabled = true;
+    tdDel.appendChild(ph);
   }
   tr.appendChild(tdDel);
   return tr;
