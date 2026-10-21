@@ -3525,7 +3525,93 @@ function toggleTheme() {
   toast(theme === 'dark' ? '已切换到反色主题' : '已切换到浅色主题');
 }
 
-const APP_VER = 'v8.63';
+/* ============================================================
+   本地加密层（AES-GCM 256 + PBKDF2-SHA256 120000 轮）
+   ------------------------------------------------------------
+   · 口令由用户设置，最短 1 个字符
+   · 每次加密用新的随机 salt(16) + iv(12)，结果整体 base64url
+   · 存储格式：localStorage[LS_KEY] = 'ENC1:' + base64(salt|iv|ct)
+   · 同步文件格式：'LZ2:' + 同样的 base64 结构
+   · 忘记口令 = 数据不可恢复（没有后门，这是设计而非缺陷）
+   ============================================================ */
+const PBKDF2_ROUNDS = 120000;
+const PW_HINT_KEY = 'flow_pw_hint_v1';   // 密码提示词（明文，因为它要能被显示）
+let _sessionKey = null;       // 解锁后常驻内存的 CryptoKey
+let _sessionSalt = null;      // 本机存储用的 salt（固定，避免每次重算）
+let _saveTimer = null;
+let _savePending = false;
+
+function b64u(bytes) {
+  let s = '';
+  const CH = 0x8000;
+  for (let i = 0; i < bytes.length; i += CH) {
+    s += String.fromCharCode.apply(null, bytes.subarray(i, i + CH));
+  }
+  return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+function unb64u(str) {
+  const norm = String(str).replace(/-/g, '+').replace(/_/g, '/');
+  const pad = norm.length % 4 ? '='.repeat(4 - norm.length % 4) : '';
+  const bin = atob(norm + pad);
+  const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
+}
+function randBytes(n) {
+  const a = new Uint8Array(n);
+  crypto.getRandomValues(a);
+  return a;
+}
+function catBytes(...arrs) {
+  const total = arrs.reduce((s, a) => s + a.length, 0);
+  const out = new Uint8Array(total);
+  let off = 0;
+  for (const a of arrs) { out.set(a, off); off += a.length; }
+  return out;
+}
+
+async function deriveKey(password, salt) {
+  const enc = new TextEncoder();
+  const base = await crypto.subtle.importKey('raw', enc.encode(String(password)), 'PBKDF2', false, ['deriveKey']);
+  return await crypto.subtle.deriveKey(
+    { name: 'PBKDF2', salt, iterations: PBKDF2_ROUNDS, hash: 'SHA-256' },
+    base,
+    { name: 'AES-GCM', length: 256 },
+    false,
+    ['encrypt', 'decrypt']
+  );
+}
+
+// 明文 → 'ENC1:base64(salt|iv|ct)'
+async function encryptText(text, password) {
+  const salt = randBytes(16);
+  const iv = randBytes(12);
+  const key = await deriveKey(password, salt);
+  const ct = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, new TextEncoder().encode(text)));
+  return b64u(catBytes(salt, iv, ct));
+}
+
+// 'base64(salt|iv|ct)' → 明文
+async function decryptText(b64, password) {
+  const all = unb64u(b64);
+  if (all.length < 16 + 12 + 1) throw new Error('数据长度不对');
+  const salt = all.subarray(0, 16);
+  const iv = all.subarray(16, 28);
+  const ct = all.subarray(28);
+  const key = await deriveKey(password, salt);
+  const pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ct);
+  return new TextDecoder().decode(pt);
+}
+
+// 用会话密钥加解密（解锁后不再重复跑 PBKDF2）
+async function encryptWithSession(text) {
+  if (!_sessionKey || !_sessionSalt) throw new Error('尚未解锁');
+  const iv = randBytes(12);
+  const ct = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, _sessionKey, new TextEncoder().encode(text)));
+  return b64u(catBytes(_sessionSalt, iv, ct));
+}
+
+const APP_VER = 'v8.69';
 const LS_KEY = 'flow_grid_v5';
 const SUMMARY_STATE_KEY = 'flow_summary_state_v3';
 // 流水表默认铺多少行空行。像 Excel 一样随手往下填，不用先点「新增」。
@@ -3537,22 +3623,19 @@ const FLOW_FIELDS = ['date', 'from', 'to', 'amount', 'note'];
 // 汇总表的可编辑列顺序（和表头一一对应）：类型、分类、简码、名称、期初、账单日、还款日
 const SUMMARY_FIELDS = ['cat', 'sub', 'code', 'name', 'opening', 'billDay', 'repayDay'];
 
-let state = (() => {
+// state 先放空壳；真正的数据在「解锁」之后由 loadStateFromDisk() 填进来
+let state = { accounts: JSON.parse(JSON.stringify(defaultAccounts)), transactions: [], installments: [], fixed: [] };
+
+function loadStateFromDisk(rawJson) {
   try {
-    const raw = localStorage.getItem(LS_KEY);
-    if (raw) {
-      const s = JSON.parse(raw);
-      if (s.accounts && s.transactions) {
-        if (!Array.isArray(s.fixed)) s.fixed = [];
-        if (!Array.isArray(s.installments)) s.installments = [];
-        return s;
-      }
-    }
-  } catch (e) {}
-  return { accounts: JSON.parse(JSON.stringify(defaultAccounts)), transactions: [], installments: [], fixed: [] };
-})();
-if (!Array.isArray(state.fixed)) state.fixed = [];
-if (!Array.isArray(state.installments)) state.installments = [];
+    const s = JSON.parse(rawJson);
+    if (!s || !Array.isArray(s.accounts) || !Array.isArray(s.transactions)) return false;
+    if (!Array.isArray(s.fixed)) s.fixed = [];
+    if (!Array.isArray(s.installments)) s.installments = [];
+    state = s;
+    return true;
+  } catch (e) { return false; }
+}
 
 let summaryMode = 'month';
 let summaryYear = new Date().getFullYear();
@@ -3654,7 +3737,26 @@ function save() {
     if (_undoStack.length > UNDO_MAX) _undoStack.shift();
   }
   _lastSaved = json;
-  try { localStorage.setItem(LS_KEY, json); } catch (e) {}
+  scheduleDiskWrite();
+}
+
+// 加密写盘（防抖：连续 save 只写最后一次；PBKDF2 已缓存在 _sessionKey 里）
+function scheduleDiskWrite() {
+  if (!_sessionKey) return;             // 还没解锁，不写
+  if (_saveTimer) clearTimeout(_saveTimer);
+  _savePending = true;
+  _saveTimer = setTimeout(flushDiskWrite, 150);
+}
+
+async function flushDiskWrite() {
+  if (!_savePending || !_sessionKey || !_lastSaved) return;
+  _savePending = false;
+  try {
+    const enc = await encryptWithSession(_lastSaved);
+    localStorage.setItem(LS_KEY, 'ENC1:' + enc);
+  } catch (e) {
+    try { console.warn('写盘失败', e); } catch (x) {}
+  }
 }
 
 /* ============================================================
@@ -4219,7 +4321,8 @@ function undo() {
     _lastSaved = snap;
     reseq();
     render();
-    try { localStorage.setItem(LS_KEY, snap); } catch (e) {}
+    _lastSaved = snap;
+    scheduleDiskWrite();
     _undoLock = false;
     toast('已撤销，还剩 ' + _undoStack.length + ' 步可退');
   } catch (e) {
@@ -6984,18 +7087,71 @@ async function syncDecodeText(code) {
 // 生成同步码
 async function buildSyncCode() {
   const payload = {
-    v: 1,
+    v: 2,
     at: new Date().toISOString(),
     accounts: state.accounts,
     transactions: state.transactions,
-    installments: state.installments || []
+    installments: state.installments || [],
+    fixed: state.fixed || []
   };
-  return await syncEncodeText(JSON.stringify(payload));
+  const json = JSON.stringify(payload);
+  // 先 gzip 再加密：密文不可压缩，顺序反了整个文件会大 30% 以上
+  if (_sessionKey && _sessionSalt) {
+    try {
+      const gz = await syncEncodeText(json);        // 'LZ1:base64(gzip)'
+      return 'LZ2:' + await encryptWithSession(gz);
+    } catch (e) {}
+  }
+  return await syncEncodeText(json);
 }
 
 // 解析并套用同步码
+// 同步文件如果是 LZ2:（另一台设备设的密码），要单独问口令
+function askSyncPassword() {
+  return new Promise(resolve => {
+    const mask = document.createElement('div');
+    mask.className = 'confirm-mask';
+    mask.style.zIndex = '99998';
+    mask.innerHTML = `
+      <div class="sync-box" style="max-width:min(92vw,360px)">
+        <div class="sync-title">这个文件有密码</div>
+        <div class="sync-hint" style="text-align:left">输入生成这个文件时用的密码。</div>
+        <input id="sp-pw" type="password" autocomplete="off" placeholder="文件密码"
+          style="width:100%;height:40px;padding:0 10px;box-sizing:border-box;font-size:16px;border:1px solid var(--border);border-radius:6px;background:var(--bg-main);color:var(--text-main);margin:10px 0">
+        <div id="sp-err" style="color:#dc2626;font-size:12px;min-height:16px;margin-bottom:6px"></div>
+        <div style="display:flex;gap:8px">
+          <button type="button" id="sp-go" style="flex:1">确定</button>
+          <button type="button" class="ghost" id="sp-cancel" style="flex:1">取消</button>
+        </div>
+      </div>`;
+    document.body.appendChild(mask);
+    const pw = mask.querySelector('#sp-pw');
+    const err = mask.querySelector('#sp-err');
+    setTimeout(() => { try { pw.focus(); } catch (e) {} }, 100);
+    const done = v => { mask.remove(); resolve(v); };
+    mask.querySelector('#sp-go').onclick = () => {
+      if (!pw.value) { err.textContent = '请输入密码'; return; }
+      done(pw.value);
+    };
+    mask.querySelector('#sp-cancel').onclick = () => done(null);
+    pw.addEventListener('keydown', ev => { if (ev.key === 'Enter') { ev.preventDefault(); mask.querySelector('#sp-go').click(); } });
+  });
+}
+
 async function applySyncCode(code) {
-  const json = await syncDecodeText(code);
+  const s = String(code || '').trim();
+  let json;
+  if (/^LZ2[:：]/i.test(s)) {
+    const pw = await askSyncPassword();
+    if (pw === null) throw new Error('已取消');
+    let inner;
+    try { inner = await decryptText(s.replace(/^LZ2[:：]/i, '').replace(/\s+/g, ''), pw); }
+    catch (e) { throw new Error('密码不对，或文件已损坏'); }
+    // 内层是 LZ1:...（gzip），交给 syncDecodeText 还原
+    json = /^LZ[01][:：]/i.test(inner) ? await syncDecodeText(inner) : inner;
+  } else {
+    json = await syncDecodeText(s);
+  }
   const data = JSON.parse(json);
   if (!data || !Array.isArray(data.accounts) || !Array.isArray(data.transactions)) {
     throw new Error('这段码里没有可识别的账本数据');
@@ -8356,16 +8512,131 @@ document.addEventListener('focus', e => {
 document.querySelectorAll('.tabbar button').forEach(b => {
   b.onclick = () => { currentTab = b.dataset.tab; render(); };
 });
-// 固定支出：当天 5:00 之后第一次打开时，把到期的自动写进流水
-try {
-  const nFixed = runFixedExpenses();
-  if (nFixed > 0) setTimeout(() => toast("已自动记入 " + nFixed + " 笔固定支出", { duration: 5000 }), 600);
-} catch (e) {}
 
 applyTheme();
 try { applyLayout(); } catch (e) {}
 try { document.getElementById('footer').dataset.ver = APP_VER; } catch (e) {}
-render();
+
+// —— 启动：先过锁，再渲染 ——
+bootWithLock();
+
+async function bootWithLock() {
+  let stored = null;
+  try { stored = localStorage.getItem(LS_KEY); } catch (e) {}
+  if (stored && /^ENC1:/.test(stored)) {
+    await showLockScreen('unlock', stored.slice(5));
+  } else {
+    // 没有数据，或还是旧的明文格式 → 要求设置密码并迁移
+    await showLockScreen('setup', stored);
+  }
+  afterUnlock();
+}
+
+function afterUnlock() {
+  try {
+    const nFixed = runFixedExpenses();
+    if (nFixed > 0) setTimeout(() => toast("已自动记入 " + nFixed + " 笔固定支出", { duration: 5000 }), 600);
+  } catch (e) {}
+  render();
+}
+
+/* ============================================================
+   密码锁屏
+   mode = 'setup'  ：首次使用 / 迁移旧的明文数据 → 设密码
+   mode = 'unlock' ：已有加密数据 → 输密码
+   ============================================================ */
+function showLockScreen(mode, payload) {
+  return new Promise(resolve => {
+    const isSetup = mode === 'setup';
+    const mask = document.createElement('div');
+    mask.className = 'confirm-mask';
+    mask.style.zIndex = '99999';
+    mask.innerHTML = `
+      <div class="sync-box" style="max-width:min(92vw,380px)">
+        <div class="sync-title">${isSetup ? '设置账本密码' : '解锁账本'}</div>
+        <div class="sync-hint" style="text-align:left;line-height:1.7">
+          ${isSetup
+            ? '密码用于加密本机数据和同步文件。<br><b style="color:#dc2626">忘记密码 = 数据永久无法恢复</b>，请务必记住。'
+            : '输入你设置的密码。'}
+        </div>
+        <input id="lock-pw" type="password" autocomplete="off" placeholder="密码（至少 1 个字符）"
+          style="width:100%;height:40px;padding:0 10px;box-sizing:border-box;font-size:16px;border:1px solid var(--border);border-radius:6px;background:var(--bg-main);color:var(--text-main);margin:10px 0">
+        ${isSetup ? `<input id="lock-pw2" type="password" autocomplete="off" placeholder="再输一次确认"
+          style="width:100%;height:40px;padding:0 10px;box-sizing:border-box;font-size:16px;border:1px solid var(--border);border-radius:6px;background:var(--bg-main);color:var(--text-main);margin-bottom:10px">
+        <input id="lock-hint" type="text" autocomplete="off" maxlength="60" placeholder="密码提示（可选，解锁时会显示）"
+          style="width:100%;height:40px;padding:0 10px;box-sizing:border-box;font-size:16px;border:1px solid var(--border);border-radius:6px;background:var(--bg-main);color:var(--text-main);margin-bottom:10px">` : ''}
+        ${!isSetup ? `<div id="lock-hint-show" style="font-size:13px;color:var(--text-muted);min-height:18px;margin-bottom:8px"></div>` : ''}
+        <div id="lock-err" style="color:#dc2626;font-size:12px;min-height:16px;margin-bottom:6px"></div>
+        <button type="button" id="lock-go" style="width:100%">${isSetup ? '设置并进入' : '解锁'}</button>
+      </div>`;
+    document.body.appendChild(mask);
+    const pw = mask.querySelector('#lock-pw');
+    const pw2 = mask.querySelector('#lock-pw2');
+    const err = mask.querySelector('#lock-err');
+    const go = mask.querySelector('#lock-go');
+    setTimeout(() => { try { pw.focus(); } catch (e) {} }, 100);
+
+    // 解锁时把上次存的提示词显示出来
+    if (!isSetup) {
+      const hintEl = mask.querySelector('#lock-hint-show');
+      let hint = '';
+      try { hint = localStorage.getItem(PW_HINT_KEY) || ''; } catch (e) {}
+      if (hintEl) hintEl.textContent = hint ? ('提示：' + hint) : '';
+    }
+
+    const fail = (msg) => { err.textContent = msg; };
+    let busy = false;
+
+    const submit = async () => {
+      if (busy) return;
+      const v = pw.value;
+      if (!v) { fail('请输入密码'); return; }
+      if (isSetup && pw2.value !== v) { fail('两次输入不一致'); return; }
+      busy = true;
+      go.textContent = '处理中…';
+      err.textContent = '';
+      try {
+        if (isSetup) {
+          // 新 salt（存在密文头部），派生会话密钥
+          _sessionSalt = randBytes(16);
+          _sessionKey = await deriveKey(v, _sessionSalt);
+          // 旧明文数据：先载入，再加密写回
+          if (payload && !/^ENC1:/.test(payload)) {
+            loadStateFromDisk(payload);
+          }
+          const hintEl = mask.querySelector('#lock-hint');
+          try { localStorage.setItem(PW_HINT_KEY, hintEl ? hintEl.value.trim() : ''); } catch (e) {}
+          _lastSaved = JSON.stringify(state);
+          _savePending = true;
+          await flushDiskWrite();
+        } else {
+          const json = await decryptText(payload, v);
+          if (!loadStateFromDisk(json)) throw new Error('数据格式异常');
+          // 从密文头里取回 salt，重建会话密钥
+          const all = unb64u(payload);
+          _sessionSalt = all.subarray(0, 16);
+          _sessionKey = await deriveKey(v, _sessionSalt);
+          _lastSaved = json;
+        }
+        mask.remove();
+        resolve();
+      } catch (e) {
+        busy = false;
+        go.textContent = isSetup ? '设置并进入' : '解锁';
+        fail(isSetup ? ('设置失败：' + e.message) : '密码不对，或数据已损坏');
+        try { pw.select(); } catch (x) {}
+      }
+    };
+
+    go.onclick = submit;
+    [pw, pw2].forEach(el => {
+      if (!el) return;
+      el.addEventListener('keydown', ev => {
+        if (ev.key === 'Enter') { ev.preventDefault(); submit(); }
+      });
+    });
+  });
+}
 </script>
 
 
