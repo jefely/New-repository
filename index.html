@@ -2598,7 +2598,7 @@ function toggleTheme() {
   toast(theme === 'dark' ? '已切换到反色主题' : '已切换到浅色主题');
 }
 
-const APP_VER = 'v8.16';
+const APP_VER = 'v8.17';
 const LS_KEY = 'flow_grid_v5';
 const SUMMARY_STATE_KEY = 'flow_summary_state_v3';
 // 流水表默认铺多少行空行。像 Excel 一样随手往下填，不用先点「新增」。
@@ -4962,6 +4962,69 @@ function renderInstall(main, footer) {
   wrap.appendChild(table);
   main.appendChild(wrap);
 
+// 分期表前三列：各自独立的拖动手柄
+(function initInstallFixedCols() {
+  const KEY = 'installFixed';
+  let ws = Array.isArray(colWidths[KEY]) && colWidths[KEY].length === 3
+    ? colWidths[KEY].slice()
+    : JSON.parse(JSON.stringify(DEFAULT_COL_WIDTHS[KEY]));
+  const applyFixed = () => {
+    const cols = table.querySelectorAll('colgroup col');
+    // 没有 colgroup 就手写 style
+    const ths = table.querySelectorAll('thead tr:first-child th');
+    for (let i = 0; i < 3 && i < ths.length; i++) {
+      ths[i].style.width = ws[i] + 'px';
+      ths[i].style.minWidth = ws[i] + 'px';
+      ths[i].style.maxWidth = ws[i] + 'px';
+    }
+    table.querySelectorAll('tbody tr').forEach(tr => {
+      for (let i = 0; i < 3; i++) {
+        const td = tr.children[i];
+        if (!td) continue;
+        td.style.width = ws[i] + 'px';
+        td.style.minWidth = ws[i] + 'px';
+        td.style.maxWidth = ws[i] + 'px';
+      }
+    });
+  };
+  applyFixed();
+  const ths = table.querySelectorAll('thead tr:first-child th');
+  for (let i = 0; i < 3 && i < ths.length; i++) {
+    const th = ths[i];
+    if (th.querySelector('.inst-fx-resizer')) continue;
+    const g = document.createElement('div');
+    g.className = 'col-resizer inst-fx-resizer';
+    g.title = '拖动调整这一列宽度';
+    th.appendChild(g);
+    g.addEventListener('pointerdown', ev2 => {
+      if (ev2.button !== 0) return;
+      ev2.preventDefault(); ev2.stopPropagation();
+      const startX = ev2.clientX;
+      const baseW = ws[i];
+      let moved = false;
+      g.classList.add('dragging');
+      try { g.setPointerCapture(ev2.pointerId); } catch (e) {}
+      const onMv = me => {
+        ws[i] = Math.max(44, Math.min(240, baseW + (me.clientX - startX)));
+        applyFixed(); moved = true;
+      };
+      const onUp = () => {
+        g.removeEventListener('pointermove', onMv);
+        g.removeEventListener('pointerup', onUp);
+        g.removeEventListener('pointercancel', onUp);
+        g.classList.remove('dragging');
+        if (moved) {
+          colWidths[KEY] = ws.slice(); saveColWidths();
+          try { syncToolbarWidth(); } catch (e) {}
+        }
+      };
+      g.addEventListener('pointermove', onMv);
+      g.addEventListener('pointerup', onUp);
+      g.addEventListener('pointercancel', onUp);
+    });
+  }
+})();
+
 // 分期表：拖任一月份列 → 所有月份列同宽
 try {
   const ths = table.querySelectorAll('thead th.col-month');
@@ -6946,7 +7009,8 @@ const DEFAULT_COL_WIDTHS = {
   summary: [52, 76, 59, 73, 127, 124, 123, 120, 86, 85, 137, 90, 64],
   query:   [54, 65, 109, 116, 96, 184],
   fixed:   [56, 76, 150, 150, 108, 150, 84, 64],
-  cat:     [82, 86, 85, 133, 111, 103]
+  cat:     [82, 86, 85, 133, 111, 103],
+  installFixed: [126, 58, 76]   // 分期表前三列（账户名称/账单日/每月合计）
 };
 
 let colWidths = (() => {
