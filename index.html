@@ -2588,7 +2588,7 @@ function toggleTheme() {
   toast(theme === 'dark' ? '已切换到反色主题' : '已切换到浅色主题');
 }
 
-const APP_VER = 'v8.10';
+const APP_VER = 'v8.11';
 const LS_KEY = 'flow_grid_v5';
 const SUMMARY_STATE_KEY = 'flow_summary_state_v3';
 // 流水表默认铺多少行空行。像 Excel 一样随手往下填，不用先点「新增」。
@@ -3151,7 +3151,12 @@ function doReset() {
     localStorage.removeItem(SUMMARY_STATE_KEY);
     localStorage.removeItem('flow_install_state_v1');
     localStorage.removeItem('flow_fixed_lastrun_v1');
+    localStorage.removeItem(COLW_KEY);
+    localStorage.removeItem(COLW_KEY_V1);
+    localStorage.removeItem(COLW_KEY_V2);
   } catch (e) {}
+  // 列宽也回到内置默认
+  colWidths = JSON.parse(JSON.stringify(DEFAULT_COL_WIDTHS));
   _undoStack.length = 0;
   _lastSaved = null;
   summaryMode = 'month';
@@ -6823,6 +6828,15 @@ function normShares(arr) {
   return arr.map(v => Math.max(0, Number(v) || 0) / sum);
 }
 
+// 默认列宽（用户调好的，作为新用户 / 重置后的初始值）
+const DEFAULT_COL_WIDTHS = {
+  flow:    [50, 77, 107, 117, 109, 179],
+  summary: [52, 76, 59, 73, 127, 124, 123, 120, 86, 85, 137, 90, 64],
+  query:   [54, 65, 109, 116, 96, 184],
+  fixed:   [56, 76, 150, 150, 108, 150, 84, 64],
+  cat:     [82, 86, 85, 133, 111, 103]
+};
+
 let colWidths = (() => {
   const parse = (raw, scale) => {
     const out = {};
@@ -6846,7 +6860,8 @@ let colWidths = (() => {
     const v2 = localStorage.getItem(COLW_KEY_V2);
     if (v2) return parse(v2, 1000);   // 比例 ×1000 折算成像素
   } catch (e) {}
-  return {};
+  // 没有存过任何列宽 → 用内置默认值
+  return JSON.parse(JSON.stringify(DEFAULT_COL_WIDTHS));
 })();
 
 function saveColWidths() {
