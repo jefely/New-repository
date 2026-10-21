@@ -2906,6 +2906,86 @@ table#summary-table tbody tr.cat-row > td.col-repay {
   background: #2a2140 !important;
   border-bottom: 1px solid #2a2a2a !important;
 }
+/* 深色：类型标签行整行统一成金额合计格底色，且格与格之间不画竖线 */
+[data-theme="dark"] table#summary-table tbody tr.cat-row > td,
+[data-theme="dark"] table#summary-table tbody tr.cat-row:nth-child(odd) > td,
+[data-theme="dark"] table#summary-table tbody tr.cat-row:nth-child(even) > td {
+  background: #2a2140 !important;
+  border-left: none !important;
+  border-right: none !important;
+  box-shadow: none !important;
+}
+[data-theme="dark"] table#summary-table tbody tr.cat-row > td.col-cat,
+[data-theme="dark"] table#summary-table tbody tr.cat-row > td.col-sub,
+[data-theme="dark"] table#summary-table tbody tr.cat-row > td.col-code,
+[data-theme="dark"] table#summary-table tbody tr.cat-row > td.col-name,
+[data-theme="dark"] table#summary-table tbody tr.cat-row > td.cat-sum,
+[data-theme="dark"] table#summary-table tbody tr.cat-row > td.col-bal,
+[data-theme="dark"] table#summary-table tbody tr.cat-row > td.col-out,
+[data-theme="dark"] table#summary-table tbody tr.cat-row > td.col-in,
+[data-theme="dark"] table#summary-table tbody tr.cat-row > td.col-hout,
+[data-theme="dark"] table#summary-table tbody tr.cat-row > td.col-hin,
+[data-theme="dark"] table#summary-table tbody tr.cat-row > td.col-open,
+[data-theme="dark"] table#summary-table tbody tr.cat-row > td.col-del,
+[data-theme="dark"] table#summary-table tbody tr.cat-row > td.col-seq {
+  background: #2a2140 !important;
+  border-left: none !important;
+  border-right: none !important;
+}
+/* 浅色下同样去掉标签行内的竖线 */
+table#summary-table tbody tr.cat-row > td {
+  border-left: none !important;
+  border-right: none !important;
+  box-shadow: none !important;
+}
+/* 深色：类型标签行整行统一成金额合计格底色 #2a2140，无竖线 */
+[data-theme="dark"] table#summary-table tbody tr.cat-row > td.col-cat,
+[data-theme="dark"] table#summary-table tbody tr.cat-row > td.col-sub,
+[data-theme="dark"] table#summary-table tbody tr.cat-row > td.col-code,
+[data-theme="dark"] table#summary-table tbody tr.cat-row > td.col-name,
+[data-theme="dark"] table#summary-table tbody tr.cat-row > td.col-seq,
+[data-theme="dark"] table#summary-table tbody tr.cat-row > td.col-del,
+[data-theme="dark"] table#summary-table tbody tr.cat-row > td.cat-sum,
+[data-theme="dark"] table#summary-table tbody tr.cat-row > td.col-bal,
+[data-theme="dark"] table#summary-table tbody tr.cat-row > td.col-out,
+[data-theme="dark"] table#summary-table tbody tr.cat-row > td.col-in,
+[data-theme="dark"] table#summary-table tbody tr.cat-row > td.col-hout,
+[data-theme="dark"] table#summary-table tbody tr.cat-row > td.col-hin,
+[data-theme="dark"] table#summary-table tbody tr.cat-row > td.col-open,
+[data-theme="dark"] table#summary-table tbody tr.cat-row:nth-child(odd) > td.col-cat,
+[data-theme="dark"] table#summary-table tbody tr.cat-row:nth-child(odd) > td.col-sub,
+[data-theme="dark"] table#summary-table tbody tr.cat-row:nth-child(odd) > td.col-code,
+[data-theme="dark"] table#summary-table tbody tr.cat-row:nth-child(odd) > td.col-name,
+[data-theme="dark"] table#summary-table tbody tr.cat-row:nth-child(odd) > td.col-seq,
+[data-theme="dark"] table#summary-table tbody tr.cat-row:nth-child(odd) > td.col-del,
+[data-theme="dark"] table#summary-table tbody tr.cat-row:nth-child(odd) > td.cat-sum,
+[data-theme="dark"] table#summary-table tbody tr.cat-row:nth-child(odd) > td.col-bal,
+[data-theme="dark"] table#summary-table tbody tr.cat-row:nth-child(odd) > td.col-out,
+[data-theme="dark"] table#summary-table tbody tr.cat-row:nth-child(odd) > td.col-in,
+[data-theme="dark"] table#summary-table tbody tr.cat-row:nth-child(odd) > td.col-hout,
+[data-theme="dark"] table#summary-table tbody tr.cat-row:nth-child(odd) > td.col-hin,
+[data-theme="dark"] table#summary-table tbody tr.cat-row:nth-child(odd) > td.col-open,
+[data-theme="dark"] table#summary-table tbody tr.cat-row:nth-child(even) > td.col-cat,
+[data-theme="dark"] table#summary-table tbody tr.cat-row:nth-child(even) > td.col-sub,
+[data-theme="dark"] table#summary-table tbody tr.cat-row:nth-child(even) > td.col-code,
+[data-theme="dark"] table#summary-table tbody tr.cat-row:nth-child(even) > td.col-name,
+[data-theme="dark"] table#summary-table tbody tr.cat-row:nth-child(even) > td.col-seq,
+[data-theme="dark"] table#summary-table tbody tr.cat-row:nth-child(even) > td.col-del,
+[data-theme="dark"] table#summary-table tbody tr.cat-row:nth-child(even) > td.cat-sum,
+[data-theme="dark"] table#summary-table tbody tr.cat-row:nth-child(even) > td.col-bal,
+[data-theme="dark"] table#summary-table tbody tr.cat-row:nth-child(even) > td.col-out,
+[data-theme="dark"] table#summary-table tbody tr.cat-row:nth-child(even) > td.col-in,
+[data-theme="dark"] table#summary-table tbody tr.cat-row:nth-child(even) > td.col-hout,
+[data-theme="dark"] table#summary-table tbody tr.cat-row:nth-child(even) > td.col-hin,
+[data-theme="dark"] table#summary-table tbody tr.cat-row:nth-child(even) > td.col-open,
+[data-theme="dark"] table#summary-table tbody tr.cat-row > td,
+[data-theme="dark"] table#summary-table tbody tr.cat-row:nth-child(odd) > td,
+[data-theme="dark"] table#summary-table tbody tr.cat-row:nth-child(even) > td {
+  background: #2a2140 !important;
+  background-color: #2a2140 !important;
+  border-left: none !important;
+  border-right: none !important;
+}
 </style>
 </head>
 <body>
@@ -3006,7 +3086,7 @@ function toggleTheme() {
   toast(theme === 'dark' ? '已切换到反色主题' : '已切换到浅色主题');
 }
 
-const APP_VER = 'v8.43';
+const APP_VER = 'v8.45';
 const LS_KEY = 'flow_grid_v5';
 const SUMMARY_STATE_KEY = 'flow_summary_state_v3';
 // 流水表默认铺多少行空行。像 Excel 一样随手往下填，不用先点「新增」。
