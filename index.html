@@ -3292,6 +3292,21 @@ table#flow-table td.col-del .fixed-chk {
 }
 /* 备注格不再需要给按钮留位置 */
 table#flow-table tbody td.col-note { padding-right: 8px !important; }
+/* 流水删除列的勾选框：旧样式带了 position:absolute，必须复位才能进格子 */
+table#flow-table td.col-del .fixed-chk {
+  position: static !important;
+  top: auto !important; right: auto !important; bottom: auto !important; left: auto !important;
+  float: none !important;
+  transform: none !important;
+  display: inline-block !important;
+  width: 15px !important; height: 15px !important;
+  min-width: 15px !important; min-height: 15px !important;
+  margin: 0 2px 0 0 !important; padding: 0 !important;
+  vertical-align: middle !important;
+  accent-color: #6b5bc4 !important;
+  visibility: visible !important; opacity: 1 !important;
+  cursor: pointer !important;
+}
 </style>
 </head>
 <body>
@@ -3394,7 +3409,7 @@ function toggleTheme() {
   toast(theme === 'dark' ? '已切换到反色主题' : '已切换到浅色主题');
 }
 
-const APP_VER = 'v8.57';
+const APP_VER = 'v8.58';
 const LS_KEY = 'flow_grid_v5';
 const SUMMARY_STATE_KEY = 'flow_summary_state_v3';
 // 流水表默认铺多少行空行。像 Excel 一样随手往下填，不用先点「新增」。
