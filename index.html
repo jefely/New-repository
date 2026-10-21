@@ -1830,6 +1830,70 @@ table#summary-table { min-width: 800px !important; }
   user-select: none !important;
 }
 .toolbar.plan-bar2 > .range-group > input:placeholder-shown { color: var(--text-light) !important; }
+/* 月份/年份 格子：固定宽度、靠左排列，不随窗口拉长 */
+.toolbar.plan-bar2 > .month-row {
+  flex: 0 0 auto !important;
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 3px !important;
+  max-width: none !important;
+}
+.toolbar.plan-bar2 > .month-row .m-btn {
+  flex: 0 0 40px !important;
+  width: 40px !important;
+  min-width: 40px !important;
+  max-width: 40px !important;
+  height: 28px !important;
+  padding: 0 !important;
+  font-size: 13px !important;
+  box-sizing: border-box !important;
+}
+.toolbar.plan-bar2 > .month-row.plan-years .m-btn {
+  flex: 0 0 62px !important;
+  width: 62px !important;
+  min-width: 62px !important;
+  max-width: 62px !important;
+  font-size: 13px !important;
+}
+/* 区间单框 */
+.toolbar.plan-bar2 > input.plan-start,
+.toolbar.plan-bar2 > input.plan-end {
+  flex: 1 1 0 !important;
+  min-width: 0 !important;
+  height: 28px !important;
+  padding: 0 8px !important;
+  font-size: 14px !important;
+  box-sizing: border-box !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 5px !important;
+  background: var(--bg-main) !important;
+  color: var(--text-main) !important;
+}
+/* 第二行工具栏允许换行，格子靠左排，不撑破屏宽 */
+.toolbar.plan-bar2 {
+  flex-wrap: wrap !important;
+  align-items: flex-start !important;
+  height: auto !important;
+  overflow: visible !important;
+  padding-bottom: 5px !important;
+}
+.toolbar.plan-bar2 > .month-row {
+  flex: 0 0 auto !important;
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 3px !important;
+  width: 100% !important;
+  justify-content: flex-start !important;
+}
+.toolbar.plan-bar2 > .month-row .m-btn {
+  flex: 0 0 36px !important; width: 36px !important; min-width: 36px !important; max-width: 36px !important;
+}
+@media (max-width: 380px) {
+  .toolbar.plan-bar2 > .month-row .m-btn {
+    flex: 0 0 32px !important; width: 32px !important; min-width: 32px !important; max-width: 32px !important;
+    font-size: 12px !important;
+  }
+}
 </style>
 </head>
 <body>
@@ -1930,7 +1994,7 @@ function toggleTheme() {
   toast(theme === 'dark' ? '已切换到反色主题' : '已切换到浅色主题');
 }
 
-const APP_VER = 'v7.75';
+const APP_VER = 'v7.77';
 const LS_KEY = 'flow_grid_v5';
 const SUMMARY_STATE_KEY = 'flow_summary_state_v3';
 // 流水表默认铺多少行空行。像 Excel 一样随手往下填，不用先点「新增」。
@@ -1959,7 +2023,7 @@ let state = (() => {
 if (!Array.isArray(state.fixed)) state.fixed = [];
 if (!Array.isArray(state.installments)) state.installments = [];
 
-let summaryMode = 'month';   // month | year | range | all
+let summaryMode = 'range';   // range | month | year | all（默认区间）
 let summaryYear = new Date().getFullYear();
 let summaryRange = { start: '', end: '' };
 let summaryMonth = (() => {
@@ -2268,7 +2332,7 @@ function buildSubSummary(range) {
 }
 
 // 分类页：按「汇总分类」聚合，支持 月 / 年 / 区间 / 全部历史
-let catMode = 'month';          // month | year | range | all
+let catMode = 'range';          // range | month | year | all（默认区间）
 let catYear = new Date().getFullYear();
 let catRange = { start: '', end: '' };
 
@@ -2313,11 +2377,9 @@ function renderCat(main, footer) {
     range: catMode === 'range' ? catRange : { start: '', end: '' },
     onMode: (m) => { catMode = m; render(); },
     onClear: () => {
-      catMode = 'month';
+      catMode = 'range';
       catRange = { start: '', end: '' };
-      const d = new Date();
-      summaryMonth = { year: d.getFullYear(), month: d.getMonth() + 1 };
-      saveSummaryState(); render(); toast('已清空条件，回到本月');
+      saveSummaryState(); render(); toast('已清空区间');
     },
     onYear: (y) => {
       if (catMode === 'year') catYear = y;
@@ -2725,29 +2787,10 @@ function buildRangeToolbar(opts) {
     }
     bar2.innerHTML = `<div class="month-row plan-years">${cells}</div>`;
   } else if (mode === 'range') {
-    // 年 / 月 / 日 三段分开编辑，没填的留空
-    const parts = (v) => {
-      const m = /^(\d{4})?[-\/]?(\d{1,2})?[-\/]?(\d{1,2})?$/.exec(String(v || '').trim());
-      if (!m) return { y: '', mo: '', d: '' };
-      return { y: m[1] || '', mo: m[2] || '', d: m[3] || '' };
-    };
-    const sp = parts(range.start), ep = parts(range.end);
     bar2.innerHTML = `
-      <span class="range-group">
-        <input class="plan-y" inputmode="numeric" maxlength="4" placeholder="YYYY" value="${esc(sp.y)}">
-        <i class="dash">-</i>
-        <input class="plan-mo" inputmode="numeric" maxlength="2" placeholder="M" value="${esc(sp.mo)}">
-        <i class="dash">-</i>
-        <input class="plan-d" inputmode="numeric" maxlength="2" placeholder="D" value="${esc(sp.d)}">
-      </span>
+      <input class="grow plan-start" placeholder="起始 2026-08-01" inputmode="numeric" value="${esc(range.start || '')}">
       <span class="tilde">至</span>
-      <span class="range-group">
-        <input class="plan-y2" inputmode="numeric" maxlength="4" placeholder="YYYY" value="${esc(ep.y)}">
-        <i class="dash">-</i>
-        <input class="plan-mo2" inputmode="numeric" maxlength="2" placeholder="M" value="${esc(ep.mo)}">
-        <i class="dash">-</i>
-        <input class="plan-d2" inputmode="numeric" maxlength="2" placeholder="D" value="${esc(ep.d)}">
-      </span>
+      <input class="grow plan-end" placeholder="结束 2026-10-31" inputmode="numeric" value="${esc(range.end || '')}">
     `;
   } else {
     bar2.innerHTML = `<span style="font-size:12px;color:var(--text-muted);padding:0 4px">不限制时间，统计全部数据</span>`;
@@ -2775,34 +2818,10 @@ function buildRangeToolbar(opts) {
   bar2.querySelectorAll('.plan-y').forEach(b => {
     b.onclick = () => opts.onYear && opts.onYear(parseInt(b.dataset.y, 10));
   });
-  const g = (cls) => { const e = bar2.querySelector('.' + cls); return e ? String(e.value || '').trim() : ''; };
-  const join = (y, mo, d) => {
-    if (!y) return '';
-    let s = y;
-    if (mo) s += '-' + String(mo).padStart(2, '0');
-    if (d) s += '-' + String(d).padStart(2, '0');
-    return s;
-  };
-  const fire = () => {
-    const s = join(g('plan-y'), g('plan-mo'), g('plan-d'));
-    const e = join(g('plan-y2'), g('plan-mo2'), g('plan-d2'));
-    opts.onRange && opts.onRange(s, e);
-  };
-  ['.plan-y', '.plan-mo', '.plan-d', '.plan-y2', '.plan-mo2', '.plan-d2'].forEach(cls => {
-    const el = bar2.querySelector(cls);
-    if (!el) return;
-    el.onchange = fire;
-    el.onblur = fire;
-    // 输入满位自动跳到下一个格子
-    el.oninput = () => {
-      const max = parseInt(el.getAttribute('maxlength'), 10) || 4;
-      if (String(el.value).length >= max) {
-        const all = [...bar2.querySelectorAll('.range-group input')];
-        const idx = all.indexOf(el);
-        if (idx >= 0 && all[idx + 1]) { try { all[idx + 1].focus(); } catch (e) {} }
-      }
-    };
-  });
+  const si = bar2.querySelector('.plan-start'), ei = bar2.querySelector('.plan-end');
+  const fire = () => opts.onRange && opts.onRange(si ? si.value.trim() : '', ei ? ei.value.trim() : '');
+  if (si) { si.onchange = fire; si.onblur = fire; }
+  if (ei) { ei.onchange = fire; ei.onblur = fire; }
 
   return { bar1, bar2 };
 }
@@ -3351,11 +3370,10 @@ function renderSummary(main, footer) {
     range: summaryMode === 'range' ? summaryRange : { start: '', end: '' },
     onMode: (m) => { summaryMode = m; saveSummaryState(); render(); },
     onClear: () => {
-      summaryMode = 'month';
+      // 清空后仍停「区间」，两个日期置空 → 不计算（全 0）
+      summaryMode = 'range';
       summaryRange = { start: '', end: '' };
-      const d = new Date();
-      summaryMonth = { year: d.getFullYear(), month: d.getMonth() + 1 };
-      saveSummaryState(); render(); toast('已清空条件，回到本月');
+      saveSummaryState(); render(); toast('已清空区间');
     },
     onYear: (y) => {
       if (summaryMode === 'year') summaryYear = y;
