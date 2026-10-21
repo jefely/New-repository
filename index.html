@@ -3653,7 +3653,7 @@ table#cat-table {
   background-color: #ffffff !important;
   color: var(--text-main) !important;
   border: 1px solid var(--border) !important;
-  font-weight: 400 !important;
+  font-weight: 700 !important;
 }
 .toolbar .bal-btn:active,
 .toolbar .bal-btn.active,
@@ -3666,6 +3666,7 @@ table#cat-table {
   background: #2a2140 !important;
   color: #f4f1fd !important;
   border: none !important;
+  font-weight: 700 !important;
 }
 [data-theme="dark"] .toolbar .bal-btn:active,
 [data-theme="dark"] .toolbar .bal-btn:hover {
@@ -3861,7 +3862,7 @@ async function encryptWithSession(text) {
   return b64u(catBytes(_sessionSalt, iv, ct));
 }
 
-const APP_VER = 'v8.85';
+const APP_VER = 'v8.86';
 const LS_KEY = 'flow_grid_v5';
 const SUMMARY_STATE_KEY = 'flow_summary_state_v3';
 // 流水表默认铺多少行空行。像 Excel 一样随手往下填，不用先点「新增」。
