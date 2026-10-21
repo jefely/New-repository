@@ -1782,6 +1782,54 @@ table#summary-table { min-width: 800px !important; }
   color: var(--text-muted) !important;
   padding: 0 1px !important;
 }
+/* 区间输入：三段数字 + 破折号，整体看起来就是一个 2026-08-01 */
+.toolbar.plan-bar2 > .range-group {
+  display: flex !important;
+  align-items: center !important;
+  gap: 0 !important;
+  flex: 0 0 auto !important;
+  min-width: 0 !important;
+  height: 28px !important;
+  padding: 0 4px !important;
+  box-sizing: border-box !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 5px !important;
+  background: var(--bg-main) !important;
+  overflow: hidden !important;
+}
+.toolbar.plan-bar2 > .range-group > input {
+  flex: 0 0 auto !important;
+  height: 26px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  font-size: 14px !important;
+  text-align: center !important;
+  box-sizing: border-box !important;
+  border: none !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  color: var(--text-main) !important;
+  outline: none !important;
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  box-shadow: none !important;
+}
+.toolbar.plan-bar2 > .range-group > input:focus { background: var(--cell-active) !important; border-radius: 3px !important; }
+.toolbar.plan-bar2 > .range-group > input.plan-y,
+.toolbar.plan-bar2 > .range-group > input.plan-y2 { width: 48px !important; }
+.toolbar.plan-bar2 > .range-group > input.plan-mo,
+.toolbar.plan-bar2 > .range-group > input.plan-mo2 { width: 32px !important; }
+.toolbar.plan-bar2 > .range-group > input.plan-d,
+.toolbar.plan-bar2 > .range-group > input.plan-d2 { width: 32px !important; }
+.toolbar.plan-bar2 > .range-group > i.dash {
+  flex: 0 0 auto !important;
+  font-style: normal !important;
+  font-size: 14px !important;
+  color: var(--text-light) !important;
+  padding: 0 2px !important;
+  user-select: none !important;
+}
+.toolbar.plan-bar2 > .range-group > input:placeholder-shown { color: var(--text-light) !important; }
 </style>
 </head>
 <body>
@@ -1882,7 +1930,7 @@ function toggleTheme() {
   toast(theme === 'dark' ? '已切换到反色主题' : '已切换到浅色主题');
 }
 
-const APP_VER = 'v7.73';
+const APP_VER = 'v7.75';
 const LS_KEY = 'flow_grid_v5';
 const SUMMARY_STATE_KEY = 'flow_summary_state_v3';
 // 流水表默认铺多少行空行。像 Excel 一样随手往下填，不用先点「新增」。
@@ -2686,15 +2734,19 @@ function buildRangeToolbar(opts) {
     const sp = parts(range.start), ep = parts(range.end);
     bar2.innerHTML = `
       <span class="range-group">
-        <input class="plan-y" inputmode="numeric" maxlength="4" placeholder="年" value="${esc(sp.y)}"><i>年</i>
-        <input class="plan-mo" inputmode="numeric" maxlength="2" placeholder="月" value="${esc(sp.mo)}"><i>月</i>
-        <input class="plan-d" inputmode="numeric" maxlength="2" placeholder="日" value="${esc(sp.d)}"><i>日</i>
+        <input class="plan-y" inputmode="numeric" maxlength="4" placeholder="YYYY" value="${esc(sp.y)}">
+        <i class="dash">-</i>
+        <input class="plan-mo" inputmode="numeric" maxlength="2" placeholder="M" value="${esc(sp.mo)}">
+        <i class="dash">-</i>
+        <input class="plan-d" inputmode="numeric" maxlength="2" placeholder="D" value="${esc(sp.d)}">
       </span>
       <span class="tilde">至</span>
       <span class="range-group">
-        <input class="plan-y2" inputmode="numeric" maxlength="4" placeholder="年" value="${esc(ep.y)}"><i>年</i>
-        <input class="plan-mo2" inputmode="numeric" maxlength="2" placeholder="月" value="${esc(ep.mo)}"><i>月</i>
-        <input class="plan-d2" inputmode="numeric" maxlength="2" placeholder="日" value="${esc(ep.d)}"><i>日</i>
+        <input class="plan-y2" inputmode="numeric" maxlength="4" placeholder="YYYY" value="${esc(ep.y)}">
+        <i class="dash">-</i>
+        <input class="plan-mo2" inputmode="numeric" maxlength="2" placeholder="M" value="${esc(ep.mo)}">
+        <i class="dash">-</i>
+        <input class="plan-d2" inputmode="numeric" maxlength="2" placeholder="D" value="${esc(ep.d)}">
       </span>
     `;
   } else {
