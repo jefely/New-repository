@@ -2756,7 +2756,7 @@ function toggleTheme() {
   toast(theme === 'dark' ? '已切换到反色主题' : '已切换到浅色主题');
 }
 
-const APP_VER = 'v8.32';
+const APP_VER = 'v8.33';
 const LS_KEY = 'flow_grid_v5';
 const SUMMARY_STATE_KEY = 'flow_summary_state_v3';
 // 流水表默认铺多少行空行。像 Excel 一样随手往下填，不用先点「新增」。
@@ -3296,14 +3296,8 @@ function openColWidthsDialog() {
       <div class="sync-hint" style="text-align:left;line-height:1.8">
         已保存 <b id="cw-count">0</b> 张表列宽 · 分期月份列 <b id="cw-mw">62</b>px
       </div>
-      <div class="layout-grid">
-        <label>行高 <input id="lay-rowh" type="number" min="20" max="60" step="1" value="32">px</label>
-        <label>正文号 <input id="lay-fs" type="number" min="10" max="22" step="1" value="15">px</label>
-        <label>表头号 <input id="lay-fsh" type="number" min="10" max="22" step="1" value="15">px</label>
-      </div>
       <div class="sync-block" style="gap:8px">
-        <button type="button" id="lay-apply" style="width:100%">应用行高 / 字号</button>
-        <button type="button" class="ghost" id="cw-reset" style="width:100%">恢复默认布局</button>
+        <button type="button" id="cw-reset" style="width:100%">恢复默认布局</button>
         <button type="button" class="ghost" id="cw-copy" style="width:100%">导出布局参数</button>
         <button type="button" class="ghost" id="cw-paste" style="width:100%">导入布局参数</button>
       </div>
@@ -3322,23 +3316,10 @@ function openColWidthsDialog() {
   if (cnt) cnt.textContent = String(Object.keys(colWidths || {}).length);
   const mwEl = mask.querySelector('#cw-mw');
   if (mwEl) { try { mwEl.textContent = String(localStorage.getItem('flow_inst_mw_v1') || 62); } catch (e) {} }
-  const r1 = mask.querySelector('#lay-rowh'), r2 = mask.querySelector('#lay-fs'), r3 = mask.querySelector('#lay-fsh');
-  if (r1) r1.value = layoutCfg.rowH;
-  if (r2) r2.value = layoutCfg.fontSize;
-  if (r3) r3.value = layoutCfg.headerFontSize;
 
   const cl = (v, lo, hi, def) => { let n = parseInt(v, 10); if (isNaN(n)) n = def; return Math.max(lo, Math.min(hi, n)); };
   const area = mask.querySelector('#cw-area');
   const ta = mask.querySelector('#cw-json');
-
-  mask.querySelector('#lay-apply').onclick = () => {
-    layoutCfg.rowH = cl(r1.value, 20, 60, 32);
-    layoutCfg.fontSize = cl(r2.value, 10, 22, 15);
-    layoutCfg.headerFontSize = cl(r3.value, 10, 22, 15);
-    saveLayout(); applyLayout();
-    r1.value = layoutCfg.rowH; r2.value = layoutCfg.fontSize; r3.value = layoutCfg.headerFontSize;
-    toast('已应用：行高 ' + layoutCfg.rowH + 'px · 正文 ' + layoutCfg.fontSize + 'px · 表头 ' + layoutCfg.headerFontSize + 'px');
-  };
 
   mask.querySelector('#cw-reset').onclick = () => {
     colWidths = JSON.parse(JSON.stringify(DEFAULT_COL_WIDTHS));
