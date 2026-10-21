@@ -2680,6 +2680,73 @@ table#summary-table tbody tr.cat-row > td.col-seq {
   color: #c9b8ff !important;
   font-weight: 700 !important;
 }
+/* 汇总类型标签行：改成和「分类」页「资产类 合计」一样的配色和字体 */
+table#summary-table tbody tr.cat-row > td,
+table#summary-table tbody tr.cat-row > td.col-seq,
+table#summary-table tbody tr.cat-row > td.col-cat,
+table#summary-table tbody tr.cat-row > td.col-sub,
+table#summary-table tbody tr.cat-row > td.col-code,
+table#summary-table tbody tr.cat-row > td.col-name,
+table#summary-table tbody tr.cat-row > td.cat-sum,
+table#summary-table tbody tr.cat-row > td.col-bal,
+table#summary-table tbody tr.cat-row > td.col-out,
+table#summary-table tbody tr.cat-row > td.col-in,
+table#summary-table tbody tr.cat-row > td.col-hout,
+table#summary-table tbody tr.cat-row > td.col-hin,
+table#summary-table tbody tr.cat-row > td.col-open {
+  background: #ece7fb !important;
+  color: #3d2d7a !important;
+  font-weight: 800 !important;
+  border-top: none !important;
+  border-bottom: 1px solid var(--border-light) !important;
+}
+table#summary-table tbody tr.cat-row > td.col-seq {
+  color: #3d2d7a !important;
+  font-weight: 800 !important;
+}
+/* 账单日 / 还款日两列：类型标签行里不带颜色 */
+table#summary-table tbody tr.cat-row > td.col-bill,
+table#summary-table tbody tr.cat-row > td.col-repay {
+  background: transparent !important;
+  color: var(--text-muted) !important;
+  font-weight: 400 !important;
+}
+/* 深色主题 */
+[data-theme="dark"] table#summary-table tbody tr.cat-row > td,
+[data-theme="dark"] table#summary-table tbody tr.cat-row > td.col-seq,
+[data-theme="dark"] table#summary-table tbody tr.cat-row > td.col-cat,
+[data-theme="dark"] table#summary-table tbody tr.cat-row > td.col-sub,
+[data-theme="dark"] table#summary-table tbody tr.cat-row > td.col-code,
+[data-theme="dark"] table#summary-table tbody tr.cat-row > td.col-name,
+[data-theme="dark"] table#summary-table tbody tr.cat-row > td.cat-sum,
+[data-theme="dark"] table#summary-table tbody tr.cat-row > td.col-bal,
+[data-theme="dark"] table#summary-table tbody tr.cat-row > td.col-out,
+[data-theme="dark"] table#summary-table tbody tr.cat-row > td.col-in,
+[data-theme="dark"] table#summary-table tbody tr.cat-row > td.col-hout,
+[data-theme="dark"] table#summary-table tbody tr.cat-row > td.col-hin,
+[data-theme="dark"] table#summary-table tbody tr.cat-row > td.col-open,
+[data-theme="dark"] table#summary-table tbody tr.cat-row:nth-child(odd) > td,
+[data-theme="dark"] table#summary-table tbody tr.cat-row:nth-child(even) > td {
+  background: #2a2140 !important;
+  color: #ffffff !important;
+  font-weight: 800 !important;
+  border-top: none !important;
+  border-bottom: 1px solid #3b2f59 !important;
+}
+[data-theme="dark"] table#summary-table tbody tr.cat-row > td.col-seq {
+  color: #ffffff !important;
+  font-weight: 800 !important;
+}
+[data-theme="dark"] table#summary-table tbody tr.cat-row > td.col-bill,
+[data-theme="dark"] table#summary-table tbody tr.cat-row > td.col-repay,
+[data-theme="dark"] table#summary-table tbody tr.cat-row:nth-child(odd) > td.col-bill,
+[data-theme="dark"] table#summary-table tbody tr.cat-row:nth-child(odd) > td.col-repay,
+[data-theme="dark"] table#summary-table tbody tr.cat-row:nth-child(even) > td.col-bill,
+[data-theme="dark"] table#summary-table tbody tr.cat-row:nth-child(even) > td.col-repay {
+  background: transparent !important;
+  color: #8e7fd0 !important;
+  font-weight: 400 !important;
+}
 </style>
 </head>
 <body>
@@ -2780,7 +2847,7 @@ function toggleTheme() {
   toast(theme === 'dark' ? '已切换到反色主题' : '已切换到浅色主题');
 }
 
-const APP_VER = 'v8.35';
+const APP_VER = 'v8.36';
 const LS_KEY = 'flow_grid_v5';
 const SUMMARY_STATE_KEY = 'flow_summary_state_v3';
 // 流水表默认铺多少行空行。像 Excel 一样随手往下填，不用先点「新增」。
