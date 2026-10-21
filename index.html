@@ -3119,6 +3119,51 @@ table#summary-table tbody tr.cat-row:nth-child(even) > td.col-del,
   border-bottom: none !important;
   background: transparent !important;
 }
+/* 非负债的类型标签行：删除/账单日/还款日 三列完全干净 —— 无横线、无填充 */
+table#summary-table tbody tr.cat-row:not(.debt-row) > td.col-del,
+[data-theme="dark"] table#summary-table tbody tr.cat-row:not(.debt-row) > td.col-del,
+table#summary-table tbody tr.cat-row:not(.debt-row) > td.col-bill,
+[data-theme="dark"] table#summary-table tbody tr.cat-row:not(.debt-row) > td.col-bill,
+table#summary-table tbody tr.cat-row:not(.debt-row) > td.col-repay,
+[data-theme="dark"] table#summary-table tbody tr.cat-row:not(.debt-row) > td.col-repay,
+table#summary-table tbody tr.cat-row:not(.debt-row):nth-child(odd) > td.col-del,
+[data-theme="dark"] table#summary-table tbody tr.cat-row:not(.debt-row):nth-child(odd) > td.col-del,
+table#summary-table tbody tr.cat-row:not(.debt-row):nth-child(odd) > td.col-bill,
+[data-theme="dark"] table#summary-table tbody tr.cat-row:not(.debt-row):nth-child(odd) > td.col-bill,
+table#summary-table tbody tr.cat-row:not(.debt-row):nth-child(odd) > td.col-repay,
+[data-theme="dark"] table#summary-table tbody tr.cat-row:not(.debt-row):nth-child(odd) > td.col-repay,
+table#summary-table tbody tr.cat-row:not(.debt-row):nth-child(even) > td.col-del,
+[data-theme="dark"] table#summary-table tbody tr.cat-row:not(.debt-row):nth-child(even) > td.col-del,
+table#summary-table tbody tr.cat-row:not(.debt-row):nth-child(even) > td.col-bill,
+[data-theme="dark"] table#summary-table tbody tr.cat-row:not(.debt-row):nth-child(even) > td.col-bill,
+table#summary-table tbody tr.cat-row:not(.debt-row):nth-child(even) > td.col-repay,
+[data-theme="dark"] table#summary-table tbody tr.cat-row:not(.debt-row):nth-child(even) > td.col-repay {
+  border: none !important;
+  border-top: none !important;
+  border-bottom: none !important;
+  border-left: none !important;
+  border-right: none !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
+}
+/* 深色：删除列整列透明（不跟随任何底色） */
+[data-theme="dark"] table#summary-table th.col-del,
+[data-theme="dark"] table#summary-table td.col-del,
+[data-theme="dark"] table#summary-table tbody tr:nth-child(odd) > td.col-del,
+[data-theme="dark"] table#summary-table tbody tr:nth-child(even) > td.col-del,
+[data-theme="dark"] table#summary-table tbody tr.cat-row > td.col-del,
+[data-theme="dark"] table#summary-table tbody tr.cat-row.debt-row > td.col-del {
+  background: transparent !important;
+  background-color: transparent !important;
+}
+/* 深色：非负债行的账单/还款列透明 */
+[data-theme="dark"] table#summary-table tbody tr:not(.debt-row) > td.col-bill,
+[data-theme="dark"] table#summary-table tbody tr:not(.debt-row) > td.col-repay {
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
+}
 </style>
 </head>
 <body>
@@ -3219,7 +3264,7 @@ function toggleTheme() {
   toast(theme === 'dark' ? '已切换到反色主题' : '已切换到浅色主题');
 }
 
-const APP_VER = 'v8.48';
+const APP_VER = 'v8.49';
 const LS_KEY = 'flow_grid_v5';
 const SUMMARY_STATE_KEY = 'flow_summary_state_v3';
 // 流水表默认铺多少行空行。像 Excel 一样随手往下填，不用先点「新增」。
