@@ -3646,6 +3646,32 @@ table#cat-table {
   max-width: none;
   table-layout: fixed !important;
 }
+/* 「期初配平」按钮：浅色下白底 + 淡灰边框（不跟随选中态紫底） */
+.toolbar button.plan-btn.bal-btn,
+.toolbar .bal-btn {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  color: var(--text-main) !important;
+  border: 1px solid var(--border) !important;
+  font-weight: 400 !important;
+}
+.toolbar .bal-btn:active,
+.toolbar .bal-btn.active,
+.toolbar .bal-btn:hover {
+  background: #f8fafc !important;
+  color: var(--text-main) !important;
+  border-color: var(--border) !important;
+}
+[data-theme="dark"] .toolbar .bal-btn {
+  background: #2a2140 !important;
+  color: #f4f1fd !important;
+  border: none !important;
+}
+[data-theme="dark"] .toolbar .bal-btn:active,
+[data-theme="dark"] .toolbar .bal-btn:hover {
+  background: #4c3d80 !important;
+  color: #ffffff !important;
+}
 </style>
 </head>
 <body>
@@ -3835,7 +3861,7 @@ async function encryptWithSession(text) {
   return b64u(catBytes(_sessionSalt, iv, ct));
 }
 
-const APP_VER = 'v8.80';
+const APP_VER = 'v8.83';
 const LS_KEY = 'flow_grid_v5';
 const SUMMARY_STATE_KEY = 'flow_summary_state_v3';
 // 流水表默认铺多少行空行。像 Excel 一样随手往下填，不用先点「新增」。
@@ -4571,6 +4597,167 @@ function buildLayoutText() {
   return lines.join('\n');
 }
 
+/* ============================================================
+   批量导入：一个文本框（或 .txt 文件），用「账户」「流水」分段
+   ------------------------------------------------------------
+   账户段格式：类型，分类，简码，名称，期初，
+   流水段格式：YYMMDD，账户简码，备注，金额，
+   · 账户按「名称」判重，已存在的直接忽略
+   · 流水的账户简码会先翻译成账户全称，翻译不到就原样保留并计入「未匹配」
+   ============================================================ */
+function parseImportText(text) {
+  const nums = s => {
+    const cleaned = String(s || '').replace(/[¥,，\s]/g, '');
+    const n = parseFloat(cleaned);
+    return isNaN(n) ? 0 : n;
+  };
+  const lines = String(text || '').split(/\r?\n/);
+  let section = null;
+  const accounts = [], flows = [];
+  for (let rawLine of lines) {
+    const line = rawLine.trim();
+    if (!line) continue;
+    // 段标题：账户 / 流水（允许带尾巴说明）
+    if (/^账户/.test(line) && !/[，,]/.test(line)) { section = 'acc'; continue; }
+    if (/^流水/.test(line) && !/[，,]/.test(line)) { section = 'flow'; continue; }
+    if (/^\[账户\]/.test(line)) { section = 'acc'; continue; }
+    if (/^\[流水\]/.test(line)) { section = 'flow'; continue; }
+    if (section === null) continue;
+    // 分隔符：优先中文逗号，其次英文逗号、制表符
+    const parts = line.split(/[，,\t]/).map(s => s.trim());
+    while (parts.length && parts[parts.length - 1] === '') parts.pop();
+    if (!parts.length) continue;
+
+    if (section === 'acc') {
+      // 类型，分类，简码，名称，期初
+      if (parts.length < 4) continue;
+      const cat = parts[0], sub = parts[1] || '', code = parts[2] || '', name = parts[3] || '';
+      const opening = parts.length >= 5 ? nums(parts[4]) : 0;
+      if (!name) continue;
+      accounts.push({ cat, sub, code, name, opening });
+    } else {
+      // 日期，账户简码，备注，金额
+      if (parts.length < 3) continue;
+      const date = parts[0], acct = parts[1] || '', note = parts.length >= 3 ? parts[2] : '';
+      const amount = parts.length >= 4 ? nums(parts[3]) : 0;
+      if (!acct) continue;
+      flows.push({ date, acct, note, amount });
+    }
+  }
+  return { accounts, flows };
+}
+
+function openImportDialog() {
+  const mask = document.createElement('div');
+  mask.className = 'confirm-mask';
+  mask.innerHTML = `
+    <div class="sync-box" style="max-width:min(96vw,560px)">
+      <div class="sync-title">导入账户与流水</div>
+      <div class="sync-hint" style="text-align:left;line-height:1.7">
+        一段文本用「账户」「流水」两个词分段，字段之间用中文逗号。<br>
+        账户：<code>类型，分类，简码，名称，期初，</code><br>
+        流水：<code>YYMMDD，账户简码，备注，金额，</code><br>
+        账户按「名称」判重，已存在的自动忽略。
+      </div>
+      <textarea id="imp-text" spellcheck="false" placeholder="账户
+资产类，现金，XJ，现金，200.00，
+资产类，充值，FK，饭卡，0.00，
+
+流水
+261022，XJ，水，3.00，"
+        style="width:100%;height:170px;font-size:12px;font-family:ui-monospace,Consolas,monospace;padding:8px;box-sizing:border-box;border:1px solid var(--border);border-radius:6px;background:var(--bg-main);color:var(--text-main);line-height:1.6"></textarea>
+      <div class="sync-block" style="gap:8px;margin-top:8px">
+        <button type="button" class="ghost" id="imp-file-btn" style="width:100%">从 TXT 文件读取</button>
+        <input type="file" id="imp-file" accept=".txt,.csv,.text" style="display:none">
+      </div>
+      <div id="imp-preview" class="sync-hint" style="text-align:left;min-height:18px;margin-top:6px"></div>
+      <div class="sync-actions">
+        <button type="button" id="imp-go">导入</button>
+        <button type="button" class="ghost" data-act="close">关闭</button>
+      </div>
+    </div>`;
+  document.body.appendChild(mask);
+  const close = () => mask.remove();
+  mask.addEventListener('click', e => {
+    if (e.target === mask || (e.target.dataset && e.target.dataset.act === 'close')) close();
+  });
+  const ta = mask.querySelector('#imp-text');
+  const pv = mask.querySelector('#imp-preview');
+  const fileInp = mask.querySelector('#imp-file');
+
+  const preview = () => {
+    if (!ta.value.trim()) { pv.textContent = ''; return; }
+    const r = parseImportText(ta.value);
+    const existing = new Set(state.accounts.map(a => String(a.name || '').trim()).filter(Boolean));
+    const newAcc = r.accounts.filter(a => !existing.has(a.name));
+    const dupAcc = r.accounts.length - newAcc.length;
+    pv.innerHTML = '识别到：账户 <b>' + r.accounts.length + '</b> 条（可新增 ' + newAcc.length
+      + '，重复忽略 ' + dupAcc + '）· 流水 <b>' + r.flows.length + '</b> 条';
+  };
+  ta.addEventListener('input', preview);
+  ta.addEventListener('change', preview);
+
+  mask.querySelector('#imp-file-btn').onclick = () => fileInp.click();
+  fileInp.onchange = async () => {
+    const f = fileInp.files && fileInp.files[0];
+    if (!f) return;
+    try {
+      let txt = await f.text();
+      // 常见的 GBK 文本会是乱码，这里只按 UTF-8 读；读不到再说
+      ta.value = txt;
+      preview();
+      toast('已读取 ' + f.name);
+    } catch (e) { toast('读取失败：' + e.message, { type: 'error' }); }
+    finally { fileInp.value = ''; }
+  };
+
+  mask.querySelector('#imp-go').onclick = () => {
+    const r = parseImportText(ta.value);
+    if (!r.accounts.length && !r.flows.length) {
+      toast('没识别到任何数据，检查一下「账户」「流水」两个分段词', { type: 'error', duration: 5000 });
+      return;
+    }
+    const existing = new Map(state.accounts.map(a => [String(a.name || '').trim(), a]));
+    let addedAcc = 0, skippedAcc = 0;
+    for (const a of r.accounts) {
+      if (existing.has(a.name)) { skippedAcc++; continue; }
+      const acc = {
+        id: uid(), cat: a.cat, sub: a.sub, code: a.code, name: a.name,
+        opening: a.opening, billDay: '', repayDay: ''
+      };
+      state.accounts.push(acc);
+      existing.set(a.name, acc);
+      addedAcc++;
+    }
+    // 简码 → 名称
+    const codeToName = new Map();
+    for (const a of state.accounts) {
+      const cd = String(a.code || '').trim().toUpperCase();
+      if (cd) codeToName.set(cd, a.name);
+      const nm = String(a.name || '').trim().toUpperCase();
+      if (nm) codeToName.set(nm, a.name);
+    }
+    let addedFlow = 0, unmatched = 0;
+    for (const f of r.flows) {
+      const iso = parseDateInput(f.date) || '';
+      if (!iso) continue;
+      const key = String(f.acct || '').trim().toUpperCase();
+      const name = codeToName.get(key);
+      if (!name) unmatched++;
+      state.transactions.push({
+        id: uid(), seq: nextSeq(), date: iso,
+        from: name || f.acct, to: '', note: f.note || '',
+        amount: f.amount ? String(f.amount) : ''
+      });
+      addedFlow++;
+    }
+    reseq(); save(); close(); render();
+    let msg = '新增账户 ' + addedAcc + '（忽略重复 ' + skippedAcc + '）· 流水 ' + addedFlow + ' 条';
+    if (unmatched) msg += ' · ' + unmatched + ' 条账户简码没匹配上';
+    toast(msg, { duration: 6000 });
+  };
+}
+
 function openColWidthsDialog() {
   const mask = document.createElement('div');
   mask.className = 'confirm-mask';
@@ -5217,6 +5404,7 @@ function renderFlow(main, footer) {
   bar.innerHTML = `
     <span class="flow-title">流水记录</span>
     <button class="ghost" id="f-add">添加</button>
+    <button class="ghost" id="f-import" title="导入账户与流水（TXT / 粘贴）">导入</button>
     <button class="ghost" id="f-sync">同步</button>
     <button class="ghost" id="f-exp">导出</button>
     <button class="ghost" id="f-theme" title="切换反色主题">主题</button>
@@ -5234,6 +5422,8 @@ function renderFlow(main, footer) {
   document.getElementById('f-reset').onclick = () => openResetDialog();
   const colsBtn = document.getElementById('f-cols');
   if (colsBtn) colsBtn.onclick = () => openColWidthsDialog();
+  const impBtn = document.getElementById('f-import');
+  if (impBtn) impBtn.onclick = () => openImportDialog();
 
   // 3. 表格主体
   const wrap = document.createElement('div');
@@ -5789,7 +5979,7 @@ function renderSummary(main, footer) {
   try {
     const balBtn = document.createElement('button');
     balBtn.type = 'button';
-    balBtn.className = 'plan-btn';
+    balBtn.className = 'bal-btn';
     balBtn.textContent = '期初配平';
     balBtn.title = '自动把期初差额记入「实收资本」，让会计恒等式平衡';
     balBtn.onclick = () => openBalanceDialog();
