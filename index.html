@@ -2027,6 +2027,62 @@ table#summary-table { min-width: 800px !important; }
 [data-theme="dark"] .toast > button:active { background: rgba(185, 166, 255, .34) !important; color: #ffffff !important; }
 [data-theme="dark"] .toast.error { background: #3a1d1d !important; border-color: #6b2b2b !important; }
 [data-theme="dark"] .toast.error > button { border-color: #ff9d9d !important; color: #ffc4c4 !important; background: rgba(255,157,157,.14) !important; }
+/* ============================================================
+   深色主题：工具栏条 + 按钮 = 两级暗紫，做出「半透明玻璃」的层次
+   ============================================================ */
+[data-theme="dark"] .toolbar.flow-bar,
+[data-theme="dark"] .toolbar.bar1,
+[data-theme="dark"] .toolbar.bar2,
+[data-theme="dark"] .toolbar.install-bar,
+[data-theme="dark"] .toolbar.plan-bar,
+[data-theme="dark"] .toolbar.plan-bar2 {
+  background: #181322 !important;     /* 更深的暗紫：背板 */
+  border-bottom: 1px solid #241d33 !important;
+}
+[data-theme="dark"] .toolbar > button,
+[data-theme="dark"] .toolbar.plan-bar > button.plan-btn {
+  background: #2a2140 !important;      /* 稍亮的暗紫：按钮填充 */
+  border: 1px solid #3b2f59 !important;
+  color: #e8e2ff !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.05) !important;
+}
+[data-theme="dark"] .toolbar > button:active,
+[data-theme="dark"] .toolbar.plan-bar > button.plan-btn:active {
+  background: #382c56 !important;
+  border-color: #4d3d75 !important;
+}
+/* 选中的模式按钮 / 月份格子：亮紫 */
+[data-theme="dark"] .toolbar > button[data-active="true"],
+[data-theme="dark"] .toolbar .m-btn[data-active="true"],
+[data-theme="dark"] .toolbar.plan-bar > button.plan-btn[data-active="true"] {
+  background: #4c3d80 !important;
+  border-color: #6b5bc4 !important;
+  color: #ffffff !important;
+  box-shadow: 0 0 0 1px #6b5bc4 inset !important;
+}
+/* 月份格子也走暗紫 */
+[data-theme="dark"] .toolbar .m-btn {
+  background: #241d35 !important;
+  border: 1px solid #332852 !important;
+  color: #d8d2ec !important;
+}
+[data-theme="dark"] .toolbar .m-btn[data-active="true"] {
+  background: #4c3d80 !important;
+  border-color: #6b5bc4 !important;
+  color: #ffffff !important;
+}
+/* 输入框跟着暗紫走 */
+[data-theme="dark"] .toolbar input,
+[data-theme="dark"] .toolbar .range-box,
+[data-theme="dark"] .toolbar input.year-input {
+  background: #120e1c !important;
+  border: 1px solid #332852 !important;
+  color: #ffffff !important;
+}
+[data-theme="dark"] .toolbar input:focus,
+[data-theme="dark"] .toolbar .range-box:focus-within {
+  border-color: #6b5bc4 !important;
+}
 </style>
 </head>
 <body>
@@ -2127,7 +2183,7 @@ function toggleTheme() {
   toast(theme === 'dark' ? '已切换到反色主题' : '已切换到浅色主题');
 }
 
-const APP_VER = 'v7.85';
+const APP_VER = 'v7.86';
 const LS_KEY = 'flow_grid_v5';
 const SUMMARY_STATE_KEY = 'flow_summary_state_v3';
 // 流水表默认铺多少行空行。像 Excel 一样随手往下填，不用先点「新增」。
