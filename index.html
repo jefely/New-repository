@@ -3566,6 +3566,9 @@ table#flow-table {
   max-width: none !important;
   table-layout: fixed !important;
 }
+/* 分类统计表正文：优先用按表字号（默认 13px），否则跟随全局 */
+table.subsum-table tbody td { font-size: var(--fs-cat, var(--layout-fs, 13px)) !important; }
+table.subsum-table tbody td input { font-size: var(--fs-cat, var(--layout-fs, 13px)) !important; }
 </style>
 </head>
 <body>
@@ -3755,7 +3758,7 @@ async function encryptWithSession(text) {
   return b64u(catBytes(_sessionSalt, iv, ct));
 }
 
-const APP_VER = 'v8.75';
+const APP_VER = 'v8.77';
 const LS_KEY = 'flow_grid_v5';
 const SUMMARY_STATE_KEY = 'flow_summary_state_v3';
 // 流水表默认铺多少行空行。像 Excel 一样随手往下填，不用先点「新增」。
@@ -4387,6 +4390,66 @@ function renderCat(main, footer) {
 // 完全重置：清空流水/分期/固定，账户恢复成内置的 74 个（期初 0）
 // 导出当前列宽：显示一段 JSON，复制发回来就能写成默认值
 // 列宽面板：恢复默认 / 复制当前 / 粘贴导入
+// 把「导出布局参数」生成的纯文本解析回来
+// 页面名 → 内部 key
+const LAYOUT_SECTION_KEYS = {
+  '功能标签': 'tabs', '流水记录': 'flow', '账户汇总': 'summary',
+  '分类统计': 'cat', '查询': 'query', '分期': 'install', '固定收支': 'fixed'
+};
+
+function parseLayoutText(text) {
+  const raw = String(text || '');
+  if (!raw.trim()) throw new Error('内容为空');
+  const out = { widths: {}, rowH: {}, fontSize: {}, headerFontSize: {}, installMonthWidth: null, sections: 0 };
+  const num = s => { const m = String(s).match(/-?\d+(\.\d+)?/); return m ? Number(m[0]) : null; };
+  // 按空行切节
+  const blocks = raw.split(/\n\s*\n/);
+  for (const block of blocks) {
+    const lines = block.split('\n').map(l => l.trim()).filter(Boolean);
+    if (!lines.length) continue;
+    // 第一行是页面名（可能带括号说明）
+    const head = lines[0].replace(/（.*?）|\(.*?\)/g, '').trim();
+    const key = LAYOUT_SECTION_KEYS[head];
+    if (!key) continue;
+    out.sections++;
+    for (const line of lines.slice(1)) {
+      // 列宽：[50, 77, ...]
+      const mW = line.match(/^列宽(?:（[^）]*）)?[：:]\s*\[([^\]]*)\]/);
+      if (mW) {
+        const arr = mW[1].split(/[,，]/).map(s => num(s)).filter(v => v !== null && v > 0);
+        if (arr.length) out.widths[key] = arr.map(Math.round);
+        continue;
+      }
+      // 每月金额列宽：62px
+      const mMw = line.match(/^每月金额列宽[：:]\s*(\d+)/);
+      if (mMw) { out.installMonthWidth = Number(mMw[1]); continue; }
+      // 表头行高：34px，字号：15px  /  表头1行高：34px，字号：15px
+      const mH = line.match(/^表头\d?行高[：:]\s*(\d+)\s*px[，,]\s*字号[：:]\s*(\d+)\s*px/);
+      if (mH) {
+        out.rowH[key + ':head'] = Number(mH[1]);
+        out.headerFontSize[key] = Number(mH[2]);
+        continue;
+      }
+      // 数据行高：32px，字号：13px
+      const mD = line.match(/^数据行高[：:]\s*(\d+)\s*px[，,]\s*字号[：:]\s*(\d+)\s*px/);
+      if (mD) {
+        out.rowH[key] = Number(mD[1]);
+        out.fontSize[key] = Number(mD[2]);
+        continue;
+      }
+      // 行高：40px，字号：15px（功能标签那一节没有「数据/表头」前缀）
+      const mG = line.match(/^行高[：:]\s*(\d+)\s*px[，,]\s*字号[：:]\s*(\d+)\s*px/);
+      if (mG) {
+        out.rowH[key] = Number(mG[1]);
+        out.fontSize[key] = Number(mG[2]);
+        continue;
+      }
+    }
+  }
+  if (!out.sections) throw new Error('没找到任何页面段落，格式可能不对');
+  return out;
+}
+
 // 把布局参数导出成可读的纯文本（按页面分节）
 function buildLayoutText() {
   const mw = (() => { try { return parseInt(localStorage.getItem('flow_inst_mw_v1'), 10) || 62; } catch (e) { return 62; } })();
@@ -4411,7 +4474,7 @@ function buildLayoutText() {
   lines.push('分类统计');
   lines.push('列宽：' + arr(colWidths.cat));
   lines.push('表头行高：34px，字号：' + L.headerFontSize + 'px');
-  lines.push('数据行高：' + L.rowH + 'px，字号：' + L.fontSize + 'px');
+  lines.push('数据行高：' + L.rowH + 'px，字号：' + ((L.tableFont && L.tableFont.cat) || L.fontSize) + 'px');
   lines.push('');
   lines.push('查询');
   lines.push('列宽：' + arr(colWidths.query));
@@ -4493,7 +4556,31 @@ function openColWidthsDialog() {
 
   mask.querySelector('#cw-apply').onclick = () => {
     try {
-      const o = JSON.parse(ta.value || '{}');
+      const rawText = ta.value || '';
+      // 先按纯文本解析；不是纯文本才退回 JSON（兼容老格式）
+      if (!/^\s*\{/.test(rawText)) {
+        const p = parseLayoutText(rawText);
+        if (Object.keys(p.widths).length) {
+          colWidths = Object.assign({}, colWidths, p.widths);
+          saveColWidths();
+        }
+        let nL = 0;
+        // 各页面行高/字号：取出现过的值，写回 layoutCfg
+        for (const key of Object.keys(LAYOUT_SECTION_KEYS)) {
+          const k = LAYOUT_SECTION_KEYS[key];
+          if (p.rowH[k] != null) { layoutCfg.rowH = p.rowH[k]; nL++; }
+          if (p.fontSize[k] != null) { layoutCfg.fontSize = p.fontSize[k]; nL++; }
+          if (p.headerFontSize[k] != null) { layoutCfg.headerFontSize = p.headerFontSize[k]; nL++; }
+        }
+        if (nL) { saveLayout(); applyLayout(); }
+        if (p.installMonthWidth) {
+          try { localStorage.setItem('flow_inst_mw_v1', String(p.installMonthWidth)); } catch (e) {}
+        }
+        close(); render();
+        toast('已导入 ' + Object.keys(p.widths).length + ' 组列宽' + (nL ? ' · ' + nL + ' 项行高字号' : ''));
+        return;
+      }
+      const o = JSON.parse(rawText);
       if (!o || typeof o !== 'object') throw new Error('不是对象');
       let nW = 0, nL = 0;
       const L = o.layout;
@@ -8537,15 +8624,24 @@ const DEFAULT_COL_WIDTHS = {
 
 // 布局参数：行高 / 正文字号 / 表头字号（跟列宽一起存）
 const LAYOUT_KEY = 'flow_layout_v1';
-const DEFAULT_LAYOUT = { rowH: 32, fontSize: 15, headerFontSize: 15 };
+// tableFont：按表覆盖正文字号（不改全局）。键是表的 key，值是 px。
+const DEFAULT_LAYOUT = { rowH: 32, fontSize: 15, headerFontSize: 15, tableFont: { cat: 13 } };
 let layoutCfg = (() => {
   try {
     const o = JSON.parse(localStorage.getItem(LAYOUT_KEY) || 'null');
     if (o && typeof o === 'object') {
+      const tf = {};
+      if (o.tableFont && typeof o.tableFont === 'object') {
+        for (const k of Object.keys(o.tableFont)) {
+          const v = Number(o.tableFont[k]);
+          if (v >= 10 && v <= 22) tf[k] = Math.round(v);
+        }
+      }
       return {
         rowH: Math.max(20, Math.min(60, Number(o.rowH) || 32)),
         fontSize: Math.max(10, Math.min(22, Number(o.fontSize) || 15)),
-        headerFontSize: Math.max(10, Math.min(22, Number(o.headerFontSize) || 15))
+        headerFontSize: Math.max(10, Math.min(22, Number(o.headerFontSize) || 15)),
+        tableFont: tf
       };
     }
   } catch (e) {}
@@ -8557,6 +8653,14 @@ function applyLayout() {
   r.setProperty('--layout-row-h', layoutCfg.rowH + 'px');
   r.setProperty('--layout-fs', layoutCfg.fontSize + 'px');
   r.setProperty('--layout-fs-h', layoutCfg.headerFontSize + 'px');
+  // 按表字号覆盖：分类统计默认 13px
+  const tf = layoutCfg.tableFont || {};
+  const map = [['--fs-cat', tf.cat], ['--fs-flow', tf.flow], ['--fs-summary', tf.summary],
+               ['--fs-query', tf.query], ['--fs-install', tf.install], ['--fs-fixed', tf.fixed]];
+  for (const [v, val] of map) {
+    if (val) r.setProperty(v, val + 'px');
+    else r.removeProperty(v);
+  }
 }
 
 let colWidths = (() => {
