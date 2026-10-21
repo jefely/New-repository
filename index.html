@@ -1882,7 +1882,8 @@ table#summary-table { min-width: 800px !important; }
   display: flex !important;
   flex-wrap: wrap !important;
   gap: 3px !important;
-  width: 100% !important;
+  width: auto !important;
+  max-width: 100% !important;
   justify-content: flex-start !important;
 }
 .toolbar.plan-bar2 > .month-row .m-btn {
@@ -1893,6 +1894,66 @@ table#summary-table { min-width: 800px !important; }
     flex: 0 0 32px !important; width: 32px !important; min-width: 32px !important; max-width: 32px !important;
     font-size: 12px !important;
   }
+}
+/* 区间：两个固定宽度的三段组，靠左 */
+.toolbar.plan-bar2 > .range-box {
+  flex: 0 0 auto !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 0 !important;
+  height: 28px !important;
+  padding: 0 5px !important;
+  box-sizing: border-box !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 5px !important;
+  background: var(--bg-main) !important;
+}
+.toolbar.plan-bar2 > .range-box > input {
+  flex: 0 0 auto !important;
+  height: 26px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: none !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  color: var(--text-main) !important;
+  font-size: 14px !important;
+  text-align: center !important;
+  outline: none !important;
+  box-sizing: border-box !important;
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  box-shadow: none !important;
+}
+.toolbar.plan-bar2 > .range-box > input.r-y { width: 44px !important; }
+.toolbar.plan-bar2 > .range-box > input.r-m,
+.toolbar.plan-bar2 > .range-box > input.r-d { width: 28px !important; }
+.toolbar.plan-bar2 > .range-box > input.bad { color: var(--danger) !important; }
+.toolbar.plan-bar2 > .range-box > input:focus { background: var(--cell-active) !important; border-radius: 3px !important; }
+.toolbar.plan-bar2 > .range-box > i {
+  flex: 0 0 auto !important;
+  font-style: normal !important;
+  font-size: 13px !important;
+  color: var(--text-light) !important;
+  padding: 0 1px !important;
+  user-select: none !important;
+}
+/* 「至」垂直居中对齐 */
+.toolbar.plan-bar2 > .tilde {
+  flex: 0 0 auto !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  height: 28px !important;
+  line-height: 28px !important;
+  font-size: 13px !important;
+  color: var(--text-muted) !important;
+  padding: 0 4px !important;
+}
+/* 月份格子再窄一点，一行 12 个 */
+.toolbar.plan-bar2 > .month-row .m-btn {
+  flex: 0 0 31px !important; width: 31px !important; min-width: 31px !important; max-width: 31px !important;
+  font-size: 12px !important;
 }
 </style>
 </head>
@@ -1994,7 +2055,7 @@ function toggleTheme() {
   toast(theme === 'dark' ? '已切换到反色主题' : '已切换到浅色主题');
 }
 
-const APP_VER = 'v7.77';
+const APP_VER = 'v7.79';
 const LS_KEY = 'flow_grid_v5';
 const SUMMARY_STATE_KEY = 'flow_summary_state_v3';
 // 流水表默认铺多少行空行。像 Excel 一样随手往下填，不用先点「新增」。
@@ -2787,11 +2848,22 @@ function buildRangeToolbar(opts) {
     }
     bar2.innerHTML = `<div class="month-row plan-years">${cells}</div>`;
   } else if (mode === 'range') {
-    bar2.innerHTML = `
-      <input class="grow plan-start" placeholder="起始 2026-08-01" inputmode="numeric" value="${esc(range.start || '')}">
-      <span class="tilde">至</span>
-      <input class="grow plan-end" placeholder="结束 2026-10-31" inputmode="numeric" value="${esc(range.end || '')}">
-    `;
+    // 年 / 月 / 日 三段，各自固定宽、各自校验
+    const parts = (v) => {
+      const m = /^(\d{4})?[-\/.]?(\d{1,2})?[-\/.]?(\d{1,2})?$/.exec(String(v || '').trim());
+      if (!m) return { y: '', mo: '', d: '' };
+      return { y: m[1] || '', mo: m[2] || '', d: m[3] || '' };
+    };
+    const sp = parts(range.start), ep = parts(range.end);
+    const box = (cls, v) => `
+      <span class="range-box">
+        <input class="r-y ${cls}-y" inputmode="numeric" maxlength="4" placeholder="年" value="${esc(v.y)}">
+        <i>-</i>
+        <input class="r-m ${cls}-m" inputmode="numeric" maxlength="2" placeholder="月" value="${esc(v.mo)}">
+        <i>-</i>
+        <input class="r-d ${cls}-d" inputmode="numeric" maxlength="2" placeholder="日" value="${esc(v.d)}">
+      </span>`;
+    bar2.innerHTML = box('s', sp) + '<span class="tilde">至</span>' + box('e', ep);
   } else {
     bar2.innerHTML = `<span style="font-size:12px;color:var(--text-muted);padding:0 4px">不限制时间，统计全部数据</span>`;
   }
@@ -2818,10 +2890,46 @@ function buildRangeToolbar(opts) {
   bar2.querySelectorAll('.plan-y').forEach(b => {
     b.onclick = () => opts.onYear && opts.onYear(parseInt(b.dataset.y, 10));
   });
-  const si = bar2.querySelector('.plan-start'), ei = bar2.querySelector('.plan-end');
-  const fire = () => opts.onRange && opts.onRange(si ? si.value.trim() : '', ei ? ei.value.trim() : '');
-  if (si) { si.onchange = fire; si.onblur = fire; }
-  if (ei) { ei.onchange = fire; ei.onblur = fire; }
+  const q = (c) => { const e = bar2.querySelector('.' + c); return e ? String(e.value || '').trim() : ''; };
+  const clampWrite = (el, lo, hi) => {
+    if (!el) return;
+    let v = String(el.value || '').replace(/\D/g, '');
+    if (v === '') { el.value = ''; el.classList.remove('bad'); return; }
+    let n = parseInt(v, 10);
+    if (isNaN(n)) { el.value = ''; return; }
+    if (n > hi) n = hi;
+    if (v.length >= (el.getAttribute('maxlength') | 0) && n < lo) { el.classList.add('bad'); } else { el.classList.remove('bad'); }
+    el.value = v.length === 1 ? v : String(n);
+  };
+  const join = () => {
+    const y = q('s-y'), mo = q('s-m'), d = q('s-d');
+    const y2 = q('e-y'), mo2 = q('e-m'), d2 = q('e-d');
+    const mk = (Y, M, D) => {
+      if (!Y || Y.length < 4) return '';
+      let s = Y;
+      if (M) s += '-' + String(M).padStart(2, '0');
+      if (D) s += '-' + String(D).padStart(2, '0');
+      return s;
+    };
+    return [mk(y, mo, d), mk(y2, mo2, d2)];
+  };
+  const fire = () => { const [s, e] = join(); opts.onRange && opts.onRange(s, e); };
+  const wire = (cls, lo, hi, nextCls) => {
+    const el = bar2.querySelector('.' + cls);
+    if (!el) return;
+    el.addEventListener('input', () => {
+      el.value = String(el.value || '').replace(/\D/g, '').slice(0, el.getAttribute('maxlength') | 0);
+      const max = el.getAttribute('maxlength') | 0;
+      if (el.value.length >= max && nextCls) {
+        const nx = bar2.querySelector('.' + nextCls);
+        if (nx) { try { nx.focus(); nx.select && nx.select(); } catch (e) {} }
+      }
+    });
+    el.addEventListener('change', () => { clampWrite(el, lo, hi); fire(); });
+    el.addEventListener('blur', () => { clampWrite(el, lo, hi); fire(); });
+  };
+  wire('s-y', 1900, 2999, 's-m'); wire('s-m', 1, 12, 's-d'); wire('s-d', 1, 31, null);
+  wire('e-y', 1900, 2999, 'e-m'); wire('e-m', 1, 12, 'e-d'); wire('e-d', 1, 31, null);
 
   return { bar1, bar2 };
 }
