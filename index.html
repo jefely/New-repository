@@ -3238,6 +3238,60 @@ table#summary-table th.col-repay, table#summary-table td.col-repay {
   background: var(--billcell-bg) !important;
   background-color: var(--billcell-bg) !important;
 }
+/* 流水表行尾删除列：单元格无边框无填充，按钮也无外框无填充 */
+table#flow-table th.col-del,
+table#flow-table td.col-del {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  text-align: center !important;
+  vertical-align: middle !important;
+  width: 62px !important;
+  min-width: 62px !important;
+  max-width: 62px !important;
+  white-space: nowrap !important;
+}
+[data-theme="dark"] table#flow-table th.col-del,
+[data-theme="dark"] table#flow-table td.col-del,
+[data-theme="dark"] table#flow-table tbody tr:nth-child(odd) > td.col-del,
+[data-theme="dark"] table#flow-table tbody tr:nth-child(even) > td.col-del {
+  background: transparent !important;
+  border: none !important;
+}
+/* 删除按钮：内联排布，无框无底 */
+table#flow-table td.col-del .row-del {
+  position: static !important;
+  float: none !important;
+  transform: none !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 20px !important; height: 20px !important;
+  min-width: 20px !important;
+  padding: 0 !important; margin: 0 0 0 4px !important;
+  border: none !important; outline: none !important;
+  background: transparent !important;
+  color: #b6adc9 !important;
+  font-size: 16px !important; font-weight: 700 !important;
+  line-height: 1 !important;
+  cursor: pointer !important;
+  vertical-align: middle !important;
+}
+table#flow-table td.col-del .row-del:hover { color: #ef4444 !important; background: transparent !important; }
+[data-theme="dark"] table#flow-table td.col-del .row-del { color: #7a7290 !important; }
+[data-theme="dark"] table#flow-table td.col-del .row-del:hover { color: #ff6b6b !important; }
+/* 勾选框：无框无底，垂直居中 */
+table#flow-table td.col-del .fixed-chk {
+  width: 15px !important; height: 15px !important;
+  margin: 0 !important; padding: 0 !important;
+  vertical-align: middle !important;
+  accent-color: #6b5bc4 !important;
+  background: transparent !important;
+  border: none !important;
+}
+/* 备注格不再需要给按钮留位置 */
+table#flow-table tbody td.col-note { padding-right: 8px !important; }
 </style>
 </head>
 <body>
@@ -3340,7 +3394,7 @@ function toggleTheme() {
   toast(theme === 'dark' ? '已切换到反色主题' : '已切换到浅色主题');
 }
 
-const APP_VER = 'v8.55';
+const APP_VER = 'v8.57';
 const LS_KEY = 'flow_grid_v5';
 const SUMMARY_STATE_KEY = 'flow_summary_state_v3';
 // 流水表默认铺多少行空行。像 Excel 一样随手往下填，不用先点「新增」。
@@ -3545,7 +3599,7 @@ function runFixedExpenses() {
 // 给一行流水挂上「固定支出」勾选框（幂等）
 function attachFixedCheckbox(tr) {
   if (!tr || !tr.dataset.id) return;
-  const noteTd = tr.querySelector('td.col-note');
+  const noteTd = tr.querySelector('td.col-del') || tr.querySelector('td.col-note');
   if (!noteTd || noteTd.querySelector('.fixed-chk')) return;
   const chk = document.createElement('input');
   chk.type = 'checkbox';
@@ -4522,6 +4576,7 @@ function renderFlow(main, footer) {
       <th class="col-to">转入账户</th>
       <th class="col-amount">金额</th>
       <th class="col-note">备注</th>
+      <th class="col-del"></th>
     </tr></thead>
     <tbody></tbody>`;
   const tbody = table.querySelector('tbody');
@@ -4547,7 +4602,7 @@ function renderFlow(main, footer) {
   if (txs.length > flowShown) {
     const more = document.createElement('tr');
     more.className = 'flow-more';
-    more.innerHTML = '<td colspan="6" class="flow-more-td">还有 ' + (txs.length - flowShown) + ' 笔没显示 · 已显示 ' + flowShown + ' / ' + txs.length
+    more.innerHTML = '<td colspan="7" class="flow-more-td">还有 ' + (txs.length - flowShown) + ' 笔没显示 · 已显示 ' + flowShown + ' / ' + txs.length
       + ' 笔 · <b>点击加载更多</b></td>';
     more.addEventListener('click', () => {
       flowShown = Math.min(txs.length, flowShown + FLOW_BATCH);
@@ -4618,16 +4673,20 @@ function makeFlowRow(t, idx, isNew) {
       input.type = 'text'; input.value = t[field] || '';
     }
     td.appendChild(input);
-    // 删除按钮跟在行尾的备注格里，不再单独占一列
-    if (field === 'note' && !isNew) {
-      const btn = document.createElement('button');
-      btn.type = 'button'; btn.className = 'row-del'; btn.textContent = '×';
-      btn.title = '删除这笔流水';
-      btn.addEventListener('click', () => deleteFlowTx(t.id));
-      td.appendChild(btn);
-    }
     tr.appendChild(td);
   });
+
+  // 行尾独立一列：勾选框 + 删除按钮
+  const tdDel = document.createElement('td');
+  tdDel.className = 'col-del';
+  if (!isNew) {
+    const btn = document.createElement('button');
+    btn.type = 'button'; btn.className = 'row-del'; btn.textContent = '×';
+    btn.title = '删除这笔流水';
+    btn.addEventListener('click', () => deleteFlowTx(t.id));
+    tdDel.appendChild(btn);
+  }
+  tr.appendChild(tdDel);
   return tr;
 }
 
@@ -7847,7 +7906,7 @@ function normShares(arr) {
 
 // 默认列宽（用户调好的，作为新用户 / 重置后的初始值）
 const DEFAULT_COL_WIDTHS = {
-  flow:    [50, 77, 107, 117, 109, 179],
+  flow:    [50, 77, 107, 117, 109, 179, 62],
   summary: [52, 76, 59, 73, 127, 124, 123, 120, 86, 85, 137, 40, 90, 64],
   query:   [54, 65, 109, 116, 96, 184],
   fixed:   [56, 76, 150, 150, 108, 150, 84, 64],
