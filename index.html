@@ -2352,6 +2352,50 @@ table.install-table th.inst-total.past { color: #00b050 !important; }
 [data-theme="dark"] table.install-table td.col-month.pending input { color: #e8e2f4 !important; }
 /* 月份表头「26年8月」字号小一点才放得下 */
 table.install-table thead th.inst-ym { font-size: 12px !important; white-space: nowrap !important; }
+/* 查询页表头：改回普通深灰，和其它功能页一致（不再用暗紫） */
+[data-theme="dark"] table.query-table tr.q-filter-row > th,
+[data-theme="dark"] table.query-table tr.q-head-row > th,
+[data-theme="dark"] table.query-table thead th {
+  background: #1a1a1a !important;
+  color: #ffffff !important;
+  border-color: #2a2a2a !important;
+}
+/* 按钮区（清空那行）保持深灰，不带紫 */
+[data-theme="dark"] table.query-table tr.q-title-row > th,
+[data-theme="dark"] table.query-table tr.q-title-row,
+[data-theme="dark"] table.query-table .q-title-inner {
+  background: #141414 !important;
+  border-color: #2a2a2a !important;
+}
+/* 输入框保持中性深灰 + 灰紫字（字色已单独定） */
+[data-theme="dark"] table.query-table thead th input {
+  background: #111111 !important;
+  border-color: #2e2e2e !important;
+}
+[data-theme="dark"] table.query-table thead th input:focus {
+  border-color: #6b5bc4 !important;
+  background: #191919 !important;
+}
+/* 清空按钮改中性灰，只留一点紫调 */
+[data-theme="dark"] table.query-table button.q-clear {
+  background: #2e2e2e !important;
+  color: #f0edf7 !important;
+}
+[data-theme="dark"] table.query-table button.q-clear:active { background: #3a3a3a !important; }
+/* 查询页输入框也改中性深灰（压过之前的暗紫规则） */
+[data-theme="dark"] table.query-table thead th input,
+[data-theme="dark"] table.query-table thead th input.qf-date,
+[data-theme="dark"] table.query-table thead th input.qf-from,
+[data-theme="dark"] table.query-table thead th input.qf-to,
+[data-theme="dark"] table.query-table thead th input.qf-amount,
+[data-theme="dark"] table.query-table thead th input.qf-note {
+  background: #111111 !important;
+  border: 1px solid #2e2e2e !important;
+}
+[data-theme="dark"] table.query-table thead th input:focus {
+  background: #191919 !important;
+  border-color: #6b5bc4 !important;
+}
 </style>
 </head>
 <body>
@@ -2452,7 +2496,7 @@ function toggleTheme() {
   toast(theme === 'dark' ? '已切换到反色主题' : '已切换到浅色主题');
 }
 
-const APP_VER = 'v8.02';
+const APP_VER = 'v8.04';
 const LS_KEY = 'flow_grid_v5';
 const SUMMARY_STATE_KEY = 'flow_summary_state_v3';
 // 流水表默认铺多少行空行。像 Excel 一样随手往下填，不用先点「新增」。
