@@ -2297,6 +2297,22 @@ table.query-table tr.q-head-row > th { font-size: 13px !important; padding: 5px 
   border-top: 2px solid #332852 !important;
   color: #ffffff !important;
 }
+/* 分类汇总：汇总分类列居中 */
+table.subsum-table tbody td.cat-name,
+table.subsum-table thead th:nth-child(2),
+table.subsum-table tfoot td {
+  text-align: center !important;
+}
+table.subsum-table td.cat-name { padding-left: 6px !important; padding-right: 6px !important; }
+/* 分类汇总：所有列标题居中 */
+table.subsum-table thead th,
+table.subsum-table thead th.num,
+table.subsum-table thead th.center {
+  text-align: center !important;
+}
+/* 数值单元格仍靠右（财务对齐），只有表头居中 */
+table.subsum-table tbody td.num,
+table.subsum-table tfoot td.num { text-align: right !important; }
 </style>
 </head>
 <body>
@@ -2397,7 +2413,7 @@ function toggleTheme() {
   toast(theme === 'dark' ? '已切换到反色主题' : '已切换到浅色主题');
 }
 
-const APP_VER = 'v7.97';
+const APP_VER = 'v8.00';
 const LS_KEY = 'flow_grid_v5';
 const SUMMARY_STATE_KEY = 'flow_summary_state_v3';
 // 流水表默认铺多少行空行。像 Excel 一样随手往下填，不用先点「新增」。
@@ -2829,6 +2845,10 @@ function renderCat(main, footer) {
     return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib);
   });
 
+  // 0 显示财务横线 —，降低阅读噪音
+  const money0 = (v) => (Math.abs(Number(v) || 0) < 0.005 ? '—' : fmtMoney(v));
+  const isZero = (v) => Math.abs(Number(v) || 0) < 0.005;
+
   let seq = 1;
   const bodyParts = [];
   const totalRows = [];
@@ -2837,20 +2857,24 @@ function renderCat(main, footer) {
     let sBal = 0, sOut = 0, sIn = 0;
     for (const g of list) {
       sBal += g.bal; sOut += g.out; sIn += g.inn;
+      // 三项全 0 的分类不显示
+      if (isZero(g.bal) && isZero(g.out) && isZero(g.inn)) continue;
       bodyParts.push(`<tr>
         <td class="center">${seq++}</td>
         <td class="cat-name">${esc(g.sub)}</td>
         <td class="center">${esc(g.mainCat)}</td>
-        <td class="num">${fmtMoney(g.bal)}</td>
-        <td class="num">${fmtMoney(g.out)}</td>
-        <td class="num">${fmtMoney(g.inn)}</td>
+        <td class="num">${money0(g.bal)}</td>
+        <td class="num">${money0(g.out)}</td>
+        <td class="num">${money0(g.inn)}</td>
       </tr>`);
     }
+    // 整类全 0 连小计也不显示
+    if (isZero(sBal) && isZero(sOut) && isZero(sIn)) continue;
     totalRows.push(`<tr class="cat-total-row">
       <td colspan="3" class="center">${esc(cat)} 合计</td>
-      <td class="num">${fmtMoney(sBal)}</td>
-      <td class="num">${fmtMoney(sOut)}</td>
-      <td class="num">${fmtMoney(sIn)}</td>
+      <td class="num">${money0(sBal)}</td>
+      <td class="num">${money0(sOut)}</td>
+      <td class="num">${money0(sIn)}</td>
     </tr>`);
   }
 
