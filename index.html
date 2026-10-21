@@ -2588,7 +2588,7 @@ function toggleTheme() {
   toast(theme === 'dark' ? '已切换到反色主题' : '已切换到浅色主题');
 }
 
-const APP_VER = 'v8.09';
+const APP_VER = 'v8.10';
 const LS_KEY = 'flow_grid_v5';
 const SUMMARY_STATE_KEY = 'flow_summary_state_v3';
 // 流水表默认铺多少行空行。像 Excel 一样随手往下填，不用先点「新增」。
@@ -3074,6 +3074,41 @@ function renderCat(main, footer) {
 }
 
 // 完全重置：清空流水/分期/固定，账户恢复成内置的 74 个（期初 0）
+// 导出当前列宽：显示一段 JSON，复制发回来就能写成默认值
+function openColWidthsDialog() {
+  const keys = Object.keys(colWidths || {});
+  const data = {};
+  for (const k of keys) data[k] = colWidths[k];
+  const json = JSON.stringify(data, null, 0);
+  const mask = document.createElement('div');
+  mask.className = 'confirm-mask';
+  mask.innerHTML = `
+    <div class="sync-box" style="max-width:min(94vw,560px)">
+      <div class="sync-title">当前列宽</div>
+      <div class="sync-hint" style="text-align:left">复制下面这一整段发给我，我把它写成默认值。</div>
+      <textarea id="cw-json" readonly style="width:100%;height:150px;font-size:11px;font-family:monospace;padding:8px;box-sizing:border-box;border:1px solid var(--border);border-radius:6px;background:var(--bg-main);color:var(--text-main)">${esc(json)}</textarea>
+      <div class="sync-actions">
+        <button type="button" id="cw-copy">复制</button>
+        <button type="button" class="ghost" data-act="close">关闭</button>
+      </div>
+    </div>`;
+  document.body.appendChild(mask);
+  const close = () => mask.remove();
+  mask.addEventListener('click', e => {
+    if (e.target === mask || (e.target.dataset && e.target.dataset.act === 'close')) close();
+  });
+  const ta = mask.querySelector('#cw-json');
+  const cp = mask.querySelector('#cw-copy');
+  if (ta) setTimeout(() => { try { ta.focus(); ta.select(); } catch (e) {} }, 80);
+  if (cp) cp.onclick = async () => {
+    try {
+      if (navigator.clipboard) await navigator.clipboard.writeText(json);
+      else { ta.focus(); ta.select(); document.execCommand('copy'); }
+      cp.textContent = '已复制';
+    } catch (e) { ta.focus(); ta.select(); }
+  };
+}
+
 function openResetDialog() {
   const mask = document.createElement('div');
   mask.className = 'confirm-mask';
@@ -3603,6 +3638,7 @@ function renderFlow(main, footer) {
     <button class="ghost" id="f-exp">导出</button>
     <button class="ghost" id="f-theme" title="切换反色主题">主题</button>
     <button class="ghost" id="f-reset" title="清空所有数据并恢复默认账户">重置</button>
+    <button class="ghost" id="f-cols" title="导出当前列宽">列宽</button>
     <input type="file" id="f-addfile" accept=".txt,text/plain" style="display:none">
   `;
   main.appendChild(bar);
@@ -3613,6 +3649,8 @@ function renderFlow(main, footer) {
   document.getElementById('f-exp').onclick = () => openXlsmDialog();
   document.getElementById('f-theme').onclick = () => toggleTheme();
   document.getElementById('f-reset').onclick = () => openResetDialog();
+  const colsBtn = document.getElementById('f-cols');
+  if (colsBtn) colsBtn.onclick = () => openColWidthsDialog();
 
   // 3. 表格主体
   const wrap = document.createElement('div');
