@@ -2498,6 +2498,34 @@ table.install-table tbody td.col-month {
 }
 /* 分期表表头加拖动手柄 */
 table.install-table thead th.col-month { position: relative; }
+/* 列宽手柄：命中区域加宽并跨到列边界两侧，窄列也好抓 */
+.col-resizer {
+  width: 14px !important;
+  right: -7px !important;
+  top: 0 !important;
+  bottom: 0 !important;
+}
+.col-resizer::after { left: 6px !important; }
+@media (max-width: 767px) {
+  .col-resizer { width: 20px !important; right: -10px !important; }
+  .col-resizer::after { left: 9px !important; }
+}
+/* 分期表前三列的表头允许溢出，手柄不被裁掉 */
+table.install-table thead th { overflow: visible !important; }
+/* 列宽手柄：提到最高层，不被相邻列盖住 */
+.col-resizer {
+  z-index: 60 !important;
+  pointer-events: auto !important;
+}
+table.install-table thead th { z-index: 1; }
+table.install-table thead th:hover { z-index: 50; }
+/* 分期表前三列手柄单独再高一层 */
+.inst-fx-resizer { z-index: 70 !important; }
+.inst-resizer { z-index: 70 !important; }
+/* 相邻列不要挡住手柄 */
+table.install-table thead th.col-sum,
+table.install-table thead th.col-day { position: relative; }
+table.install-table tbody td { position: relative; z-index: 0; }
 </style>
 </head>
 <body>
@@ -2598,7 +2626,7 @@ function toggleTheme() {
   toast(theme === 'dark' ? '已切换到反色主题' : '已切换到浅色主题');
 }
 
-const APP_VER = 'v8.17';
+const APP_VER = 'v8.19';
 const LS_KEY = 'flow_grid_v5';
 const SUMMARY_STATE_KEY = 'flow_summary_state_v3';
 // 流水表默认铺多少行空行。像 Excel 一样随手往下填，不用先点「新增」。
@@ -7010,7 +7038,7 @@ const DEFAULT_COL_WIDTHS = {
   query:   [54, 65, 109, 116, 96, 184],
   fixed:   [56, 76, 150, 150, 108, 150, 84, 64],
   cat:     [82, 86, 85, 133, 111, 103],
-  installFixed: [126, 58, 76]   // 分期表前三列（账户名称/账单日/每月合计）
+  installFixed: [126, 76, 82]   // 分期表前三列（账户名称/账单日/每月合计）
 };
 
 let colWidths = (() => {
