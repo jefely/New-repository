@@ -2986,6 +2986,92 @@ table#summary-table tbody tr.cat-row > td {
   border-left: none !important;
   border-right: none !important;
 }
+/* ============ 汇总：账单日 / 还款日 两列（最终版） ============
+   目标：除「负债类」区域外，这两列完全空白 —— 无边框、无底色、无分隔线。
+   「负债类」区域：类型标签行下方一条横线 + 两列之间一条竖线。 */
+
+/* 1) 基础：全透明、无任何边框 */
+table#summary-table th.col-bill,
+table#summary-table th.col-repay,
+table#summary-table td.col-bill,
+table#summary-table td.col-repay,
+[data-theme="dark"] table#summary-table th.col-bill,
+[data-theme="dark"] table#summary-table th.col-repay,
+[data-theme="dark"] table#summary-table td.col-bill,
+[data-theme="dark"] table#summary-table td.col-repay,
+[data-theme="dark"] table#summary-table tbody tr:nth-child(odd) > td.col-bill,
+[data-theme="dark"] table#summary-table tbody tr:nth-child(odd) > td.col-repay,
+[data-theme="dark"] table#summary-table tbody tr:nth-child(even) > td.col-bill,
+[data-theme="dark"] table#summary-table tbody tr:nth-child(even) > td.col-repay {
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* 2) 字体：深紫色 */
+table#summary-table td.col-bill input,
+table#summary-table td.col-repay input,
+table#summary-table td.col-bill,
+table#summary-table td.col-repay {
+  color: #3d2d7a !important;
+}
+[data-theme="dark"] table#summary-table td.col-bill input,
+[data-theme="dark"] table#summary-table td.col-repay input,
+[data-theme="dark"] table#summary-table td.col-bill,
+[data-theme="dark"] table#summary-table td.col-repay {
+  color: #b9a6ff !important;
+}
+
+/* 3) 只有「负债类」的类型标签行下方画横线（跨两列） */
+table#summary-table tbody tr.cat-row.debt-row > td.col-bill,
+table#summary-table tbody tr.cat-row.debt-row > td.col-repay,
+[data-theme="dark"] table#summary-table tbody tr.cat-row.debt-row > td.col-bill,
+[data-theme="dark"] table#summary-table tbody tr.cat-row.debt-row > td.col-repay,
+[data-theme="dark"] table#summary-table tbody tr.cat-row.debt-row:nth-child(odd) > td.col-bill,
+[data-theme="dark"] table#summary-table tbody tr.cat-row.debt-row:nth-child(odd) > td.col-repay,
+[data-theme="dark"] table#summary-table tbody tr.cat-row.debt-row:nth-child(even) > td.col-bill,
+[data-theme="dark"] table#summary-table tbody tr.cat-row.debt-row:nth-child(even) > td.col-repay {
+  background: transparent !important;
+  border: none !important;
+  border-bottom: 1px solid #b9a6ff !important;
+}
+/* 类型标签行里「账单日」「还款日」两个字：深紫 */
+table#summary-table tbody tr.cat-row.debt-row > td.col-bill .cat-col,
+table#summary-table tbody tr.cat-row.debt-row > td.col-repay .cat-col {
+  color: #3d2d7a !important;
+  font-weight: 700 !important;
+}
+[data-theme="dark"] table#summary-table tbody tr.cat-row.debt-row > td.col-bill .cat-col,
+[data-theme="dark"] table#summary-table tbody tr.cat-row.debt-row > td.col-repay .cat-col {
+  color: #b9a6ff !important;
+}
+
+/* 4) 负债类数据行：两列之间的竖线（画在 col-repay 的左边框上） */
+table#summary-table tbody tr.debt-row:not(.cat-row) > td.col-repay {
+  border-left: 1px solid #b9a6ff !important;
+}
+[data-theme="dark"] table#summary-table tbody tr.debt-row:not(.cat-row) > td.col-repay {
+  border-left: 1px solid #4c3d80 !important;
+}
+
+/* 5) 深色主题：删除列 & 账单/还款列用更深的底色（不跟随斑马纹） */
+[data-theme="dark"] table#summary-table th.col-del,
+[data-theme="dark"] table#summary-table td.col-del,
+[data-theme="dark"] table#summary-table th.col-bill,
+[data-theme="dark"] table#summary-table th.col-repay,
+[data-theme="dark"] table#summary-table td.col-bill,
+[data-theme="dark"] table#summary-table td.col-repay,
+[data-theme="dark"] table#summary-table tbody tr:nth-child(odd) > td.col-del,
+[data-theme="dark"] table#summary-table tbody tr:nth-child(even) > td.col-del,
+[data-theme="dark"] table#summary-table tbody tr:nth-child(odd) > td.col-bill,
+[data-theme="dark"] table#summary-table tbody tr:nth-child(odd) > td.col-repay,
+[data-theme="dark"] table#summary-table tbody tr:nth-child(even) > td.col-bill,
+[data-theme="dark"] table#summary-table tbody tr:nth-child(even) > td.col-repay,
+[data-theme="dark"] table#summary-table tbody tr.cat-row > td.col-del {
+  background: #0a0a0a !important;
+  background-color: #0a0a0a !important;
+}
 </style>
 </head>
 <body>
@@ -3086,7 +3172,7 @@ function toggleTheme() {
   toast(theme === 'dark' ? '已切换到反色主题' : '已切换到浅色主题');
 }
 
-const APP_VER = 'v8.45';
+const APP_VER = 'v8.46';
 const LS_KEY = 'flow_grid_v5';
 const SUMMARY_STATE_KEY = 'flow_summary_state_v3';
 // 流水表默认铺多少行空行。像 Excel 一样随手往下填，不用先点「新增」。
