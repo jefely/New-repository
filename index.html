@@ -1985,6 +1985,48 @@ table#summary-table { min-width: 800px !important; }
 [data-theme="dark"] .flow-more-td { color: #b9a6ff !important; background: var(--bg-gray-light) !important; }
 /* 删除按钮不做任何滚动 */
 .row-del { scroll-margin: 0 !important; }
+/* ============================================================
+   Toast 里的「撤销」按钮：浅色 / 深色 各一套
+   ============================================================ */
+/* 浅色主题：深底白字，按钮白边白字 */
+.toast {
+  background: rgba(15, 23, 42, .95) !important;
+  color: #ffffff !important;
+}
+.toast > span { color: #ffffff !important; }
+.toast > button {
+  flex: 0 0 auto !important;
+  padding: 4px 12px !important;
+  border: 1px solid rgba(255, 255, 255, .55) !important;
+  border-radius: 5px !important;
+  background: rgba(255, 255, 255, .14) !important;
+  color: #ffffff !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  cursor: pointer !important;
+  white-space: nowrap !important;
+}
+.toast > button:active { background: rgba(255, 255, 255, .3) !important; }
+.toast.error { background: rgba(185, 28, 28, .96) !important; }
+.toast.error > button { border-color: rgba(255,255,255,.6) !important; }
+
+/* 深色主题：更亮的深灰底 + 亮紫字，边框同样亮紫 */
+[data-theme="dark"] .toast {
+  background: #262626 !important;
+  color: #ffffff !important;
+  border: 1px solid #3a3a3a !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .7) !important;
+}
+[data-theme="dark"] .toast > span { color: #ffffff !important; }
+[data-theme="dark"] .toast > button {
+  border: 1px solid #b9a6ff !important;
+  background: rgba(185, 166, 255, .16) !important;
+  color: #d8ccff !important;
+  font-weight: 800 !important;
+}
+[data-theme="dark"] .toast > button:active { background: rgba(185, 166, 255, .34) !important; color: #ffffff !important; }
+[data-theme="dark"] .toast.error { background: #3a1d1d !important; border-color: #6b2b2b !important; }
+[data-theme="dark"] .toast.error > button { border-color: #ff9d9d !important; color: #ffc4c4 !important; background: rgba(255,157,157,.14) !important; }
 </style>
 </head>
 <body>
@@ -2085,7 +2127,7 @@ function toggleTheme() {
   toast(theme === 'dark' ? '已切换到反色主题' : '已切换到浅色主题');
 }
 
-const APP_VER = 'v7.84';
+const APP_VER = 'v7.85';
 const LS_KEY = 'flow_grid_v5';
 const SUMMARY_STATE_KEY = 'flow_summary_state_v3';
 // 流水表默认铺多少行空行。像 Excel 一样随手往下填，不用先点「新增」。
