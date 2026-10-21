@@ -3307,6 +3307,64 @@ table#flow-table td.col-del .fixed-chk {
   visibility: visible !important; opacity: 1 !important;
   cursor: pointer !important;
 }
+/* ===== 流水表备注列 & 新删除列 ===== */
+/* 备注输入框右侧曾经留了 38px 给绝对定位的 ×，现在 × 搬走了，这个内边距就是那块"遮罩" */
+table#flow-table tbody td.col-note > input,
+table#flow-table tbody td.col-note > input:not(.fixed-chk) {
+  padding-right: 6px !important;
+}
+table#flow-table tbody td.col-note,
+table.grid tbody td.col-note {
+  padding-right: 6px !important;
+  overflow: visible !important;
+}
+
+/* 删除列底色：用最深（深色 #0a0a0a / 浅色 #ffffff），和汇总页一致 */
+table#flow-table th.col-del,
+table#flow-table td.col-del,
+table#flow-table tbody tr:nth-child(odd) > td.col-del,
+table#flow-table tbody tr:nth-child(even) > td.col-del,
+[data-theme="dark"] table#flow-table th.col-del,
+[data-theme="dark"] table#flow-table td.col-del,
+[data-theme="dark"] table#flow-table tbody tr:nth-child(odd) > td.col-del,
+[data-theme="dark"] table#flow-table tbody tr:nth-child(even) > td.col-del {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+[data-theme="dark"] table#flow-table th.col-del,
+[data-theme="dark"] table#flow-table td.col-del,
+[data-theme="dark"] table#flow-table tbody tr:nth-child(odd) > td.col-del,
+[data-theme="dark"] table#flow-table tbody tr:nth-child(even) > td.col-del {
+  background: #0a0a0a !important;
+  background-color: #0a0a0a !important;
+}
+
+/* 勾选框与 × 拉开距离，避免误触 */
+table#flow-table td.col-del {
+  width: 76px !important;
+  min-width: 76px !important;
+  max-width: 76px !important;
+}
+table#flow-table td.col-del .fixed-chk {
+  margin: 0 0 0 6px !important;
+}
+table#flow-table td.col-del .row-del {
+  margin: 0 0 0 20px !important;
+}
+/* 流水删除列：用 flex 排列并留出固定间隔，避免误触 */
+table#flow-table td.col-del {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 22px !important;
+  padding: 0 4px !important;
+  box-sizing: border-box !important;
+}
+table#flow-table td.col-del .row-del { margin: 0 !important; }
+table#flow-table td.col-del .fixed-chk { margin: 0 !important; }
+thead#x { }
 </style>
 </head>
 <body>
@@ -3409,7 +3467,7 @@ function toggleTheme() {
   toast(theme === 'dark' ? '已切换到反色主题' : '已切换到浅色主题');
 }
 
-const APP_VER = 'v8.58';
+const APP_VER = 'v8.60';
 const LS_KEY = 'flow_grid_v5';
 const SUMMARY_STATE_KEY = 'flow_summary_state_v3';
 // 流水表默认铺多少行空行。像 Excel 一样随手往下填，不用先点「新增」。
@@ -7921,7 +7979,7 @@ function normShares(arr) {
 
 // 默认列宽（用户调好的，作为新用户 / 重置后的初始值）
 const DEFAULT_COL_WIDTHS = {
-  flow:    [50, 77, 107, 117, 109, 179, 62],
+  flow:    [50, 77, 107, 117, 109, 179, 76],
   summary: [52, 76, 59, 73, 127, 124, 123, 120, 86, 85, 137, 40, 90, 64],
   query:   [54, 65, 109, 116, 96, 184],
   fixed:   [56, 76, 150, 150, 108, 150, 84, 64],
