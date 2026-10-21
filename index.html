@@ -2806,6 +2806,61 @@ table#summary-table tbody tr:not(.cat-row) > td.col-repay,
 [data-theme="dark"] table#summary-table tbody tr:not(.cat-row) > td.col-repay {
   border-bottom: none !important;
 }
+/* 删除列：只保留左边框，无填充色、无其它边框 */
+table#summary-table th.col-del,
+table#summary-table td.col-del,
+[data-theme="dark"] table#summary-table th.col-del,
+[data-theme="dark"] table#summary-table td.col-del {
+  background: transparent !important;
+  border: none !important;
+  border-left: 1px solid var(--border-light) !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  text-align: center !important;
+  vertical-align: middle !important;
+  width: 34px !important;
+  min-width: 34px !important;
+  max-width: 34px !important;
+}
+/* 分组行里的删除格也不填色 */
+table#summary-table tbody tr.cat-row > td.col-del,
+[data-theme="dark"] table#summary-table tbody tr.cat-row > td.col-del,
+[data-theme="dark"] table#summary-table tbody tr.cat-row:nth-child(odd) > td.col-del,
+[data-theme="dark"] table#summary-table tbody tr.cat-row:nth-child(even) > td.col-del {
+  background: transparent !important;
+  border: none !important;
+  border-left: 1px solid var(--border-light) !important;
+}
+[data-theme="dark"] table#summary-table th.col-del,
+[data-theme="dark"] table#summary-table td.col-del {
+  border-left: 1px solid #2a2a2a !important;
+}
+/* 按钮本身：去掉任何框，确保可见 */
+table#summary-table td.col-del .row-del {
+  position: static !important;
+  float: none !important;
+  transform: none !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 22px !important; height: 22px !important;
+  min-width: 22px !important;
+  padding: 0 !important; margin: 0 !important;
+  border: none !important; outline: none !important;
+  background: transparent !important;
+  color: #b6adc9 !important;
+  font-size: 16px !important; font-weight: 700 !important;
+  line-height: 1 !important;
+  cursor: pointer !important;
+  visibility: visible !important; opacity: 1 !important;
+}
+table#summary-table td.col-del .row-del:hover {
+  color: #ef4444 !important;
+  background: rgba(239,68,68,.10) !important;
+  border-radius: 4px !important;
+}
+[data-theme="dark"] table#summary-table td.col-del .row-del { color: #7a7290 !important; }
+[data-theme="dark"] table#summary-table td.col-del .row-del:hover { color: #ff6b6b !important; background: rgba(255,107,107,.14) !important; }
 </style>
 </head>
 <body>
@@ -2906,7 +2961,7 @@ function toggleTheme() {
   toast(theme === 'dark' ? '已切换到反色主题' : '已切换到浅色主题');
 }
 
-const APP_VER = 'v8.39';
+const APP_VER = 'v8.41';
 const LS_KEY = 'flow_grid_v5';
 const SUMMARY_STATE_KEY = 'flow_summary_state_v3';
 // 流水表默认铺多少行空行。像 Excel 一样随手往下填，不用先点「新增」。
