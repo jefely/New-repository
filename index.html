@@ -3862,7 +3862,7 @@ async function encryptWithSession(text) {
   return b64u(catBytes(_sessionSalt, iv, ct));
 }
 
-const APP_VER = 'v8.89';
+const APP_VER = 'v8.91';
 const LS_KEY = 'flow_grid_v5';
 const SUMMARY_STATE_KEY = 'flow_summary_state_v3';
 // 流水表默认铺多少行空行。像 Excel 一样随手往下填，不用先点「新增」。
@@ -4639,9 +4639,10 @@ function buildImportText() {
       const a = state.accounts.find(x => String(x.name || '').trim() === n);
       return a && a.code ? String(a.code).trim() : n;
     };
-    const acct = codeOf(t.from) || codeOf(t.to);
-    if (!acct) continue;
-    lines.push([d, acct, t.note || '', money(t.amount)].join('，') + '，');
+    const from = codeOf(t.from);
+    const to = codeOf(t.to);
+    if (!from && !to) continue;
+    lines.push([d, from, to, money(t.amount), t.note || ''].join('，') + '，');
   }
   return lines.join('\n');
 }
@@ -4677,12 +4678,15 @@ function parseImportText(text) {
       if (!name) continue;
       accounts.push({ cat, sub, code, name, opening });
     } else {
-      // 日期，账户简码，备注，金额
-      if (parts.length < 3) continue;
-      const date = parts[0], acct = parts[1] || '', note = parts.length >= 3 ? parts[2] : '';
-      const amount = parts.length >= 4 ? nums(parts[3]) : 0;
-      if (!acct) continue;
-      flows.push({ date, acct, note, amount });
+      // 日期，转出账户，转入账户，金额，备注
+      if (parts.length < 4) continue;
+      const date = parts[0];
+      const from = parts[1] || '';
+      const to = parts[2] || '';
+      const amount = nums(parts[3]);
+      const note = parts.length >= 5 ? parts[4] : '';
+      if (!from && !to) continue;
+      flows.push({ date, from, to, amount, note });
     }
   }
   return { accounts, flows };
@@ -4697,7 +4701,7 @@ function openImportDialog() {
       <div class="sync-hint" style="text-align:left;line-height:1.7">
         一段文本用「账户」「流水」两个词分段，字段之间用中文逗号。<br>
         账户：<code>类型，分类，简码，名称，期初，</code><br>
-        流水：<code>YYMMDD，账户简码，备注，金额，</code><br>
+        流水：<code>YYMMDD，转出，转入，金额，备注，</code><br>
         账户按「名称」判重，已存在的自动忽略。
       </div>
       <textarea id="imp-text" spellcheck="false" placeholder="账户
@@ -4705,6 +4709,7 @@ function openImportDialog() {
 资产类，充值，FK，饭卡，0.00，
 
 流水
+261022，ZHX，水，3.00，
 261022，XJ，水，3.00，"
         style="width:100%;height:170px;font-size:12px;font-family:ui-monospace,Consolas,monospace;padding:8px;box-sizing:border-box;border:1px solid var(--border);border-radius:6px;background:var(--bg-main);color:var(--text-main);line-height:1.6"></textarea>
       <div class="sync-block" style="gap:8px;margin-top:8px">
@@ -4794,25 +4799,45 @@ function openImportDialog() {
       existing.set(a.name, acc);
       addedAcc++;
     }
-    // 简码 → 名称
-    const codeToName = new Map();
+    // 账户解析：简码 / 全名 精确 → 名称前缀 → 名称包含（取最短的那个）
+    const byCode = new Map();   // 简码(大写) → 名称
+    const byName = new Map();   // 名称(原样) → 名称
+    const nameList = [];
     for (const a of state.accounts) {
+      const nm = String(a.name || '').trim();
+      if (!nm) continue;
       const cd = String(a.code || '').trim().toUpperCase();
-      if (cd) codeToName.set(cd, a.name);
-      const nm = String(a.name || '').trim().toUpperCase();
-      if (nm) codeToName.set(nm, a.name);
+      if (cd) byCode.set(cd, nm);
+      byName.set(nm, nm);
+      nameList.push(nm);
     }
     let addedFlow = 0, unmatched = 0;
+    const resolve = (raw) => {
+      const v = String(raw || '').trim();
+      if (!v) return '';
+      // 1) 简码
+      const c = byCode.get(v.toUpperCase());
+      if (c) return c;
+      // 2) 全名
+      const n = byName.get(v);
+      if (n) return n;
+      // 3) 前缀（水 → 水费）
+      const pref = nameList.filter(x => x.startsWith(v));
+      if (pref.length) return pref.sort((a, b) => a.length - b.length)[0];
+      // 4) 包含（水 → 水电费，取最短）
+      const inc = nameList.filter(x => x.includes(v));
+      if (inc.length) return inc.sort((a, b) => a.length - b.length)[0];
+      unmatched++;
+      return v;
+    };
     for (const f of r.flows) {
       const iso = parseDateInput(f.date) || '';
       if (!iso) continue;
-      const key = String(f.acct || '').trim().toUpperCase();
-      const name = codeToName.get(key);
-      if (!name) unmatched++;
       state.transactions.push({
         id: uid(), seq: nextSeq(), date: iso,
-        from: name || f.acct, to: '', note: f.note || '',
-        amount: f.amount ? String(f.amount) : ''
+        from: resolve(f.from), to: resolve(f.to),
+        amount: f.amount ? String(f.amount) : '',
+        note: f.note || ''
       });
       addedFlow++;
     }
