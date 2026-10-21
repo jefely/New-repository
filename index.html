@@ -2782,6 +2782,30 @@ table#summary-table td.col-del .row-del:hover { color: #ef4444; background: rgba
 [data-theme="dark"] table#summary-table td.col-del .row-del { color: #5a5470; }
 [data-theme="dark"] table#summary-table td.col-del .row-del:hover { color: #ff6b6b; background: rgba(255,107,107,.12); }
 [data-theme="dark"] table#summary-table tbody tr.cat-row > td.col-del { background: #2a2140 !important; }
+/* 账单日 / 还款日两列：
+   ① 类型标签行里跟该行同底色（不再透明露白）
+   ② 只有类型标签行下面画横线，其它数据行不画 */
+table#summary-table tbody tr.cat-row > td.col-bill,
+table#summary-table tbody tr.cat-row > td.col-repay {
+  background: #ece7fb !important;
+  border-bottom: 1px solid #d8cdf3 !important;
+}
+[data-theme="dark"] table#summary-table tbody tr.cat-row > td.col-bill,
+[data-theme="dark"] table#summary-table tbody tr.cat-row > td.col-repay,
+[data-theme="dark"] table#summary-table tbody tr.cat-row:nth-child(odd) > td.col-bill,
+[data-theme="dark"] table#summary-table tbody tr.cat-row:nth-child(odd) > td.col-repay,
+[data-theme="dark"] table#summary-table tbody tr.cat-row:nth-child(even) > td.col-bill,
+[data-theme="dark"] table#summary-table tbody tr.cat-row:nth-child(even) > td.col-repay {
+  background: #2a2140 !important;
+  border-bottom: 1px solid #3b2f59 !important;
+}
+/* 其它行不要横线 */
+table#summary-table tbody tr:not(.cat-row) > td.col-bill,
+table#summary-table tbody tr:not(.cat-row) > td.col-repay,
+[data-theme="dark"] table#summary-table tbody tr:not(.cat-row) > td.col-bill,
+[data-theme="dark"] table#summary-table tbody tr:not(.cat-row) > td.col-repay {
+  border-bottom: none !important;
+}
 </style>
 </head>
 <body>
@@ -2882,7 +2906,7 @@ function toggleTheme() {
   toast(theme === 'dark' ? '已切换到反色主题' : '已切换到浅色主题');
 }
 
-const APP_VER = 'v8.38';
+const APP_VER = 'v8.39';
 const LS_KEY = 'flow_grid_v5';
 const SUMMARY_STATE_KEY = 'flow_summary_state_v3';
 // 流水表默认铺多少行空行。像 Excel 一样随手往下填，不用先点「新增」。
