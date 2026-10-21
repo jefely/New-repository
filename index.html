@@ -2747,6 +2747,41 @@ table#summary-table tbody tr.cat-row > td.col-repay {
   color: #8e7fd0 !important;
   font-weight: 400 !important;
 }
+/* 账单日 / 还款日 两列的横线调淡，和竖线同色 */
+table#summary-table tbody td.col-bill,
+table#summary-table tbody td.col-repay {
+  border-bottom: 1px solid var(--border-light) !important;
+}
+table#summary-table tbody tr.cat-row > td.col-bill,
+table#summary-table tbody tr.cat-row > td.col-repay {
+  border-bottom: 1px solid var(--border-light) !important;
+}
+[data-theme="dark"] table#summary-table tbody td.col-bill,
+[data-theme="dark"] table#summary-table tbody td.col-repay,
+[data-theme="dark"] table#summary-table tbody tr.cat-row > td.col-bill,
+[data-theme="dark"] table#summary-table tbody tr.cat-row > td.col-repay {
+  border-bottom: 1px solid #2a2a2a !important;
+}
+/* 新增的删除列 */
+table#summary-table th.col-del,
+table#summary-table td.col-del {
+  text-align: center !important;
+  padding: 0 2px !important;
+  border-bottom: 1px solid var(--border-light) !important;
+}
+table#summary-table td.col-del .row-del {
+  width: 22px; height: 22px; line-height: 1;
+  border: none; background: transparent; cursor: pointer;
+  color: #cbd5e1; font-size: 17px; font-weight: 700;
+  border-radius: 4px; padding: 0; display: inline-flex;
+  align-items: center; justify-content: center;
+}
+table#summary-table td.col-del .row-del:hover { color: #ef4444; background: rgba(239,68,68,.10); }
+[data-theme="dark"] table#summary-table th.col-del,
+[data-theme="dark"] table#summary-table td.col-del { border-bottom: 1px solid #2a2a2a !important; }
+[data-theme="dark"] table#summary-table td.col-del .row-del { color: #5a5470; }
+[data-theme="dark"] table#summary-table td.col-del .row-del:hover { color: #ff6b6b; background: rgba(255,107,107,.12); }
+[data-theme="dark"] table#summary-table tbody tr.cat-row > td.col-del { background: #2a2140 !important; }
 </style>
 </head>
 <body>
@@ -2847,7 +2882,7 @@ function toggleTheme() {
   toast(theme === 'dark' ? '已切换到反色主题' : '已切换到浅色主题');
 }
 
-const APP_VER = 'v8.36';
+const APP_VER = 'v8.38';
 const LS_KEY = 'flow_grid_v5';
 const SUMMARY_STATE_KEY = 'flow_summary_state_v3';
 // 流水表默认铺多少行空行。像 Excel 一样随手往下填，不用先点「新增」。
@@ -4497,6 +4532,7 @@ function renderSummary(main, footer) {
       <th class="col-hout">转出历史</th>
       <th class="col-hin">转入历史</th>
       <th class="col-open">期初</th>
+      <th class="col-del"></th>
       <th class="col-bill"></th>
       <th class="col-repay"></th>
     </tr></thead>
@@ -4552,6 +4588,7 @@ function renderSummary(main, footer) {
       `<td class="cat-sum col-hout">${dash(s.hout)}</td>` +
       `<td class="cat-sum col-hin">${dash(s.hin)}</td>` +
       `<td class="cat-sum col-open">${dash(s.open)}</td>` +
+      `<td class="col-del"></td>` +
       `<td class="col-bill">${isDebt ? '<span class="cat-col">账单日</span>' : ''}</td>` +
       `<td class="col-repay">${isDebt ? '<span class="cat-col">还款日</span>' : ''}</td>`;
     tbody.appendChild(cr);
@@ -4744,14 +4781,19 @@ function makeSummaryRow(acc, idx, range) {
   const emptyCell = cls => { const td = document.createElement('td'); td.className = cls; return td; };
 
   // 删除按钮挂在「账单日」格左端，也就是紧跟在期初列后面，不再甩到行尾
-  const tdBill = showBilling ? mkInputCell('billDay', 'text', 'col-bill') : emptyCell('col-bill');
+  // 删除按钮独立一列（在「账单日」之前）
+  const tdDel = document.createElement('td');
+  tdDel.className = 'col-del';
   if (!isNew) {
     const btn = document.createElement('button');
     btn.type = 'button'; btn.className = 'row-del'; btn.textContent = '×';
     btn.title = '删除账户';
     btn.addEventListener('click', () => deleteAccount(acc.id));
-    tdBill.appendChild(btn);
+    tdDel.appendChild(btn);
   }
+  tr.appendChild(tdDel);
+
+  const tdBill = showBilling ? mkInputCell('billDay', 'text', 'col-bill') : emptyCell('col-bill');
   tr.appendChild(tdBill);
   tr.appendChild(showBilling ? mkInputCell('repayDay', 'text', 'col-repay') : emptyCell('col-repay'));
   return tr;
@@ -7301,7 +7343,7 @@ function normShares(arr) {
 // 默认列宽（用户调好的，作为新用户 / 重置后的初始值）
 const DEFAULT_COL_WIDTHS = {
   flow:    [50, 77, 107, 117, 109, 179],
-  summary: [52, 76, 59, 73, 127, 124, 123, 120, 86, 85, 137, 90, 64],
+  summary: [52, 76, 59, 73, 127, 124, 123, 120, 86, 85, 137, 40, 90, 64],
   query:   [54, 65, 109, 116, 96, 184],
   fixed:   [56, 76, 150, 150, 108, 150, 84, 64],
   // 分类表去掉「类型」列后是 5 列，用户给的 6 个值取前 2 个 + 后 3 个
