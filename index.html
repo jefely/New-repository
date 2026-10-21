@@ -3747,6 +3747,59 @@ table#fixed-table input:disabled { color: var(--text-light); }
 /* 校验页内容不要被 flex 压扁 */
 #main > .audit-wrap { flex: 0 0 auto; }
 #main > .fixed-daily-tip { flex: 0 0 auto; }
+/* ===== 账本管理（嵌在「添加」对话框） ===== */
+.book-section {
+  margin: 10px 0 12px; padding: 10px 12px;
+  background: var(--bg-gray-light); border: 1px solid var(--border-light); border-radius: 8px;
+}
+.book-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.book-title { font-size: 13px; font-weight: 800; color: var(--text-main); }
+.book-new {
+  font-size: 12px; padding: 3px 10px; border-radius: 12px;
+  border: 1px solid var(--primary); background: transparent; color: var(--primary);
+  font-weight: 700; cursor: pointer;
+}
+.book-new:active { background: var(--primary); color: #fff; }
+.book-list { display: flex; flex-direction: column; gap: 6px; }
+.book-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 7px 10px; border-radius: 6px; cursor: pointer;
+  background: var(--bg-main); border: 1px solid var(--border-light);
+  font-size: 13px;
+}
+.book-row.active { border-color: var(--primary); background: #f5f2ff; }
+.book-name { flex: 1; color: var(--text-main); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.book-cur { font-size: 11px; padding: 1px 7px; border-radius: 8px; background: var(--primary); color: #fff; font-weight: 700; }
+.book-ops { display: flex; gap: 4px; }
+.book-ops button {
+  font-size: 11px; padding: 2px 7px; border-radius: 8px;
+  border: 1px solid var(--border); background: transparent; color: var(--text-muted);
+  cursor: pointer;
+}
+.book-ops button:active { background: var(--bg-gray); }
+[data-theme="dark"] .book-section { background: #141414; border-color: #2a2a2a; }
+[data-theme="dark"] .book-title { color: #ffffff; }
+[data-theme="dark"] .book-row { background: #1c1c1c; border-color: #2f2f2f; }
+[data-theme="dark"] .book-row.active { background: #2a2140; border-color: #4c3d80; }
+[data-theme="dark"] .book-name { color: #f0edf7; }
+[data-theme="dark"] .book-ops button { border-color: #3a3a3a; color: #9a94ad; }
+/* 简介里的虚拟账户说明 */
+.intro-virtual { display: flex; flex-direction: column; gap: 8px; }
+.vrow {
+  background: var(--bg-main); border: 1px solid var(--border-light);
+  border-radius: 6px; padding: 8px 10px;
+}
+.vname { font-size: 12.5px; font-weight: 800; color: #6b5bc4; }
+.vtype { font-size: 10.5px; color: var(--text-light); margin-left: 6px; }
+.vflow { font-size: 12px; color: var(--text-main); margin-top: 4px; }
+.vflow b { color: #3d2d7a; font-weight: 700; }
+.vnote { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+[data-theme="dark"] .vrow { background: #1c1c1c; border-color: #2f2f2f; }
+[data-theme="dark"] .vname { color: #b9a6ff; }
+[data-theme="dark"] .vtype { color: #7a7290; }
+[data-theme="dark"] .vflow { color: #e8e2f4; }
+[data-theme="dark"] .vflow b { color: #c9b8ff; }
+[data-theme="dark"] .vnote { color: #9a94ad; }
 </style>
 </head>
 <body>
@@ -3939,8 +3992,41 @@ async function encryptWithSession(text) {
 // 网站二维码（内嵌 base64，离线可显示），扫码打开 https://jefely.github.io/New-repository/
 const QR_DATA_URL = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAUoAAAFKCAIAAAD0S4FSAAAFCUlEQVR42u3dS3IUMRBF0VcE+9+y2QETIfKjc+YGd7VvqAYZqe/n5yfARr88ApA3IG9A3oC8AXkD8gZ5A/IG5A3IG5A3IG+QNyBvQN6AvAF5A/KGl/0++eHv+5Y9jr9vnjv5vD3/5Xub9nr+v/v+Jp3e4OUckDcgb0DegLwBeQPyBnkDeWpqLdembe7pOdV071nt+xZOPtFrf5NOb/ByDsgbkDcgb0DegLxB3oC8gTw1tZaiSZ2Jk0n3NrFVPcmTn636vPv+Jp3e4OUckDcgb0DegLwBeYO8AXkDMbUW94du2eI2cQ7P6Q3IG5A3IG9A3oC8Qd6AvAF5AzG1Nsi9Oa2qGzPNpTm9AXkD8gbkDcgbkDfIG5A3IG8gj0yt9bzHs+eutZP/t+qWz33fr9MbkDcgb0DegLxB3oC8AXkD8gbSfGpt37ate7vH/Gz+yxzeaxvgnN4gb0DegLwBeQPyBuQN8gbkDTT07dsvNXGmrWrWque3f+9JOr0BeQPyBuQNyBuQN8gbkDcgbyCjd63ZiZUGe+nu3Vta9S303MTW835Ypzd4OQfkDcgbkDcgb0DegLxB3kCemlq7N8djB9j0ezxTNNM2cRry3l+O0xu8nAPyBuQNyBuQNyBvkDcgbyDLbgidOAM0cU6ranbwtcnCqp91egPyBuQN8gbkDcgbkDcgb0DeELvWsne2rOd+uJ4zTz3vh616GhM/r9MbvJwD8gbkDcgbkDcgb5A3IG8gT02tnUzb3JtMujfTNnHyrGqLW9Wz2vcdOb3Byzkgb0DegLwBeQPyBuQN8gZiai29p4smburqOePVczNZ1ed1egPyBuQNyBvkDcgbkDcgb0DeQEZPraXlBNi+XVwZeIvra1OJTm9A3iBvQN6AvAF5A/IG5A3yBmJqLb3nw3rOD1VNU937vFUzbVX70ibOLDq9wcs5IG9A3oC8AXkD8gZ5A/IGGvp6zuJMvKux52ayqttFe86W7XuSTm/wcg7IG5A3IG9A3oC8AXmDvIE8NbVWtU/r3oRQ1bTcaxvReu482/f37PQGL+eAvAF5A/IG5A3IG+QNyBvIshtCM3BfWtUEWNZNcU18VlUzbVX/stMbvJwD8gbkDcgbkDcgb5A3IG8gT02t5bHpohTNllU9jbScw6uahzt5znatAfIG5A3yBuQNyBuQNyBvQN4QN4SWTwhNvNfy3u/sW9jN1Bogb0DeIG9A3oC8AXkD8gbkDTG1xpo7QHvuh/NbOb0BeQPyBnkD8gbkDcgbkDcgb4gbQjNniisDt16d7B6ruuVz4u2iE39npzcgb0DeIG9A3oC8AXkD8gbkDTG1lt4TYDFp136LW9W3XzV32HPSzukNXs4BeQPyBuQNyBuQN8gbkDeQp6bWUjQ99toOsJMnee9OzHvfb9Xc4ck3WDXh5/QGL+eAvAF5A/IG5A3IG+QNyBuIqbW8ures6g7Qe7NlPSfees4sVs20Ob3Byzkgb0DegLwBeQPyBnkD8gZiai2v3qe577eq2g+Xoj1tVbvlnN6AvEHegLwBeQPyBuQNyBvkDcTUWvZOgGXgRNTEaap7E289b2Kt+o6c3uDlHJA3IG9A3oC8AXmDvAF5Aw19EzdmpeVNjml5R2TVJFbcLur0BuQNyBuQN8gbkDcgb0DegLyB/OupNcDpDcgbkDcgb5A3IG9A3oC8AXkD8gbkDfIG5A3IG5A3IG9A3iBvQN5AU38AW3Unpg+CBHwAAAAASUVORK5CYII=';
 
-const APP_VER = 'v9.03';
-const LS_KEY = 'flow_grid_v5';
+const APP_VER = 'v9.08';
+const LS_KEY_BASE = 'flow_grid_v5';
+const BOOKS_KEY = 'purple_books_v1';
+
+// 多账本注册表：{ current: 'b1', list: [{id,name,createdAt}] }
+let bookState = (() => {
+  try {
+    const raw = localStorage.getItem(BOOKS_KEY);
+    if (raw) {
+      const o = JSON.parse(raw);
+      if (o && Array.isArray(o.list) && o.list.length) {
+        if (!o.list.some(b => b.id === o.current)) o.current = o.list[0].id;
+        return o;
+      }
+    }
+  } catch (e) {}
+  // 首次：把现有单账本数据接管成「主账本」
+  const id = 'b1';
+  const st = { current: id, list: [{ id, name: '主账本', createdAt: new Date().toISOString() }] };
+  try { localStorage.setItem(BOOKS_KEY, JSON.stringify(st)); } catch (e) {}
+  return st;
+})();
+
+function saveBooks() {
+  try { localStorage.setItem(BOOKS_KEY, JSON.stringify(bookState)); } catch (e) {}
+}
+function currentBook() {
+  return bookState.list.find(b => b.id === bookState.current) || bookState.list[0];
+}
+// 当前账本的存储 key。首本沿用旧 key，保证老数据能直接读到。
+function lsKey() {
+  const b = currentBook();
+  return (!b || b.id === 'b1') ? LS_KEY_BASE : (LS_KEY_BASE + ':' + b.id);
+}
+const LS_KEY = LS_KEY_BASE;   // 仅用于旧代码/注释，真实读写请用 lsKey()
 const SUMMARY_STATE_KEY = 'flow_summary_state_v3';
 // 流水表默认铺多少行空行。像 Excel 一样随手往下填，不用先点「新增」。
 const FLOW_BLANK_ROWS = 30;
@@ -4081,7 +4167,7 @@ async function flushDiskWrite() {
   _savePending = false;
   try {
     const enc = await encryptWithSession(_lastSaved);
-    localStorage.setItem(LS_KEY, 'ENC1:' + enc);
+    localStorage.setItem(lsKey(), 'ENC1:' + enc);
   } catch (e) {
     try { console.warn('写盘失败', e); } catch (x) {}
   }
@@ -4330,6 +4416,30 @@ function renderAudit(main, footer) {
       <div><span class="tag tag-c1">数据完整性</span>转出总额 − 转入总额 = 0</div>
       <div><span class="tag tag-c2">会计恒等式</span>总资产 − 总负债 − 总权益 = 0<br>
         <span class="intro-dim">（总权益已含本期收入 − 费用）</span></div>
+    </div>
+
+    <div class="intro-sec">钱从外面进来时，用「虚拟账户」接住</div>
+    <div class="intro-lead" style="margin-bottom:8px">
+      有的钱不是从别的账户转来的 —— 工资是外面发的，本金是你自己投的。
+      这时没有对手账户可写，所以软件预置了两个<b>虚拟账户</b>专门承接：
+    </div>
+    <div class="intro-virtual">
+      <div class="vrow">
+        <span class="vname">收入汇总</span><span class="vtype">权益类 · 结转</span>
+        <div class="vflow"><b>收入汇总</b> 转出 → <b>储蓄卡</b> 转入</div>
+        <div class="vnote">发工资、收红包。资产和权益同时增加。</div>
+      </div>
+      <div class="vrow">
+        <span class="vname">实收资本</span><span class="vtype">权益类 · 投资</span>
+        <div class="vflow"><b>实收资本</b> 转出 → <b>储蓄卡</b> 转入</div>
+        <div class="vnote">自己投本金进来。同样是资产和权益一起涨。</div>
+      </div>
+    </div>
+    <div class="intro-lead" style="margin-top:8px">
+      为什么都写成「转出」？因为权益类账户的规则是<b>转出增加、转入减少</b> ——
+      钱离开虚拟池子进入你的卡里，池子里的「家底」就记多了一笔。
+      虚拟账户没有真实余额，它的唯一作用是让每笔流水都有对手方，
+      这样「转出总额 = 转入总额」才永远成立。
     </div>
 
     <div class="intro-sec">数据自持</div>
@@ -5266,13 +5376,138 @@ function openImportXlsxDialog() {
   };
 }
 
+// 账本管理面板（嵌在「添加」对话框顶部）
+function buildBookSection() {
+  const box = document.createElement('div');
+  box.className = 'book-section';
+  const render = () => {
+    const cur = currentBook();
+    box.innerHTML = `
+      <div class="book-head">
+        <span class="book-title">账本</span>
+        <button type="button" class="book-new">+ 新建</button>
+      </div>
+      <div class="book-list"></div>
+    `;
+    const list = box.querySelector('.book-list');
+    for (const b of bookState.list) {
+      const row = document.createElement('div');
+      row.className = 'book-row' + (b.id === cur.id ? ' active' : '');
+      row.innerHTML = `
+        <span class="book-name">${esc(b.name)}</span>
+        ${b.id === cur.id ? '<span class="book-cur">当前</span>' : ''}
+        <span class="book-ops">
+          <button type="button" data-op="rename" title="重命名">改名</button>
+          ${bookState.list.length > 1 ? '<button type="button" data-op="del" title="删除账本">删除</button>' : ''}
+        </span>`;
+      row.querySelectorAll('[data-op]').forEach(btn => {
+        btn.onclick = (ev) => {
+          ev.stopPropagation();
+          const op = btn.dataset.op;
+          if (op === 'rename') {
+            const nm = prompt('账本名称', b.name);
+            if (nm === null) return;
+            const t = String(nm).trim();
+            if (!t) { toast('名称不能为空', { type: 'error' }); return; }
+            b.name = t.slice(0, 24);
+            saveBooks(); render(); toast('已改名');
+          } else if (op === 'del') {
+            if (b.id === bookState.current) { toast('不能删除当前正在用的账本，先切到别的', { type: 'error' }); return; }
+            if (!confirm('删除账本「' + b.name + '」？\n\n它里面的账户和流水会一并删除，无法恢复。')) return;
+            try { localStorage.removeItem(LS_KEY_BASE + ':' + b.id); } catch (e) {}
+            bookState.list = bookState.list.filter(x => x.id !== b.id);
+            saveBooks(); render(); toast('已删除「' + b.name + '」');
+          }
+        };
+      });
+      row.onclick = async () => {
+        if (b.id === bookState.current) return;
+        await switchBook(b.id);
+      };
+      list.appendChild(row);
+    }
+    box.querySelector('.book-new').onclick = async () => {
+      const nm = prompt('新账本名称', '账本 ' + (bookState.list.length + 1));
+      if (nm === null) return;
+      const t = String(nm).trim();
+      if (!t) { toast('名称不能为空', { type: 'error' }); return; }
+      await createBook(t.slice(0, 24));
+    };
+  };
+  render();
+  return box;
+}
+
+// 新建账本：空白（73 个默认账户，期初全 0）
+async function createBook(name) {
+  const id = 'b' + Date.now().toString(36);
+  bookState.list.push({ id, name, createdAt: new Date().toISOString() });
+  bookState.current = id;
+  saveBooks();
+  // 用当前会话密钥立刻写一份空的加密账本
+  state = { accounts: JSON.parse(JSON.stringify(defaultAccounts)), transactions: [], installments: [], fixed: [] };
+  _lastSaved = JSON.stringify(state);
+  _savePending = true;
+  try { await flushDiskWrite(); } catch (e) {}
+  closeAllMasks();
+  render();
+  toast('已新建并切到「' + name + '」');
+}
+
+// 切换账本：同一密码，直接用会话密钥解；解不开再问一次
+async function switchBook(id) {
+  closeAllMasks();
+  const target = bookState.list.find(b => b.id === id);
+  if (!target) return;
+  const key = (id === 'b1') ? LS_KEY_BASE : (LS_KEY_BASE + ':' + id);
+  let stored = null;
+  try { stored = localStorage.getItem(key); } catch (e) {}
+
+  if (!stored) {
+    // 空账本 → 立刻用当前密钥写一份空白
+    bookState.current = id; saveBooks();
+    state = { accounts: JSON.parse(JSON.stringify(defaultAccounts)), transactions: [], installments: [], fixed: [] };
+    _lastSaved = JSON.stringify(state);
+    _savePending = true;
+    try { await flushDiskWrite(); } catch (e) {}
+    render();
+    toast('已切到「' + target.name + '」（空账本）');
+    return;
+  }
+  if (!/^ENC1:/.test(stored)) { toast('这个账本的数据格式不对', { type: 'error' }); return; }
+
+  const payload = stored.slice(5);
+  const all = unb64u(payload);
+  if (all.length < 29) { toast('账本数据已损坏', { type: 'error' }); return; }
+  const salt = all.subarray(0, 16);
+  const iv = all.subarray(16, 28);
+  const ct = all.subarray(28);
+
+  // 用当前会话密钥（同一密码）解
+  try {
+    const pt = new TextDecoder().decode(await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, _sessionKey, ct));
+    if (!loadStateFromDisk(pt)) throw new Error('格式异常');
+    bookState.current = id; saveBooks();
+    _lastSaved = pt;
+    render();
+    toast('已切到「' + target.name + '」');
+  } catch (e) {
+    toast('切换失败：密码与这个账本不一致，或数据已损坏', { type: 'error', duration: 6000 });
+  }
+}
+
+function closeAllMasks() {
+  document.querySelectorAll('.confirm-mask').forEach(m => m.remove());
+}
+
 // 原来的文本导入（账户 + 流水）
 function openImportTextDialog() {
   const mask = document.createElement('div');
   mask.className = 'confirm-mask';
   mask.innerHTML = `
     <div class="sync-box" style="max-width:min(96vw,560px)">
-      <div class="sync-title">导入账户与流水</div>
+      <div class="sync-title">添加</div>
+      <div id="book-slot"></div>
       <div class="sync-hint" style="text-align:left;line-height:1.7">
         一段文本用「账户」「流水」两个词分段，字段之间用中文逗号。<br>
         账户：<code>类型，分类，简码，名称，期初，</code><br>
@@ -5299,6 +5534,8 @@ function openImportTextDialog() {
       </div>
     </div>`;
   document.body.appendChild(mask);
+  const slot = mask.querySelector('#book-slot');
+  if (slot) slot.appendChild(buildBookSection());
   const close = () => mask.remove();
   mask.addEventListener('click', e => {
     if (e.target === mask || (e.target.dataset && e.target.dataset.act === 'close')) close();
@@ -9905,7 +10142,7 @@ bootWithLock();
 
 async function bootWithLock() {
   let stored = null;
-  try { stored = localStorage.getItem(LS_KEY); } catch (e) {}
+  try { stored = localStorage.getItem(lsKey()); } catch (e) {}
   if (stored && /^ENC1:/.test(stored)) {
     await showLockScreen('unlock', stored.slice(5));
   } else {
