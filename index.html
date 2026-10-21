@@ -2626,7 +2626,7 @@ function toggleTheme() {
   toast(theme === 'dark' ? '已切换到反色主题' : '已切换到浅色主题');
 }
 
-const APP_VER = 'v8.20';
+const APP_VER = 'v8.21';
 const LS_KEY = 'flow_grid_v5';
 const SUMMARY_STATE_KEY = 'flow_summary_state_v3';
 // 流水表默认铺多少行空行。像 Excel 一样随手往下填，不用先点「新增」。
@@ -7036,8 +7036,9 @@ const DEFAULT_COL_WIDTHS = {
   summary: [52, 76, 59, 73, 127, 124, 123, 120, 86, 85, 137, 90, 64],
   query:   [54, 65, 109, 116, 96, 184],
   fixed:   [56, 76, 150, 150, 108, 150, 84, 64],
-  cat:     [70, 150, 160, 130, 120],
-  installFixed: [126, 76, 82]   // 分期表前三列（账户名称/账单日/每月合计）
+  // 分类表去掉「类型」列后是 5 列，用户给的 6 个值取前 2 个 + 后 3 个
+  cat:     [56, 86, 133, 111, 103],
+  installFixed: [113, 60, 99]   // 分期表前三列（账户名称/账单日/每月合计）
 };
 
 let colWidths = (() => {
