@@ -1,7 +1,7 @@
 {
-  "name": "流水账",
-  "short_name": "流水账",
-  "description": "个人流水账本：流水记录、账户汇总、分期统计",
+  "name": "紫色账本",
+  "short_name": "紫色账本",
+  "description": "紫色账本：流水记录、账户汇总、分类统计、分期、固定收支、借贷校验",
   "lang": "zh-CN",
   "start_url": "./",
   "scope": "./",
@@ -10,7 +10,17 @@
   "background_color": "#f8fafc",
   "theme_color": "#6b5bc4",
   "icons": [
-    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
-    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
   ]
 }
