@@ -3861,7 +3861,7 @@ async function encryptWithSession(text) {
   return b64u(catBytes(_sessionSalt, iv, ct));
 }
 
-const APP_VER = 'v8.83';
+const APP_VER = 'v8.85';
 const LS_KEY = 'flow_grid_v5';
 const SUMMARY_STATE_KEY = 'flow_summary_state_v3';
 // 流水表默认铺多少行空行。像 Excel 一样随手往下填，不用先点「新增」。
@@ -4605,6 +4605,46 @@ function buildLayoutText() {
    · 账户按「名称」判重，已存在的直接忽略
    · 流水的账户简码会先翻译成账户全称，翻译不到就原样保留并计入「未匹配」
    ============================================================ */
+// 把当前数据导出成导入用的 TXT 模板（账户段 + 流水段）
+function buildImportText() {
+  const lines = [];
+  const money = v => (Number(v) || 0).toFixed(2);
+  lines.push('账户');
+  // 保持 类型 → 分类 → 简码 的稳定顺序，方便肉眼核对
+  const CAT_ORDER = ['资产类', '负债类', '收入类', '权益类', '费用类'];
+  const sorted = state.accounts.slice().sort((a, b) => {
+    const ia = CAT_ORDER.indexOf(a.cat), ib = CAT_ORDER.indexOf(b.cat);
+    if (ia !== ib) return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib);
+    return String(a.name || '').localeCompare(String(b.name || ''), 'zh-CN');
+  });
+  for (const a of sorted) {
+    const nm = String(a.name || '').trim();
+    if (!nm) continue;
+    lines.push([a.cat || '', a.sub || '', a.code || '', nm, money(a.opening)].join('，') + '，');
+  }
+  lines.push('');
+  lines.push('流水');
+  const txs = state.transactions.slice().sort((a, b) => {
+    const da = String(a.date || ''), db = String(b.date || '');
+    if (da !== db) return da < db ? -1 : 1;
+    return (a.seq || 0) - (b.seq || 0);
+  });
+  for (const t of txs) {
+    const d = t.date ? toYYMMDD(t.date) : '';
+    // 导出时用「简码优先」，没有简码就退回账户名
+    const codeOf = (name) => {
+      const n = String(name || '').trim();
+      if (!n) return '';
+      const a = state.accounts.find(x => String(x.name || '').trim() === n);
+      return a && a.code ? String(a.code).trim() : n;
+    };
+    const acct = codeOf(t.from) || codeOf(t.to);
+    if (!acct) continue;
+    lines.push([d, acct, t.note || '', money(t.amount)].join('，') + '，');
+  }
+  return lines.join('\n');
+}
+
 function parseImportText(text) {
   const nums = s => {
     const cleaned = String(s || '').replace(/[¥,，\s]/g, '');
@@ -4669,6 +4709,7 @@ function openImportDialog() {
       <div class="sync-block" style="gap:8px;margin-top:8px">
         <button type="button" class="ghost" id="imp-file-btn" style="width:100%">从 TXT 文件读取</button>
         <input type="file" id="imp-file" accept=".txt,.csv,.text" style="display:none">
+        <button type="button" class="ghost" id="imp-tpl-btn" style="width:100%">导出当前数据为 TXT（模板）</button>
       </div>
       <div id="imp-preview" class="sync-hint" style="text-align:left;min-height:18px;margin-top:6px"></div>
       <div class="sync-actions">
@@ -4709,6 +4750,29 @@ function openImportDialog() {
       toast('已读取 ' + f.name);
     } catch (e) { toast('读取失败：' + e.message, { type: 'error' }); }
     finally { fileInp.value = ''; }
+  };
+
+  // 导出当前数据为 TXT：既写进上面的输入框（方便直接改），也下载成文件
+  mask.querySelector('#imp-tpl-btn').onclick = () => {
+    const txt = buildImportText();
+    ta.value = txt;
+    preview();
+    const d = new Date();
+    const pad = n => String(n).padStart(2, '0');
+    const name = '账本模板_' + d.getFullYear() + pad(d.getMonth() + 1) + pad(d.getDate())
+      + '_' + pad(d.getHours()) + pad(d.getMinutes()) + '.txt';
+    try {
+      const blob = new Blob(['﻿' + txt], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = name;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 2000);
+      toast('已生成 ' + name + '（' + Math.round(blob.size / 1024) + ' KB，' +
+        txt.split(/\r?\n/).filter(l => l.trim() && !/^账户$|^流水$/.test(l.trim())).length + ' 行）', { duration: 6000 });
+    } catch (e) {
+      toast('导出失败：' + e.message + '（内容已填进上面的框，可手动复制）', { type: 'error', duration: 6000 });
+    }
   };
 
   mask.querySelector('#imp-go').onclick = () => {
