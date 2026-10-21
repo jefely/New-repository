@@ -3525,7 +3525,7 @@ function toggleTheme() {
   toast(theme === 'dark' ? '已切换到反色主题' : '已切换到浅色主题');
 }
 
-const APP_VER = 'v8.62';
+const APP_VER = 'v8.63';
 const LS_KEY = 'flow_grid_v5';
 const SUMMARY_STATE_KEY = 'flow_summary_state_v3';
 // 流水表默认铺多少行空行。像 Excel 一样随手往下填，不用先点「新增」。
@@ -7969,6 +7969,14 @@ function openSyncDialog() {
         <button type="button" class="ghost" id="sync-copy" disabled>复制</button>
       </div>
 
+      <div class="sync-or">— 数据多时改用文件（不受微信字数限制）—</div>
+
+      <div class="sync-block">
+        <button type="button" class="ghost" id="sync-save-file">存成文件（发给对方）</button>
+        <button type="button" class="ghost" id="sync-load-file">从文件导入</button>
+        <input type="file" id="sync-file" accept=".lz,.txt,.json" style="display:none">
+      </div>
+
       <div class="sync-or">— 或者 —</div>
 
       <div class="sync-block">
@@ -7998,6 +8006,41 @@ function openSyncDialog() {
     if (copyText(out.value)) toast('已复制，发到另一台设备粘贴即可');
     else { out.select(); toast('复制失败，请手动全选复制', { type: 'error' }); }
   };
+  // 存成文件：把同步码写成 .lz 文件，微信可当文件发（不受文字条数限制）
+  mask.querySelector('#sync-save-file').onclick = async () => {
+    try {
+      const code = await buildSyncCode();
+      const d = new Date();
+      const pad = n => String(n).padStart(2, '0');
+      const name = '账本_' + d.getFullYear() + pad(d.getMonth() + 1) + pad(d.getDate())
+        + '_' + pad(d.getHours()) + pad(d.getMinutes()) + '.lz';
+      const blob = new Blob([code], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = name;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 2000);
+      toast('已存为 ' + name + '（' + Math.round(blob.size / 1024) + ' KB）', { duration: 5000 });
+    } catch (e) { toast('导出失败：' + e.message, { type: 'error' }); }
+  };
+
+  // 从文件导入
+  const fileInp = mask.querySelector('#sync-file');
+  mask.querySelector('#sync-load-file').onclick = () => fileInp.click();
+  fileInp.onchange = async () => {
+    const f = fileInp.files && fileInp.files[0];
+    if (!f) return;
+    try {
+      const text = await f.text();
+      const code = text.trim();
+      if (!/^LZ[01][:：]/i.test(code)) throw new Error('这不是本程序的同步文件');
+      inp.value = code;
+      applyBtn.disabled = false;
+      toast('已读取 ' + f.name + '（' + Math.round(f.size / 1024) + ' KB），点下面按钮应用', { duration: 5000 });
+    } catch (e) { toast('读取失败：' + e.message, { type: 'error' }); }
+    finally { fileInp.value = ''; }
+  };
+
   inp.oninput = () => { applyBtn.disabled = !inp.value.trim(); };
   applyBtn.onclick = () => {
     const code = inp.value.trim();
