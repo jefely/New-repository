@@ -3871,7 +3871,7 @@ async function encryptWithSession(text) {
 // 网站二维码（内嵌 base64，离线可显示），扫码打开 https://jefely.github.io/New-repository/
 const QR_DATA_URL = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAUoAAAFKCAIAAAD0S4FSAAAFCUlEQVR42u3dS3IUMRBF0VcE+9+y2QETIfKjc+YGd7VvqAYZqe/n5yfARr88ApA3IG9A3oC8AXkD8gZ5A/IG5A3IG5A3IG+QNyBvQN6AvAF5A/KGl/0++eHv+5Y9jr9vnjv5vD3/5Xub9nr+v/v+Jp3e4OUckDcgb0DegLwBeQPyBnkDeWpqLdembe7pOdV071nt+xZOPtFrf5NOb/ByDsgbkDcgb0DegLxB3oC8gTw1tZaiSZ2Jk0n3NrFVPcmTn636vPv+Jp3e4OUckDcgb0DegLwBeYO8AXkDMbUW94du2eI2cQ7P6Q3IG5A3IG9A3oC8Qd6AvAF5AzG1Nsi9Oa2qGzPNpTm9AXkD8gbkDcgbkDfIG5A3IG8gj0yt9bzHs+eutZP/t+qWz33fr9MbkDcgb0DegLxB3oC8AXkD8gbSfGpt37ate7vH/Gz+yxzeaxvgnN4gb0DegLwBeQPyBuQN8gbkDTT07dsvNXGmrWrWque3f+9JOr0BeQPyBuQNyBuQN8gbkDcgbyCjd63ZiZUGe+nu3Vta9S303MTW835Ypzd4OQfkDcgbkDcgb0DegLxB3kCemlq7N8djB9j0ezxTNNM2cRry3l+O0xu8nAPyBuQNyBuQNyBvkDcgbyDLbgidOAM0cU6ranbwtcnCqp91egPyBuQN8gbkDcgbkDcgb0DeELvWsne2rOd+uJ4zTz3vh616GhM/r9MbvJwD8gbkDcgbkDcgb5A3IG8gT02tnUzb3JtMujfTNnHyrGqLW9Wz2vcdOb3Byzkgb0DegLwBeQPyBuQN8gZiai29p4smburqOePVczNZ1ed1egPyBuQNyBvkDcgbkDcgb0DeQEZPraXlBNi+XVwZeIvra1OJTm9A3iBvQN6AvAF5A/IG5A3yBmJqLb3nw3rOD1VNU937vFUzbVX70ibOLDq9wcs5IG9A3oC8AXkD8gZ5A/IGGvp6zuJMvKux52ayqttFe86W7XuSTm/wcg7IG5A3IG9A3oC8AXmDvIE8NbVWtU/r3oRQ1bTcaxvReu482/f37PQGL+eAvAF5A/IG5A3IG+QNyBvIshtCM3BfWtUEWNZNcU18VlUzbVX/stMbvJwD8gbkDcgbkDcgb5A3IG8gT02t5bHpohTNllU9jbScw6uahzt5znatAfIG5A3yBuQNyBuQNyBvQN4QN4SWTwhNvNfy3u/sW9jN1Bogb0DeIG9A3oC8AXkD8gbkDTG1xpo7QHvuh/NbOb0BeQPyBnkD8gbkDcgbkDcgb4gbQjNniisDt16d7B6ruuVz4u2iE39npzcgb0DeIG9A3oC8AXkD8gbkDTG1lt4TYDFp136LW9W3XzV32HPSzukNXs4BeQPyBuQNyBuQN8gbkDeQp6bWUjQ99toOsJMnee9OzHvfb9Xc4ck3WDXh5/QGL+eAvAF5A/IG5A3IG+QNyBuIqbW8ures6g7Qe7NlPSfees4sVs20Ob3Byzkgb0DegLwBeQPyBnkD8gZiai2v3qe577eq2g+Xoj1tVbvlnN6AvEHegLwBeQPyBuQNyBvkDcTUWvZOgGXgRNTEaap7E289b2Kt+o6c3uDlHJA3IG9A3oC8AXmDvAF5Aw19EzdmpeVNjml5R2TVJFbcLur0BuQNyBuQN8gbkDcgb0DegLyB/OupNcDpDcgbkDcgb5A3IG9A3oC8AXkD8gbkDfIG5A3IG5A3IG9A3iBvQN5AU38AW3Unpg+CBHwAAAAASUVORK5CYII=';
 
-const APP_VER = 'v8.96';
+const APP_VER = 'v8.98';
 const LS_KEY = 'flow_grid_v5';
 const SUMMARY_STATE_KEY = 'flow_summary_state_v3';
 // 流水表默认铺多少行空行。像 Excel 一样随手往下填，不用先点「新增」。
@@ -4702,21 +4702,283 @@ function parseImportText(text) {
 }
 
 // Excel 导入（占位，下一步实现）
+/* ============================================================
+   xlsx 读取（零依赖，手写 ZIP + XML）
+   ------------------------------------------------------------
+   · 只认本程序「导出」生成的结构：流水 sheet 第 2 行是表头，
+     第 3 行起是数据（序号/日期/转出/转入/金额/备注）
+   · ZIP：读中央目录，store(0) 直接复制、deflate(8) 用浏览器原生解压
+   · XML：正则抽取，够用且不引入 DOMParser 的命名空间麻烦
+   ============================================================ */
+async function inflateRaw(bytes) {
+  if (typeof DecompressionStream !== 'function') throw new Error('这个浏览器不支持解压，请用新版 Chrome / Edge');
+  const ds = new DecompressionStream('deflate-raw');
+  const w = ds.writable.getWriter();
+  w.write(bytes); w.close();
+  return new Uint8Array(await new Response(ds.readable).arrayBuffer());
+}
+
+function u16(b, o) { return b[o] | (b[o + 1] << 8); }
+function u32(b, o) { return (b[o] | (b[o + 1] << 8) | (b[o + 2] << 16) | (b[o + 3] << 24)) >>> 0; }
+
+// 读 ZIP → Map<文件名, Uint8Array>
+async function unzipArchive(buf) {
+  const b = buf instanceof Uint8Array ? buf : new Uint8Array(buf);
+  const dec = new TextDecoder('utf-8');
+  // 找中央目录结尾（EOCD 签名 0x06054b50），从尾部往前扫
+  let eocd = -1;
+  for (let i = b.length - 22; i >= Math.max(0, b.length - 22 - 65535); i--) {
+    if (b[i] === 0x50 && b[i + 1] === 0x4b && b[i + 2] === 0x05 && b[i + 3] === 0x06) { eocd = i; break; }
+  }
+  if (eocd < 0) throw new Error('不是有效的 xlsx（找不到 ZIP 目录）');
+  const count = u16(b, eocd + 10);
+  let off = u32(b, eocd + 16);
+  const files = new Map();
+  for (let n = 0; n < count; n++) {
+    if (b[off] !== 0x50 || b[off + 1] !== 0x4b || b[off + 2] !== 0x01 || b[off + 3] !== 0x02) break;
+    const method = u16(b, off + 10);
+    const compSize = u32(b, off + 20);
+    const nameLen = u16(b, off + 28);
+    const extraLen = u16(b, off + 30);
+    const commentLen = u16(b, off + 32);
+    const localOff = u32(b, off + 42);
+    const name = dec.decode(b.subarray(off + 46, off + 46 + nameLen));
+    // 本地文件头：跳过 30 字节固定头 + 文件名 + 扩展
+    const lNameLen = u16(b, localOff + 26);
+    const lExtraLen = u16(b, localOff + 28);
+    const dataStart = localOff + 30 + lNameLen + lExtraLen;
+    const raw = b.subarray(dataStart, dataStart + compSize);
+    files.set(name, { method, raw });
+    off += 46 + nameLen + extraLen + commentLen;
+  }
+  const out = new Map();
+  for (const [name, f] of files) {
+    if (name.endsWith('/')) continue;
+    if (f.method === 0) out.set(name, f.raw);
+    else if (f.method === 8) out.set(name, await inflateRaw(f.raw));
+    else throw new Error('xlsx 里有不支持的压缩方式：' + f.method);
+  }
+  return out;
+}
+
+const _xmlDec = t => String(t)
+  .replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+  .replace(/&quot;/g, '"').replace(/&apos;/g, "'")
+  .replace(/&#(\d+);/g, (_, d) => String.fromCharCode(Number(d)))
+  .replace(/&#x([0-9a-fA-F]+);/g, (_, h) => String.fromCharCode(parseInt(h, 16)))
+  .replace(/&amp;/g, '&');
+
+// 列名（A, B, ..., AA）→ 0 基索引
+function colIndex(ref) {
+  const m = /^([A-Z]+)/.exec(String(ref || '').toUpperCase());
+  if (!m) return -1;
+  let n = 0;
+  for (const ch of m[1]) n = n * 26 + (ch.charCodeAt(0) - 64);
+  return n - 1;
+}
+
+// 解析 sharedStrings.xml → 字符串数组
+function parseSharedStrings(xml) {
+  const out = [];
+  if (!xml) return out;
+  const items = xml.match(/<si[\s>][\s\S]*?<\/si>|<si\/>/g) || [];
+  for (const si of items) {
+    // 一个 si 里可能有多个 <t>（富文本分段），拼起来
+    const ts = si.match(/<t[^>]*>([\s\S]*?)<\/t>/g) || [];
+    out.push(ts.map(t => _xmlDec(t.replace(/<[^>]+>/g, ''))).join(''));
+  }
+  return out;
+}
+
+// 解析一张 sheet → 二维数组（字符串 / 数字）
+function parseSheetRows(xml, shared) {
+  const rows = [];
+  const rowRe = /<row[^>]*r="(\d+)"[^>]*>([\s\S]*?)<\/row>/g;
+  let m;
+  while ((m = rowRe.exec(xml))) {
+    const rIdx = parseInt(m[1], 10) - 1;
+    const cells = [];
+    const cellRe = /<c\b([^>]*)(?:\/>|>([\s\S]*?)<\/c>)/g;
+    let c;
+    while ((c = cellRe.exec(m[2]))) {
+      const attrs = c[1] || '';
+      const inner = c[2] || '';
+      const refM = /r="([A-Z]+\d+)"/.exec(attrs);
+      const ci = refM ? colIndex(refM[1]) : cells.length;
+      const tM = /t="([^"]+)"/.exec(attrs);
+      const type = tM ? tM[1] : 'n';
+      let val = '';
+      const vM = /<v>([\s\S]*?)<\/v>/.exec(inner);
+      if (type === 's') {
+        if (vM) val = shared[parseInt(vM[1], 10)] ?? '';
+      } else if (type === 'inlineStr') {
+        const isM = /<t[^>]*>([\s\S]*?)<\/t>/.exec(inner);
+        val = isM ? _xmlDec(isM[1].replace(/<[^>]+>/g, '')) : '';
+      } else if (vM) {
+        val = _xmlDec(vM[1]);
+      }
+      while (cells.length < ci) cells.push('');
+      cells[ci] = val;
+    }
+    while (rows.length < rIdx) rows.push([]);
+    rows[rIdx] = cells;
+  }
+  return rows;
+}
+
+// Excel 日期序列号 → YYYY-MM-DD
+function excelSerialToISO(n) {
+  const v = Number(n);
+  if (!isFinite(v) || v < 1 || v > 80000) return '';
+  const ms = Math.round((v - 25569) * 86400 * 1000);
+  const d = new Date(ms);
+  if (isNaN(d.getTime())) return '';
+  const p2 = x => String(x).padStart(2, '0');
+  return d.getUTCFullYear() + '-' + p2(d.getUTCMonth() + 1) + '-' + p2(d.getUTCDate());
+}
+
+// 读 xlsx：返回 { sheets: [{name, rows}] }
+async function readXlsx(buf) {
+  const files = await unzipArchive(buf);
+  const dec = new TextDecoder('utf-8');
+  const getXml = n => files.has(n) ? dec.decode(files.get(n)) : '';
+
+  const shared = parseSharedStrings(getXml('xl/sharedStrings.xml'));
+
+  // workbook.xml: <sheet name="流水" sheetId="1" r:id="rId1"/>
+  const wb = getXml('xl/workbook.xml');
+  const relsXml = getXml('xl/_rels/workbook.xml.rels');
+  const relMap = new Map();
+  (relsXml.match(/<Relationship\b[^>]*>/g) || []).forEach(tag => {
+    const id = /Id="([^"]+)"/.exec(tag);
+    const tgt = /Target="([^"]+)"/.exec(tag);
+    if (id && tgt) relMap.set(id[1], tgt[1].replace(/^\/?(xl\/)?/, ''));
+  });
+
+  const sheets = [];
+  const sheetTags = wb.match(/<sheet\b[^>]*>/g) || [];
+  for (const tag of sheetTags) {
+    const nm = /name="([^"]*)"/.exec(tag);
+    const rid = /r:id="([^"]+)"/.exec(tag);
+    if (!nm || !rid) continue;
+    const target = relMap.get(rid[1]);
+    if (!target) continue;
+    const path = files.has('xl/' + target) ? 'xl/' + target : (files.has(target) ? target : null);
+    if (!path) continue;
+    sheets.push({ name: _xmlDec(nm[1]), rows: parseSheetRows(dec.decode(files.get(path)), shared) });
+  }
+  if (!sheets.length) throw new Error('这个 xlsx 里没有可读的工作表');
+  return { sheets };
+}
+
+// 从「流水」sheet 里抽流水行
+function flowsFromSheet(rows) {
+  const out = [];
+  for (let i = 0; i < rows.length; i++) {
+    const r = rows[i] || [];
+    // 表头行：第 2 列是「日期」、第 3 列是「转出账户」
+    const isHead = String(r[1] || '').indexOf('日期') >= 0 && String(r[2] || '').indexOf('转出') >= 0;
+    if (isHead) continue;
+    const dateRaw = String(r[1] || '').trim();
+    const from = String(r[2] || '').trim();
+    const to = String(r[3] || '').trim();
+    const amt = String(r[4] || '').trim();
+    const note = String(r[5] || '').trim();
+    if (!dateRaw && !from && !to) continue;              // 空行
+    if (/^序号$|^日期$/.test(String(r[0] || ''))) continue;
+    // 日期可能是序列号，也可能是 2026-10-22 / 261022
+    let iso = /^\d+(\.\d+)?$/.test(dateRaw) ? excelSerialToISO(dateRaw) : '';
+    if (!iso) iso = parseDateInput(dateRaw) || '';
+    if (!iso) continue;
+    const n = parseFloat(amt.replace(/[¥,，\s]/g, ''));
+    out.push({ date: iso, from, to, amount: isNaN(n) ? 0 : n, note });
+  }
+  return out;
+}
+
 function openImportXlsxDialog() {
   const mask = document.createElement('div');
   mask.className = 'confirm-mask';
   mask.innerHTML = `
-    <div class="sync-box" style="max-width:min(92vw,400px)">
+    <div class="sync-box" style="max-width:min(94vw,460px)">
       <div class="sync-title">导入 Excel</div>
       <div class="sync-hint" style="text-align:left;line-height:1.7">
-        这个入口还在做。目前请先用「文本 / TXT」导入，或者把 Excel 另存为 TXT。
+        选一个本程序「导出」生成的 <b>.xlsx</b>。<br>
+        会读取里面的「流水」工作表（第 3 行起：序号、日期、转出、转入、金额、备注）。<br>
+        <span style="color:#b45309">导入是「追加」，不会删掉现有数据。</span>
       </div>
-      <div class="sync-actions"><button type="button" class="ghost" data-act="close">关闭</button></div>
+      <div class="sync-block" style="gap:8px">
+        <button type="button" id="xi-pick" style="width:100%">选择 .xlsx 文件</button>
+        <input type="file" id="xi-file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" style="display:none">
+      </div>
+      <div id="xi-info" class="sync-hint" style="text-align:left;min-height:20px;line-height:1.7"></div>
+      <div id="xi-list" style="max-height:200px;overflow:auto;display:none"></div>
+      <div class="sync-actions">
+        <button type="button" id="xi-go" disabled>导入</button>
+        <button type="button" class="ghost" data-act="close">关闭</button>
+      </div>
     </div>`;
   document.body.appendChild(mask);
+  const close = () => mask.remove();
   mask.addEventListener('click', e => {
-    if (e.target === mask || (e.target.dataset && e.target.dataset.act === 'close')) mask.remove();
+    if (e.target === mask || (e.target.dataset && e.target.dataset.act === 'close')) close();
   });
+  const fileInp = mask.querySelector('#xi-file');
+  const info = mask.querySelector('#xi-info');
+  const listEl = mask.querySelector('#xi-list');
+  const goBtn = mask.querySelector('#xi-go');
+  let pending = [];
+
+  mask.querySelector('#xi-pick').onclick = () => fileInp.click();
+  fileInp.onchange = async () => {
+    const f = fileInp.files && fileInp.files[0];
+    if (!f) return;
+    info.textContent = '正在读取 ' + f.name + ' …';
+    listEl.style.display = 'none'; listEl.innerHTML = '';
+    goBtn.disabled = true;
+    pending = [];
+    try {
+      const buf = new Uint8Array(await f.arrayBuffer());
+      const { sheets } = await readXlsx(buf);
+      const names = sheets.map(s => s.name).join(' / ');
+      const flowSheet = sheets.find(s => /流水/.test(s.name)) || sheets[0];
+      const flows = flowsFromSheet(flowSheet.rows);
+      pending = flows;
+      if (!flows.length) {
+        info.innerHTML = '找到工作表：' + esc(names) + '<br>但没从「' + esc(flowSheet.name) + '」里读到流水行。'
+          + '<br>确认表头是第 2 行、数据从第 3 行开始。';
+        return;
+      }
+      const bad = flows.filter(x => !x.from && !x.to).length;
+      info.innerHTML = '找到工作表：' + esc(names) + '<br>从「<b>' + esc(flowSheet.name)
+        + '</b>」读到 <b>' + flows.length + '</b> 笔流水'
+        + (bad ? '（其中 ' + bad + ' 笔两边账户都空）' : '');
+      listEl.style.display = 'block';
+      listEl.innerHTML = '<table class="audit-table"><tbody>' + flows.slice(0, 12).map(x =>
+        '<tr><td>' + esc(x.date) + '</td><td>' + esc(x.from || '—') + '</td><td>' + esc(x.to || '—')
+        + '</td><td class="num">' + (x.amount || 0).toFixed(2) + '</td></tr>').join('')
+        + (flows.length > 12 ? '<tr><td colspan="4" class="dim">… 还有 ' + (flows.length - 12) + ' 笔</td></tr>' : '')
+        + '</tbody></table>';
+      goBtn.disabled = false;
+    } catch (e) {
+      info.innerHTML = '<span style="color:#dc2626">读取失败：' + esc(e.message) + '</span>';
+    } finally { fileInp.value = ''; }
+  };
+
+  goBtn.onclick = () => {
+    if (!pending.length) return;
+    let added = 0;
+    for (const f of pending) {
+      state.transactions.push({
+        id: uid(), seq: nextSeq(), date: f.date,
+        from: f.from || '', to: f.to || '',
+        amount: f.amount ? String(f.amount) : '', note: f.note || ''
+      });
+      added++;
+    }
+    reseq(); save(); close(); render();
+    toast('增加 流水 ' + added + ' 条', { duration: 5000 });
+  };
 }
 
 // 原来的文本导入（账户 + 流水）
