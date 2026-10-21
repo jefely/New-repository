@@ -2130,6 +2130,80 @@ table#summary-table { min-width: 800px !important; }
   box-shadow: none !important;
   color: #ffffff !important;
 }
+/* ============================================================
+   深色：把工具栏之外的按钮也纳入暗紫体系
+   （查询页 q-clear、分期页新增/复制、固定页、对话框按钮等）
+   ============================================================ */
+[data-theme="dark"] button.ghost,
+[data-theme="dark"] button.q-clear,
+[data-theme="dark"] .query-table button,
+[data-theme="dark"] .query-section button,
+[data-theme="dark"] .sync-box button,
+[data-theme="dark"] .confirm-mask button,
+[data-theme="dark"] .inst-bar button,
+[data-theme="dark"] .fixed-bar button {
+  background: #2a2140 !important;
+  border: none !important;
+  box-shadow: none !important;
+  color: #f4f1fd !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  line-height: 1 !important;
+  border-radius: 6px !important;
+}
+[data-theme="dark"] button.ghost:active,
+[data-theme="dark"] button.q-clear:active,
+[data-theme="dark"] .query-table button:active,
+[data-theme="dark"] .sync-box button:active,
+[data-theme="dark"] .confirm-mask button:active {
+  background: #382c56 !important;
+}
+/* 主按钮（确定/导出等没有 ghost 类的）稍亮一点 */
+[data-theme="dark"] .sync-box button:not(.ghost),
+[data-theme="dark"] .confirm-mask button:not(.ghost):not([data-act="close"]) {
+  background: #4c3d80 !important;
+  color: #ffffff !important;
+}
+/* 查询页表头筛选输入框也走暗紫 */
+[data-theme="dark"] .query-table thead th input {
+  background: #120e1c !important;
+  border: 1px solid #332852 !important;
+  color: #ffffff !important;
+  border-radius: 5px !important;
+}
+[data-theme="dark"] .query-table thead th input:focus {
+  border-color: #6b5bc4 !important;
+}
+/* 查询页表头 / 标题行 / 输入框：统一暗紫（压过所有旧黑底规则） */
+[data-theme="dark"] table.query-table tr.q-title-row > th,
+[data-theme="dark"] table.query-table tr.q-title-row,
+[data-theme="dark"] table.query-table .q-title-inner {
+  background: #181322 !important;
+  border-color: #241d33 !important;
+}
+[data-theme="dark"] table.query-table tr.q-filter-row > th,
+[data-theme="dark"] table.query-table tr.q-head-row > th,
+[data-theme="dark"] table.query-table thead th {
+  background: #1d1729 !important;
+  color: #ffffff !important;
+  border-color: #241d33 !important;
+}
+[data-theme="dark"] table.query-table thead th input,
+[data-theme="dark"] table.query-table thead th input.qf-date,
+[data-theme="dark"] table.query-table thead th input.qf-from,
+[data-theme="dark"] table.query-table thead th input.qf-to,
+[data-theme="dark"] table.query-table thead th input.qf-amount,
+[data-theme="dark"] table.query-table thead th input.qf-note {
+  background: #120e1c !important;
+  border: 1px solid #332852 !important;
+  color: #ffffff !important;
+  border-radius: 5px !important;
+}
+[data-theme="dark"] table.query-table thead th input::placeholder { color: #7d72a0 !important; }
+[data-theme="dark"] table.query-table thead th input:focus { border-color: #6b5bc4 !important; background: #1a1428 !important; }
+[data-theme="dark"] .query-section { background: #0d0a14 !important; }
+[data-theme="dark"] .query-empty { color: #b4a8d0 !important; }
 </style>
 </head>
 <body>
@@ -2230,7 +2304,7 @@ function toggleTheme() {
   toast(theme === 'dark' ? '已切换到反色主题' : '已切换到浅色主题');
 }
 
-const APP_VER = 'v7.88';
+const APP_VER = 'v7.90';
 const LS_KEY = 'flow_grid_v5';
 const SUMMARY_STATE_KEY = 'flow_summary_state_v3';
 // 流水表默认铺多少行空行。像 Excel 一样随手往下填，不用先点「新增」。
