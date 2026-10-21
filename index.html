@@ -3992,7 +3992,7 @@ async function encryptWithSession(text) {
 // 网站二维码（内嵌 base64，离线可显示），扫码打开 https://jefely.github.io/New-repository/
 const QR_DATA_URL = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAUoAAAFKCAIAAAD0S4FSAAAFCUlEQVR42u3dS3IUMRBF0VcE+9+y2QETIfKjc+YGd7VvqAYZqe/n5yfARr88ApA3IG9A3oC8AXkD8gZ5A/IG5A3IG5A3IG+QNyBvQN6AvAF5A/KGl/0++eHv+5Y9jr9vnjv5vD3/5Xub9nr+v/v+Jp3e4OUckDcgb0DegLwBeQPyBnkDeWpqLdembe7pOdV071nt+xZOPtFrf5NOb/ByDsgbkDcgb0DegLxB3oC8gTw1tZaiSZ2Jk0n3NrFVPcmTn636vPv+Jp3e4OUckDcgb0DegLwBeYO8AXkDMbUW94du2eI2cQ7P6Q3IG5A3IG9A3oC8Qd6AvAF5AzG1Nsi9Oa2qGzPNpTm9AXkD8gbkDcgbkDfIG5A3IG8gj0yt9bzHs+eutZP/t+qWz33fr9MbkDcgb0DegLxB3oC8AXkD8gbSfGpt37ate7vH/Gz+yxzeaxvgnN4gb0DegLwBeQPyBuQN8gbkDTT07dsvNXGmrWrWque3f+9JOr0BeQPyBuQNyBuQN8gbkDcgbyCjd63ZiZUGe+nu3Vta9S303MTW835Ypzd4OQfkDcgbkDcgb0DegLxB3kCemlq7N8djB9j0ezxTNNM2cRry3l+O0xu8nAPyBuQNyBuQNyBvkDcgbyDLbgidOAM0cU6ranbwtcnCqp91egPyBuQN8gbkDcgbkDcgb0DeELvWsne2rOd+uJ4zTz3vh616GhM/r9MbvJwD8gbkDcgbkDcgb5A3IG8gT02tnUzb3JtMujfTNnHyrGqLW9Wz2vcdOb3Byzkgb0DegLwBeQPyBuQN8gZiai29p4smburqOePVczNZ1ed1egPyBuQNyBvkDcgbkDcgb0DeQEZPraXlBNi+XVwZeIvra1OJTm9A3iBvQN6AvAF5A/IG5A3yBmJqLb3nw3rOD1VNU937vFUzbVX70ibOLDq9wcs5IG9A3oC8AXkD8gZ5A/IGGvp6zuJMvKux52ayqttFe86W7XuSTm/wcg7IG5A3IG9A3oC8AXmDvIE8NbVWtU/r3oRQ1bTcaxvReu482/f37PQGL+eAvAF5A/IG5A3IG+QNyBvIshtCM3BfWtUEWNZNcU18VlUzbVX/stMbvJwD8gbkDcgbkDcgb5A3IG8gT02t5bHpohTNllU9jbScw6uahzt5znatAfIG5A3yBuQNyBuQNyBvQN4QN4SWTwhNvNfy3u/sW9jN1Bogb0DeIG9A3oC8AXkD8gbkDTG1xpo7QHvuh/NbOb0BeQPyBnkD8gbkDcgbkDcgb4gbQjNniisDt16d7B6ruuVz4u2iE39npzcgb0DeIG9A3oC8AXkD8gbkDTG1lt4TYDFp136LW9W3XzV32HPSzukNXs4BeQPyBuQNyBuQN8gbkDeQp6bWUjQ99toOsJMnee9OzHvfb9Xc4ck3WDXh5/QGL+eAvAF5A/IG5A3IG+QNyBuIqbW8ures6g7Qe7NlPSfees4sVs20Ob3Byzkgb0DegLwBeQPyBnkD8gZiai2v3qe577eq2g+Xoj1tVbvlnN6AvEHegLwBeQPyBuQNyBvkDcTUWvZOgGXgRNTEaap7E289b2Kt+o6c3uDlHJA3IG9A3oC8AXmDvAF5Aw19EzdmpeVNjml5R2TVJFbcLur0BuQNyBuQN8gbkDcgb0DegLyB/OupNcDpDcgbkDcgb5A3IG9A3oC8AXkD8gbkDfIG5A3IG5A3IG9A3iBvQN5AU38AW3Unpg+CBHwAAAAASUVORK5CYII=';
 
-const APP_VER = 'v9.21';
+const APP_VER = 'v9.23';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -5291,6 +5291,54 @@ function flowsFromSheet(rows) {
   return out;
 }
 
+// 从「汇总」sheet 读回账户的期初 / 账单日 / 还款日 / 分类 / 简码。
+// 表头行靠文字识别（「账户名称」「期初」），不依赖固定行号。
+function accountsFromSheet(rows) {
+  const out = [];
+  // 找表头
+  let headIdx = -1, col = {};
+  for (let i = 0; i < rows.length; i++) {
+    const r = rows[i] || [];
+    const idx = {};
+    for (let c = 0; c < r.length; c++) {
+      const t = String(r[c] == null ? '' : r[c]).trim();
+      if (!t) continue;
+      if (t === '账户名称') idx.name = c;
+      else if (t === '类型') idx.cat = c;
+      else if (t === '分类') idx.sub = c;
+      else if (t === '简码') idx.code = c;
+      else if (t === '期初') idx.opening = c;
+      else if (t === '账单日') idx.billDay = c;
+      else if (t === '还款日') idx.repayDay = c;
+    }
+    if (idx.name != null && idx.opening != null) { headIdx = i; col = idx; break; }
+  }
+  if (headIdx < 0) return out;
+
+  const num = v => {
+    if (v === '' || v == null) return 0;
+    const n = parseFloat(String(v).replace(/[¥,，\s]/g, ''));
+    return isNaN(n) ? 0 : n;
+  };
+  for (let i = headIdx + 1; i < rows.length; i++) {
+    const r = rows[i] || [];
+    const name = String(r[col.name] == null ? '' : r[col.name]).trim();
+    if (!name) continue;                                  // 空行 / 分组行（分组行的名称在别列）
+    if (/^(资产|负债|收入|权益|费用)$/.test(name)) continue;
+    const item = {
+      name,
+      opening: num(r[col.opening]),
+      cat: col.cat != null ? String(r[col.cat] || '').trim() : '',
+      sub: col.sub != null ? String(r[col.sub] || '').trim() : '',
+      code: col.code != null ? String(r[col.code] || '').trim() : '',
+      billDay: col.billDay != null ? String(r[col.billDay] || '').trim() : '',
+      repayDay: col.repayDay != null ? String(r[col.repayDay] || '').trim() : ''
+    };
+    if (col.name != null) out.push(item);
+  }
+  return out;
+}
+
 function openImportXlsxDialog() {
   const mask = document.createElement('div');
   mask.className = 'confirm-mask';
@@ -5323,6 +5371,7 @@ function openImportXlsxDialog() {
   const listEl = mask.querySelector('#xi-list');
   const goBtn = mask.querySelector('#xi-go');
   let pending = [];
+  let pendingAccs = [];
 
   mask.querySelector('#xi-pick').onclick = () => fileInp.click();
   fileInp.onchange = async () => {
@@ -5338,7 +5387,10 @@ function openImportXlsxDialog() {
       const names = sheets.map(s => s.name).join(' / ');
       const flowSheet = sheets.find(s => /流水/.test(s.name)) || sheets[0];
       const flows = flowsFromSheet(flowSheet.rows);
+      const sumSheet = sheets.find(s => /汇总/.test(s.name));
+      const accs = sumSheet ? accountsFromSheet(sumSheet.rows) : [];
       pending = flows;
+      pendingAccs = accs;
       if (!flows.length) {
         info.innerHTML = '找到工作表：' + esc(names) + '<br>但没从「' + esc(flowSheet.name) + '」里读到流水行。'
           + '<br>确认表头是第 2 行、数据从第 3 行开始。';
@@ -5348,6 +5400,7 @@ function openImportXlsxDialog() {
       info.innerHTML = '找到工作表：' + esc(names) + '<br>从「<b>' + esc(flowSheet.name)
         + '</b>」读到 <b>' + flows.length + '</b> 笔流水'
         + (bad ? '（其中 ' + bad + ' 笔两边账户都空）' : '')
+        + (accs.length ? '<br>从「汇总」读到 <b>' + accs.length + '</b> 个账户（含期初、账单日、还款日）' : '<br><span style="color:#b45309">这个文件没有「汇总」表，期初不会被恢复</span>')
         + '<br><span style="color:#dc2626">点击下方按钮后，本账本现有的 <b>' + state.transactions.length
         + '</b> 笔流水会被这 ' + flows.length + ' 笔替换。</span>';
       listEl.style.display = 'block';
@@ -5372,8 +5425,35 @@ function openImportXlsxDialog() {
       from: f.from || '', to: f.to || '',
       amount: f.amount ? String(f.amount) : '', note: f.note || ''
     }));
+    // 账户：把期初 / 账单日 / 还款日按名称写回（已有的改，没有的新建）
+    let accUpd = 0, accNew = 0;
+    for (const a of pendingAccs) {
+      // 先按名称精确匹配；名称对不上时用简码兜底，避免因改名/空格差异新建出一个重复账户
+      let hit = state.accounts.find(x => (x.name || '').trim() === a.name);
+      if (!hit && a.code) {
+        const byCode = state.accounts.filter(x => (x.code || '').trim().toUpperCase() === a.code.toUpperCase());
+        if (byCode.length === 1) hit = byCode[0];
+      }
+      if (hit) {
+        hit.opening = a.opening;
+        if (a.billDay) hit.billDay = a.billDay;
+        if (a.repayDay) hit.repayDay = a.repayDay;
+        if (a.cat) hit.cat = a.cat;
+        if (a.sub) hit.sub = a.sub;
+        if (a.code) hit.code = a.code;
+        accUpd++;
+      } else {
+        state.accounts.push({
+          id: uid(), cat: a.cat || '费用类', sub: a.sub || '其它', code: a.code || '',
+          name: a.name, opening: a.opening, billDay: a.billDay || '', repayDay: a.repayDay || ''
+        });
+        accNew++;
+      }
+    }
     reseq(); save(); close(); render();
-    toast('已用文件更新流水：' + state.transactions.length + ' 笔（原 ' + before + ' 笔）', { duration: 5000 });
+    toast('已用文件更新：流水 ' + state.transactions.length + ' 笔（原 ' + before + ' 笔）'
+      + (accUpd || accNew ? ' · 账户 ' + accUpd + ' 个已更新期初' + (accNew ? '，新建 ' + accNew + ' 个' : '') : ''),
+      { duration: 6000 });
   };
 }
 
