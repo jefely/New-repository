@@ -3862,7 +3862,7 @@ async function encryptWithSession(text) {
   return b64u(catBytes(_sessionSalt, iv, ct));
 }
 
-const APP_VER = 'v8.91';
+const APP_VER = 'v8.93';
 const LS_KEY = 'flow_grid_v5';
 const SUMMARY_STATE_KEY = 'flow_summary_state_v3';
 // 流水表默认铺多少行空行。像 Excel 一样随手往下填，不用先点「新增」。
@@ -4692,7 +4692,26 @@ function parseImportText(text) {
   return { accounts, flows };
 }
 
-function openImportDialog() {
+// Excel 导入（占位，下一步实现）
+function openImportXlsxDialog() {
+  const mask = document.createElement('div');
+  mask.className = 'confirm-mask';
+  mask.innerHTML = `
+    <div class="sync-box" style="max-width:min(92vw,400px)">
+      <div class="sync-title">导入 Excel</div>
+      <div class="sync-hint" style="text-align:left;line-height:1.7">
+        这个入口还在做。目前请先用「文本 / TXT」导入，或者把 Excel 另存为 TXT。
+      </div>
+      <div class="sync-actions"><button type="button" class="ghost" data-act="close">关闭</button></div>
+    </div>`;
+  document.body.appendChild(mask);
+  mask.addEventListener('click', e => {
+    if (e.target === mask || (e.target.dataset && e.target.dataset.act === 'close')) mask.remove();
+  });
+}
+
+// 原来的文本导入（账户 + 流水）
+function openImportTextDialog() {
   const mask = document.createElement('div');
   mask.className = 'confirm-mask';
   mask.innerHTML = `
@@ -5493,19 +5512,18 @@ function renderFlow(main, footer) {
   bar.className = 'toolbar flow-bar';
   bar.innerHTML = `
     <span class="flow-title">流水记录</span>
-    <button class="ghost" id="f-add">添加</button>
-    <button class="ghost" id="f-import" title="导入账户与流水（TXT / 粘贴）">导入</button>
+    <button class="ghost" id="f-add" title="批量添加账户与流水（文本 / TXT）">添加</button>
     <button class="ghost" id="f-sync">同步</button>
+    <button class="ghost" id="f-import" title="导入 Excel 或文本">导入</button>
     <button class="ghost" id="f-exp">导出</button>
     <button class="ghost" id="f-theme" title="切换反色主题">主题</button>
     <button class="ghost" id="f-reset" title="清空所有数据并恢复默认账户">重置</button>
     <button class="ghost" id="f-cols" title="布局设置：列宽 / 行高 / 字号">布局</button>
-    <input type="file" id="f-addfile" accept=".txt,text/plain" style="display:none">
   `;
   main.appendChild(bar);
 
-  document.getElementById('f-add').onclick = () => document.getElementById('f-addfile').click();
-  document.getElementById('f-addfile').onchange = (e) => addFlowFromTXT(e, footer);
+  // 「添加」= 批量添加（文本 / TXT）
+  document.getElementById('f-add').onclick = () => openImportTextDialog();
   document.getElementById('f-sync').onclick = () => openSyncDialog();
   document.getElementById('f-exp').onclick = () => openXlsmDialog();
   document.getElementById('f-theme').onclick = () => toggleTheme();
@@ -5513,7 +5531,7 @@ function renderFlow(main, footer) {
   const colsBtn = document.getElementById('f-cols');
   if (colsBtn) colsBtn.onclick = () => openColWidthsDialog();
   const impBtn = document.getElementById('f-import');
-  if (impBtn) impBtn.onclick = () => openImportDialog();
+  if (impBtn) impBtn.onclick = () => openImportXlsxDialog();
 
   // 3. 表格主体
   const wrap = document.createElement('div');
