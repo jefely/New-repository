@@ -2083,6 +2083,53 @@ table#summary-table { min-width: 800px !important; }
 [data-theme="dark"] .toolbar .range-box:focus-within {
   border-color: #6b5bc4 !important;
 }
+/* 按钮文字：垂直居中 + 颜色更接近白 */
+.toolbar > button,
+.toolbar.plan-bar > button.plan-btn,
+.toolbar .m-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  line-height: 1 !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  vertical-align: middle !important;
+}
+/* 深色下按钮字色：比纯白微紫 */
+[data-theme="dark"] .toolbar > button,
+[data-theme="dark"] .toolbar.plan-bar > button.plan-btn {
+  color: #f2eeff !important;
+}
+[data-theme="dark"] .toolbar .m-btn {
+  color: #eae4fa !important;
+}
+[data-theme="dark"] .toolbar > button[data-active="true"],
+[data-theme="dark"] .toolbar.plan-bar > button.plan-btn[data-active="true"],
+[data-theme="dark"] .toolbar .m-btn[data-active="true"] {
+  color: #ffffff !important;
+}
+/* 浅色下也统一居中 */
+.toolbar > button.ghost,
+.toolbar.plan-bar > button.plan-btn {
+  color: var(--text-main) !important;
+}
+/* 深色主题：按钮不要边框，只靠填充色分层；字比纯白微紫 */
+[data-theme="dark"] .toolbar > button,
+[data-theme="dark"] .toolbar.plan-bar > button.plan-btn,
+[data-theme="dark"] .toolbar .m-btn,
+[data-theme="dark"] .toolbar > button.ghost {
+  border: none !important;
+  box-shadow: none !important;
+  color: #f4f1fd !important;
+}
+[data-theme="dark"] .toolbar > button:active { background: #382c56 !important; border: none !important; }
+[data-theme="dark"] .toolbar > button[data-active="true"],
+[data-theme="dark"] .toolbar.plan-bar > button.plan-btn[data-active="true"],
+[data-theme="dark"] .toolbar .m-btn[data-active="true"] {
+  border: none !important;
+  box-shadow: none !important;
+  color: #ffffff !important;
+}
 </style>
 </head>
 <body>
@@ -2183,7 +2230,7 @@ function toggleTheme() {
   toast(theme === 'dark' ? '已切换到反色主题' : '已切换到浅色主题');
 }
 
-const APP_VER = 'v7.86';
+const APP_VER = 'v7.88';
 const LS_KEY = 'flow_grid_v5';
 const SUMMARY_STATE_KEY = 'flow_summary_state_v3';
 // 流水表默认铺多少行空行。像 Excel 一样随手往下填，不用先点「新增」。
