@@ -3862,7 +3862,7 @@ async function encryptWithSession(text) {
   return b64u(catBytes(_sessionSalt, iv, ct));
 }
 
-const APP_VER = 'v8.86';
+const APP_VER = 'v8.88';
 const LS_KEY = 'flow_grid_v5';
 const SUMMARY_STATE_KEY = 'flow_summary_state_v3';
 // 流水表默认铺多少行空行。像 Excel 一样随手往下填，不用先点「新增」。
@@ -4817,8 +4817,8 @@ function openImportDialog() {
       addedFlow++;
     }
     reseq(); save(); close(); render();
-    let msg = '新增账户 ' + addedAcc + '（忽略重复 ' + skippedAcc + '）· 流水 ' + addedFlow + ' 条';
-    if (unmatched) msg += ' · ' + unmatched + ' 条账户简码没匹配上';
+    let msg = '增加 流水 ' + addedFlow + ' 条 · 增加 账户 ' + addedAcc + ' 个 · 重复 ' + skippedAcc + ' 个';
+    if (unmatched) msg += ' · ' + unmatched + ' 条简码未匹配';
     toast(msg, { duration: 6000 });
   };
 }
@@ -5469,7 +5469,7 @@ function renderFlow(main, footer) {
   bar.innerHTML = `
     <span class="flow-title">流水记录</span>
     <button class="ghost" id="f-add">添加</button>
-    <button class="ghost" id="f-import" title="导入账户与流水（TXT / 粘贴）">导入</button>
+    <button class="ghost" id="f-import" title="导入账户与流水（TXT / 粘贴）">导入TXT</button>
     <button class="ghost" id="f-sync">同步</button>
     <button class="ghost" id="f-exp">导出</button>
     <button class="ghost" id="f-theme" title="切换反色主题">主题</button>
