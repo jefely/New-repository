@@ -2526,6 +2526,71 @@ table.install-table thead th:hover { z-index: 50; }
 table.install-table thead th.col-sum,
 table.install-table thead th.col-day { position: relative; }
 table.install-table tbody td { position: relative; z-index: 0; }
+/* 汇总页：分组行（资产/负债…）的冻结列「序号」「账户名称」也要有背景色，
+   否则浅色主题下这一格会是白的，斑马纹断掉 */
+table#summary-table tbody tr.cat-row > td.col-seq,
+table#summary-table tbody tr.cat-row > td.col-name,
+table#summary-table tbody tr.cat-row > td.col-code,
+table#summary-table tbody tr.cat-row > td.col-cat,
+table#summary-table tbody tr.cat-row > td.col-sub {
+  background: var(--bar-bg) !important;
+  color: var(--bar-text) !important;
+}
+/* 深色下用分组行自己的暗色 */
+[data-theme="dark"] table#summary-table tbody tr.cat-row > td.col-seq,
+[data-theme="dark"] table#summary-table tbody tr.cat-row > td.col-name,
+[data-theme="dark"] table#summary-table tbody tr.cat-row > td.col-code,
+[data-theme="dark"] table#summary-table tbody tr.cat-row > td.col-cat,
+[data-theme="dark"] table#summary-table tbody tr.cat-row > td.col-sub {
+  background: #16121f !important;
+  color: #ffffff !important;
+}
+/* 深色：分组行冻结列压过斑马纹（含 nth-child 变体） */
+[data-theme="dark"] table#summary-table tbody tr.cat-row > td.col-seq,
+[data-theme="dark"] table#summary-table tbody tr.cat-row > td.col-name,
+[data-theme="dark"] table#summary-table tbody tr.cat-row > td.col-code,
+[data-theme="dark"] table#summary-table tbody tr.cat-row > td.col-cat,
+[data-theme="dark"] table#summary-table tbody tr.cat-row > td.col-sub,
+[data-theme="dark"] table#summary-table tbody tr.cat-row:nth-child(odd) > td.col-seq,
+[data-theme="dark"] table#summary-table tbody tr.cat-row:nth-child(odd) > td.col-name,
+[data-theme="dark"] table#summary-table tbody tr.cat-row:nth-child(odd) > td.col-code,
+[data-theme="dark"] table#summary-table tbody tr.cat-row:nth-child(odd) > td.col-cat,
+[data-theme="dark"] table#summary-table tbody tr.cat-row:nth-child(odd) > td.col-sub,
+[data-theme="dark"] table#summary-table tbody tr.cat-row:nth-child(even) > td.col-seq,
+[data-theme="dark"] table#summary-table tbody tr.cat-row:nth-child(even) > td.col-name,
+[data-theme="dark"] table#summary-table tbody tr.cat-row:nth-child(even) > td.col-code,
+[data-theme="dark"] table#summary-table tbody tr.cat-row:nth-child(even) > td.col-cat,
+[data-theme="dark"] table#summary-table tbody tr.cat-row:nth-child(even) > td.col-sub {
+  background: #16121f !important;
+  color: #ffffff !important;
+}
+/* 分组行的金额合计格也要有背景（不能露白） */
+table#summary-table tbody tr.cat-row > td.cat-sum,
+table#summary-table tbody tr.cat-row > td.col-bal,
+table#summary-table tbody tr.cat-row > td.col-out,
+table#summary-table tbody tr.cat-row > td.col-in,
+table#summary-table tbody tr.cat-row > td.col-hout,
+table#summary-table tbody tr.cat-row > td.col-hin,
+table#summary-table tbody tr.cat-row > td.col-open,
+table#summary-table tbody tr.cat-row > td.col-bill,
+table#summary-table tbody tr.cat-row > td.col-repay {
+  background: var(--bar-bg) !important;
+  color: var(--bar-text) !important;
+}
+[data-theme="dark"] table#summary-table tbody tr.cat-row > td.cat-sum,
+[data-theme="dark"] table#summary-table tbody tr.cat-row > td.col-bal,
+[data-theme="dark"] table#summary-table tbody tr.cat-row > td.col-out,
+[data-theme="dark"] table#summary-table tbody tr.cat-row > td.col-in,
+[data-theme="dark"] table#summary-table tbody tr.cat-row > td.col-hout,
+[data-theme="dark"] table#summary-table tbody tr.cat-row > td.col-hin,
+[data-theme="dark"] table#summary-table tbody tr.cat-row > td.col-open,
+[data-theme="dark"] table#summary-table tbody tr.cat-row > td.col-bill,
+[data-theme="dark"] table#summary-table tbody tr.cat-row > td.col-repay,
+[data-theme="dark"] table#summary-table tbody tr.cat-row:nth-child(odd) > td.cat-sum,
+[data-theme="dark"] table#summary-table tbody tr.cat-row:nth-child(even) > td.cat-sum {
+  background: #16121f !important;
+  color: #ffffff !important;
+}
 </style>
 </head>
 <body>
@@ -2626,7 +2691,7 @@ function toggleTheme() {
   toast(theme === 'dark' ? '已切换到反色主题' : '已切换到浅色主题');
 }
 
-const APP_VER = 'v8.21';
+const APP_VER = 'v8.24';
 const LS_KEY = 'flow_grid_v5';
 const SUMMARY_STATE_KEY = 'flow_summary_state_v3';
 // 流水表默认铺多少行空行。像 Excel 一样随手往下填，不用先点「新增」。
@@ -7037,7 +7102,7 @@ const DEFAULT_COL_WIDTHS = {
   query:   [54, 65, 109, 116, 96, 184],
   fixed:   [56, 76, 150, 150, 108, 150, 84, 64],
   // 分类表去掉「类型」列后是 5 列，用户给的 6 个值取前 2 个 + 后 3 个
-  cat:     [56, 86, 133, 111, 103],
+  cat:     [62, 88, 122, 90, 99],
   installFixed: [113, 60, 99]   // 分期表前三列（账户名称/账单日/每月合计）
 };
 
