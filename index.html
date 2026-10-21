@@ -12,6 +12,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="流水账">
+<meta name="mobile-web-app-capable" content="yes">
 <title>智能流水账</title>
 <style>
 /* ==========================================
@@ -2591,6 +2592,70 @@ table#summary-table tbody tr.cat-row > td.col-repay {
   background: #16121f !important;
   color: #ffffff !important;
 }
+/* 深色：汇总的类型标签行背景用按钮紫 #2a2140 */
+[data-theme="dark"] table#summary-table tbody tr.cat-row > td,
+[data-theme="dark"] table#summary-table tbody tr.cat-row:nth-child(odd) > td,
+[data-theme="dark"] table#summary-table tbody tr.cat-row:nth-child(even) > td {
+  background: #2a2140 !important;
+  color: #ffffff !important;
+  border-bottom: 1px solid #3b2f59 !important;
+}
+/* 序号格里的「资产/负债」两字用亮点色 */
+[data-theme="dark"] table#summary-table tbody tr.cat-row > td.col-seq {
+  color: #c9b8ff !important;
+  font-weight: 700 !important;
+}
+/* 深色：汇总类型标签行 → 按钮紫 #2a2140（逐类名压过旧规则） */
+[data-theme="dark"] table#summary-table tbody tr.cat-row > td.col-seq,
+[data-theme="dark"] table#summary-table tbody tr.cat-row > td.col-cat,
+[data-theme="dark"] table#summary-table tbody tr.cat-row > td.col-sub,
+[data-theme="dark"] table#summary-table tbody tr.cat-row > td.col-code,
+[data-theme="dark"] table#summary-table tbody tr.cat-row > td.col-name,
+[data-theme="dark"] table#summary-table tbody tr.cat-row > td.col-bal,
+[data-theme="dark"] table#summary-table tbody tr.cat-row > td.col-out,
+[data-theme="dark"] table#summary-table tbody tr.cat-row > td.col-in,
+[data-theme="dark"] table#summary-table tbody tr.cat-row > td.col-hout,
+[data-theme="dark"] table#summary-table tbody tr.cat-row > td.col-hin,
+[data-theme="dark"] table#summary-table tbody tr.cat-row > td.col-open,
+[data-theme="dark"] table#summary-table tbody tr.cat-row > td.col-bill,
+[data-theme="dark"] table#summary-table tbody tr.cat-row > td.col-repay,
+[data-theme="dark"] table#summary-table tbody tr.cat-row > td.cat-sum,
+[data-theme="dark"] table#summary-table tbody tr.cat-row:nth-child(odd) > td.col-seq,
+[data-theme="dark"] table#summary-table tbody tr.cat-row:nth-child(even) > td.col-seq,
+[data-theme="dark"] table#summary-table tbody tr.cat-row:nth-child(odd) > td.col-name,
+[data-theme="dark"] table#summary-table tbody tr.cat-row:nth-child(even) > td.col-name,
+[data-theme="dark"] table#summary-table tbody tr.cat-row:nth-child(odd) > td.cat-sum,
+[data-theme="dark"] table#summary-table tbody tr.cat-row:nth-child(even) > td.cat-sum {
+  background: #2a2140 !important;
+  color: #ffffff !important;
+  border-bottom: 1px solid #3b2f59 !important;
+}
+[data-theme="dark"] table#summary-table tbody tr.cat-row > td.col-seq {
+  color: #c9b8ff !important;
+  font-weight: 700 !important;
+}
+/* 布局参数（行高 / 字号）由 JS 变量驱动 */
+:root { --layout-row-h: 32px; --layout-fs: 15px; --layout-fs-h: 15px; }
+table.grid tbody tr, table.query-table tbody tr, table.install-table tbody tr, table#fixed-table tbody tr {
+  height: var(--layout-row-h) !important;
+}
+table.grid tbody td, table.query-table tbody td, table.install-table tbody td, table#fixed-table tbody td {
+  height: var(--layout-row-h) !important;
+  font-size: var(--layout-fs) !important;
+}
+table.grid tbody td input, table.query-table tbody td input, table.install-table tbody td input, table#fixed-table tbody td input {
+  height: calc(var(--layout-row-h) - 2px) !important;
+  font-size: var(--layout-fs) !important;
+}
+table.grid thead th, table.query-table thead th, table.install-table thead th, table#fixed-table thead th {
+  font-size: var(--layout-fs-h) !important;
+}
+table.subsum-table thead th { font-size: var(--layout-fs-h) !important; }
+table.subsum-table tbody td { font-size: var(--layout-fs) !important; }
+/* 布局面板的数字输入 */
+.layout-grid { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; }
+.layout-grid > label { flex: 1 1 calc(33% - 8px); min-width: 92px; display: flex; align-items: center; gap: 4px; font-size: 12px; color: var(--text-muted); }
+.layout-grid > label > input { width: 52px; height: 28px; padding: 0 4px; box-sizing: border-box; font-size: 13px; text-align: center; border: 1px solid var(--border); border-radius: 5px; background: var(--bg-main); color: var(--text-main); }
 </style>
 </head>
 <body>
@@ -2691,7 +2756,7 @@ function toggleTheme() {
   toast(theme === 'dark' ? '已切换到反色主题' : '已切换到浅色主题');
 }
 
-const APP_VER = 'v8.24';
+const APP_VER = 'v8.27';
 const LS_KEY = 'flow_grid_v5';
 const SUMMARY_STATE_KEY = 'flow_summary_state_v3';
 // 流水表默认铺多少行空行。像 Excel 一样随手往下填，不用先点「新增」。
@@ -3182,19 +3247,25 @@ function openColWidthsDialog() {
   const mask = document.createElement('div');
   mask.className = 'confirm-mask';
   mask.innerHTML = `
-    <div class="sync-box" style="max-width:min(94vw,560px)">
-      <div class="sync-title">列宽设置</div>
+    <div class="sync-box" style="max-width:min(96vw,600px)">
+      <div class="sync-title">布局设置</div>
       <div class="sync-hint" style="text-align:left;line-height:1.8">
-        当前已保存：<b id="cw-count">0</b> 张表 · 分期月份列 <b id="cw-mw">62</b>px
+        已保存 <b id="cw-count">0</b> 张表列宽 · 分期月份列 <b id="cw-mw">62</b>px
+      </div>
+      <div class="layout-grid">
+        <label>行高 <input id="lay-rowh" type="number" min="20" max="60" step="1" value="32">px</label>
+        <label>正文号 <input id="lay-fs" type="number" min="10" max="22" step="1" value="15">px</label>
+        <label>表头号 <input id="lay-fsh" type="number" min="10" max="22" step="1" value="15">px</label>
       </div>
       <div class="sync-block" style="gap:8px">
-        <button type="button" id="cw-reset" style="width:100%">恢复默认列宽</button>
-        <button type="button" class="ghost" id="cw-copy" style="width:100%">复制当前列宽</button>
-        <button type="button" class="ghost" id="cw-paste" style="width:100%">粘贴导入列宽</button>
+        <button type="button" id="lay-apply" style="width:100%">应用行高 / 字号</button>
+        <button type="button" class="ghost" id="cw-reset" style="width:100%">恢复默认布局</button>
+        <button type="button" class="ghost" id="cw-copy" style="width:100%">导出布局参数</button>
+        <button type="button" class="ghost" id="cw-paste" style="width:100%">导入布局参数</button>
       </div>
       <div id="cw-area" style="display:none;margin-top:8px">
-        <textarea id="cw-json" style="width:100%;height:120px;font-size:11px;font-family:monospace;padding:8px;box-sizing:border-box;border:1px solid var(--border);border-radius:6px;background:var(--bg-main);color:var(--text-main)"></textarea>
-        <button type="button" id="cw-apply" style="width:100%;margin-top:8px">应用这段列宽</button>
+        <textarea id="cw-json" spellcheck="false" style="width:100%;height:170px;font-size:11px;font-family:ui-monospace,Consolas,monospace;padding:8px;box-sizing:border-box;border:1px solid var(--border);border-radius:6px;background:var(--bg-main);color:var(--text-main);line-height:1.5"></textarea>
+        <button type="button" id="cw-apply" style="width:100%;margin-top:8px">应用这段参数</button>
       </div>
       <div class="sync-actions"><button type="button" class="ghost" data-act="close">关闭</button></div>
     </div>`;
@@ -3204,63 +3275,92 @@ function openColWidthsDialog() {
     if (e.target === mask || (e.target.dataset && e.target.dataset.act === 'close')) close();
   });
   const cnt = mask.querySelector('#cw-count');
+  if (cnt) cnt.textContent = String(Object.keys(colWidths || {}).length);
+  const mwEl = mask.querySelector('#cw-mw');
+  if (mwEl) { try { mwEl.textContent = String(localStorage.getItem('flow_inst_mw_v1') || 62); } catch (e) {} }
+  const r1 = mask.querySelector('#lay-rowh'), r2 = mask.querySelector('#lay-fs'), r3 = mask.querySelector('#lay-fsh');
+  if (r1) r1.value = layoutCfg.rowH;
+  if (r2) r2.value = layoutCfg.fontSize;
+  if (r3) r3.value = layoutCfg.headerFontSize;
+
+  const cl = (v, lo, hi, def) => { let n = parseInt(v, 10); if (isNaN(n)) n = def; return Math.max(lo, Math.min(hi, n)); };
   const area = mask.querySelector('#cw-area');
   const ta = mask.querySelector('#cw-json');
-  const updCnt = () => {
-    if (cnt) cnt.textContent = String(Object.keys(colWidths || {}).length);
-    const mw = mask.querySelector('#cw-mw');
-    if (mw) { try { mw.textContent = String(localStorage.getItem('flow_inst_mw_v1') || 62); } catch (e) {} }
-  };
-  updCnt();
 
-  // 恢复默认
+  mask.querySelector('#lay-apply').onclick = () => {
+    layoutCfg.rowH = cl(r1.value, 20, 60, 32);
+    layoutCfg.fontSize = cl(r2.value, 10, 22, 15);
+    layoutCfg.headerFontSize = cl(r3.value, 10, 22, 15);
+    saveLayout(); applyLayout();
+    r1.value = layoutCfg.rowH; r2.value = layoutCfg.fontSize; r3.value = layoutCfg.headerFontSize;
+    toast('已应用：行高 ' + layoutCfg.rowH + 'px · 正文 ' + layoutCfg.fontSize + 'px · 表头 ' + layoutCfg.headerFontSize + 'px');
+  };
+
   mask.querySelector('#cw-reset').onclick = () => {
     colWidths = JSON.parse(JSON.stringify(DEFAULT_COL_WIDTHS));
     saveColWidths();
+    layoutCfg = Object.assign({}, DEFAULT_LAYOUT);
+    saveLayout(); applyLayout();
     try { localStorage.removeItem('flow_inst_mw_v1'); } catch (e) {}
-    close(); render(); toast('已恢复默认列宽（含分期月份列 62px）');
+    close(); render(); toast('已恢复默认布局');
   };
 
-  // 复制当前
   mask.querySelector('#cw-copy').onclick = async () => {
-    const json = JSON.stringify(colWidths);
+    const mw = (() => { try { return parseInt(localStorage.getItem('flow_inst_mw_v1'), 10) || 62; } catch (e) { return 62; } })();
+    const data = {
+      _说明: 'widths 各表列宽(px)；layout 行高与字号；installMonthWidth 分期月份列宽',
+      layout: { rowH: layoutCfg.rowH, fontSize: layoutCfg.fontSize, headerFontSize: layoutCfg.headerFontSize },
+      installMonthWidth: mw,
+      widths: {
+        flow: colWidths.flow, summary: colWidths.summary, query: colWidths.query,
+        fixed: colWidths.fixed, cat: colWidths.cat, installFixed: colWidths.installFixed
+      }
+    };
+    const json = JSON.stringify(data, null, 2);
     area.style.display = 'block';
     ta.value = json;
     try {
       if (navigator.clipboard) await navigator.clipboard.writeText(json);
       else { ta.focus(); ta.select(); document.execCommand('copy'); }
-      toast('已复制到剪贴板');
+      toast('已复制布局参数');
     } catch (e) { ta.focus(); ta.select(); }
   };
 
-  // 粘贴导入
   mask.querySelector('#cw-paste').onclick = async () => {
     area.style.display = 'block';
     ta.value = '';
     let txt = '';
     try { if (navigator.clipboard) txt = await navigator.clipboard.readText(); } catch (e) {}
     if (txt && txt.trim().startsWith('{')) { ta.value = txt.trim(); toast('已从剪贴板读入'); }
-    else { ta.focus(); toast('请粘贴列宽 JSON 到框里'); }
+    else { ta.focus(); toast('请把布局 JSON 粘贴到框里'); }
   };
 
-  // 应用
   mask.querySelector('#cw-apply').onclick = () => {
     try {
       const o = JSON.parse(ta.value || '{}');
-      if (!o || typeof o !== 'object' || Array.isArray(o)) throw new Error('不是对象');
-      let n = 0;
-      const next = {};
-      for (const k of Object.keys(o)) {
-        const a = o[k];
-        if (Array.isArray(a) && a.length && a.every(v => typeof v === 'number' && v > 0)) { next[k] = a.map(Math.round); n++; }
+      if (!o || typeof o !== 'object') throw new Error('不是对象');
+      let nW = 0, nL = 0;
+      const L = o.layout;
+      if (L && typeof L === 'object') {
+        if (Number(L.rowH) >= 20 && Number(L.rowH) <= 60) { layoutCfg.rowH = Math.round(Number(L.rowH)); nL++; }
+        if (Number(L.fontSize) >= 10 && Number(L.fontSize) <= 22) { layoutCfg.fontSize = Math.round(Number(L.fontSize)); nL++; }
+        if (Number(L.headerFontSize) >= 10 && Number(L.headerFontSize) <= 22) { layoutCfg.headerFontSize = Math.round(Number(L.headerFontSize)); nL++; }
+        saveLayout(); applyLayout();
       }
-      if (!n) throw new Error('没有有效的列宽数组');
-      colWidths = next;
-      saveColWidths(); close(); render();
-      toast('已导入 ' + n + ' 张表的列宽');
-    } catch (err) {
-      toast('导入失败：' + err.message, { type: 'error' });
-    }
+      const W = o.widths || o;
+      const next = {};
+      for (const key of Object.keys(W)) {
+        if (key === 'layout' || key === '_说明' || key === 'installMonthWidth') continue;
+        const a = W[key];
+        if (Array.isArray(a) && a.length && a.every(v => typeof v === 'number' && v > 0)) { next[key] = a.map(Math.round); nW++; }
+      }
+      if (nW) { colWidths = next; saveColWidths(); }
+      const mw = Number(o.installMonthWidth);
+      if (mw >= 44 && mw <= 160) { try { localStorage.setItem('flow_inst_mw_v1', String(Math.round(mw))); } catch (e) {} }
+      if (!nW && !nL) throw new Error('没有可用的列宽或布局参数');
+      close(); render();
+      toast('已导入 ' + nW + ' 组列宽' + (nL ? ' · ' + nL + ' 项布局' : ''));
+    } catch (err) { toast('导入失败：' + err.message, { type: 'error' }); }
   };
 }
 
@@ -3799,7 +3899,7 @@ function renderFlow(main, footer) {
     <button class="ghost" id="f-exp">导出</button>
     <button class="ghost" id="f-theme" title="切换反色主题">主题</button>
     <button class="ghost" id="f-reset" title="清空所有数据并恢复默认账户">重置</button>
-    <button class="ghost" id="f-cols" title="列宽设置：恢复默认 / 复制 / 导入">列宽</button>
+    <button class="ghost" id="f-cols" title="布局设置：列宽 / 行高 / 字号">布局</button>
     <input type="file" id="f-addfile" accept=".txt,text/plain" style="display:none">
   `;
   main.appendChild(bar);
@@ -7106,6 +7206,30 @@ const DEFAULT_COL_WIDTHS = {
   installFixed: [113, 60, 99]   // 分期表前三列（账户名称/账单日/每月合计）
 };
 
+// 布局参数：行高 / 正文字号 / 表头字号（跟列宽一起存）
+const LAYOUT_KEY = 'flow_layout_v1';
+const DEFAULT_LAYOUT = { rowH: 32, fontSize: 15, headerFontSize: 15 };
+let layoutCfg = (() => {
+  try {
+    const o = JSON.parse(localStorage.getItem(LAYOUT_KEY) || 'null');
+    if (o && typeof o === 'object') {
+      return {
+        rowH: Math.max(20, Math.min(60, Number(o.rowH) || 32)),
+        fontSize: Math.max(10, Math.min(22, Number(o.fontSize) || 15)),
+        headerFontSize: Math.max(10, Math.min(22, Number(o.headerFontSize) || 15))
+      };
+    }
+  } catch (e) {}
+  return Object.assign({}, DEFAULT_LAYOUT);
+})();
+function saveLayout() { try { localStorage.setItem(LAYOUT_KEY, JSON.stringify(layoutCfg)); } catch (e) {} }
+function applyLayout() {
+  const r = document.documentElement.style;
+  r.setProperty('--layout-row-h', layoutCfg.rowH + 'px');
+  r.setProperty('--layout-fs', layoutCfg.fontSize + 'px');
+  r.setProperty('--layout-fs-h', layoutCfg.headerFontSize + 'px');
+}
+
 let colWidths = (() => {
   const parse = (raw, scale) => {
     const out = {};
@@ -7356,9 +7480,11 @@ try {
 } catch (e) {}
 
 applyTheme();
+try { applyLayout(); } catch (e) {}
 try { document.getElementById('footer').dataset.ver = APP_VER; } catch (e) {}
 render();
 </script>
+
 
 
 <script>
