@@ -3423,6 +3423,50 @@ table#flow-table tbody td.col-note > input:not(.fixed-chk) {
 }
 /* 表头保留一点左内边距，标题不贴边 */
 table#flow-table thead th.col-note { padding-left: 6px !important; padding-right: 0 !important; }
+/* ===== 列宽拖动手柄：所有表格统一一套尺寸与位置 =====
+   握把中心必须压在列边界上，左右各占一半，手指才抓得住；
+   太靠右（只在列内）会导致既抓不到、又容易误触相邻格。 */
+.col-resizer {
+  position: absolute !important;
+  top: 0 !important;
+  bottom: 0 !important;
+  right: -12px !important;
+  width: 24px !important;
+  cursor: col-resize !important;
+  z-index: 60 !important;
+  touch-action: none !important;
+  pointer-events: auto !important;
+}
+.col-resizer::after {
+  content: '' !important;
+  position: absolute !important;
+  top: 22% !important;
+  bottom: 22% !important;
+  left: 11px !important;      /* 24 - 2 的中心 */
+  width: 2px !important;
+  border-radius: 1px !important;
+  background: transparent !important;
+  transition: background .15s !important;
+}
+.col-resizer:hover::after,
+.col-resizer.dragging::after { background: var(--primary) !important; }
+@media (max-width: 767px) {
+  .col-resizer { right: -16px !important; width: 32px !important; }
+  .col-resizer::after { left: 15px !important; background: #cbd5e1 !important; }
+  .col-resizer.dragging::after { background: var(--primary) !important; }
+}
+/* 分期表两个专用手柄沿用同一套尺寸 */
+.inst-resizer, .inst-fx-resizer {
+  position: absolute !important;
+  top: 0 !important; bottom: 0 !important;
+  right: -12px !important;
+  width: 24px !important;
+  z-index: 70 !important;
+  touch-action: none !important;
+}
+@media (max-width: 767px) {
+  .inst-resizer, .inst-fx-resizer { right: -16px !important; width: 32px !important; }
+}
 </style>
 </head>
 <body>
@@ -3611,7 +3655,7 @@ async function encryptWithSession(text) {
   return b64u(catBytes(_sessionSalt, iv, ct));
 }
 
-const APP_VER = 'v8.69';
+const APP_VER = 'v8.70';
 const LS_KEY = 'flow_grid_v5';
 const SUMMARY_STATE_KEY = 'flow_summary_state_v3';
 // 流水表默认铺多少行空行。像 Excel 一样随手往下填，不用先点「新增」。
@@ -3878,7 +3922,7 @@ function renderFixed(main, footer) {
   table.id = 'fixed-table';
   table.innerHTML = `
     <thead><tr>
-      <th class="col-seq">序号</th>
+      <th class="col-seq">序</th>
       <th class="col-day">每月</th>
       <th class="col-from">转出</th>
       <th class="col-to">转入</th>
@@ -4101,7 +4145,7 @@ function renderCat(main, footer) {
 
   table.innerHTML = `
     <thead><tr>
-      <th class="center">序号</th><th>汇总分类</th>
+      <th class="center">序</th><th>汇总分类</th>
       <th class="num">当前结余</th><th class="num">转出</th><th class="num">转入</th>
     </tr></thead>
     <tbody>${bodyParts.length ? bodyParts.join('') : '<tr><td colspan="5" class="query-empty">这个时间段还没有数据</td></tr>'}</tbody>`;
@@ -4804,7 +4848,7 @@ function renderFlow(main, footer) {
   table.className = 'grid'; table.id = 'flow-table';
   table.innerHTML = `
     <thead><tr>
-      <th class="col-seq">序号</th>
+      <th class="col-seq">序</th>
       <th class="col-date">日期</th>
       <th class="col-from">转出账户</th>
       <th class="col-to">转入账户</th>
@@ -5272,7 +5316,7 @@ function renderSummary(main, footer) {
   table.className = 'grid'; table.id = 'summary-table';
   table.innerHTML = `
     <thead><tr>
-      <th class="col-seq">序号</th>
+      <th class="col-seq">序</th>
       <th class="col-cat">类型</th>
       <th class="col-sub">分类</th>
       <th class="col-code">简码</th>
@@ -5788,7 +5832,7 @@ function renderQuery(main, footer) {
           <th class="col-note"><input class="qf-note" placeholder="备注搜索" title="输入关键词，匹配备注中包含该词的行" value="${esc(queryForm[i].note)}"></th>
         </tr>
         <tr class="q-head-row">
-          <th class="col-seq">序号</th><th class="col-date">日期</th><th class="col-from">转出</th>
+          <th class="col-seq">序</th><th class="col-date">日期</th><th class="col-from">转出</th>
           <th class="col-to">转入</th><th class="col-amount">金额</th><th class="col-note">备注</th>
         </tr>
       </thead>
