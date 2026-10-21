@@ -3569,6 +3569,32 @@ table#flow-table {
 /* 分类统计表正文：优先用按表字号（默认 13px），否则跟随全局 */
 table.subsum-table tbody td { font-size: var(--fs-cat, var(--layout-fs, 13px)) !important; }
 table.subsum-table tbody td input { font-size: var(--fs-cat, var(--layout-fs, 13px)) !important; }
+/* ===== 分类统计表：列宽拖动 = 只动被拖的那一列 =====
+   关键：宽度必须由 JS 写的内联 style 决定，CSS 这里绝对不能带 !important，
+   否则每次拖动后样式表又把宽度抢回去，浏览器就会重新分配所有列。 */
+table#cat-table {
+  table-layout: fixed !important;
+  width: auto;
+  min-width: 0 !important;
+  max-width: none !important;
+}
+table#cat-table.cols-custom {
+  table-layout: fixed !important;
+  width: auto;
+}
+table#cat-table th,
+table#cat-table td {
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+/* 流水表同理（作为参照，保持两表一致） */
+table#flow-table {
+  table-layout: fixed !important;
+  width: auto;
+  min-width: 0 !important;
+  max-width: none !important;
+}
+table#flow-table.cols-custom { width: auto; }
 </style>
 </head>
 <body>
@@ -3758,7 +3784,7 @@ async function encryptWithSession(text) {
   return b64u(catBytes(_sessionSalt, iv, ct));
 }
 
-const APP_VER = 'v8.77';
+const APP_VER = 'v8.78';
 const LS_KEY = 'flow_grid_v5';
 const SUMMARY_STATE_KEY = 'flow_summary_state_v3';
 // 流水表默认铺多少行空行。像 Excel 一样随手往下填，不用先点「新增」。
