@@ -3673,6 +3673,12 @@ table#cat-table {
   background: #4c3d80 !important;
   color: #ffffff !important;
 }
+/* 同步窗口里的二维码 */
+.qr-wrap { display: flex; flex-direction: column; align-items: center; gap: 6px; margin: 10px 0 14px; }
+.qr-wrap img { display: block; width: 200px; height: 200px; image-rendering: pixelated; background: #fff; border-radius: 8px; padding: 8px; box-sizing: content-box; }
+.qr-url { font-size: 12px; color: var(--text-muted); word-break: break-all; text-align: center; }
+[data-theme="dark"] .qr-wrap img { background: #ffffff; }
+[data-theme="dark"] .qr-url { color: #9a94ad; }
 </style>
 </head>
 <body>
@@ -3862,7 +3868,10 @@ async function encryptWithSession(text) {
   return b64u(catBytes(_sessionSalt, iv, ct));
 }
 
-const APP_VER = 'v8.93';
+// 网站二维码（内嵌 base64，离线可显示），扫码打开 https://jefely.github.io/New-repository/
+const QR_DATA_URL = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAUoAAAFKCAIAAAD0S4FSAAAFCUlEQVR42u3dS3IUMRBF0VcE+9+y2QETIfKjc+YGd7VvqAYZqe/n5yfARr88ApA3IG9A3oC8AXkD8gZ5A/IG5A3IG5A3IG+QNyBvQN6AvAF5A/KGl/0++eHv+5Y9jr9vnjv5vD3/5Xub9nr+v/v+Jp3e4OUckDcgb0DegLwBeQPyBnkDeWpqLdembe7pOdV071nt+xZOPtFrf5NOb/ByDsgbkDcgb0DegLxB3oC8gTw1tZaiSZ2Jk0n3NrFVPcmTn636vPv+Jp3e4OUckDcgb0DegLwBeYO8AXkDMbUW94du2eI2cQ7P6Q3IG5A3IG9A3oC8Qd6AvAF5AzG1Nsi9Oa2qGzPNpTm9AXkD8gbkDcgbkDfIG5A3IG8gj0yt9bzHs+eutZP/t+qWz33fr9MbkDcgb0DegLxB3oC8AXkD8gbSfGpt37ate7vH/Gz+yxzeaxvgnN4gb0DegLwBeQPyBuQN8gbkDTT07dsvNXGmrWrWque3f+9JOr0BeQPyBuQNyBuQN8gbkDcgbyCjd63ZiZUGe+nu3Vta9S303MTW835Ypzd4OQfkDcgbkDcgb0DegLxB3kCemlq7N8djB9j0ezxTNNM2cRry3l+O0xu8nAPyBuQNyBuQNyBvkDcgbyDLbgidOAM0cU6ranbwtcnCqp91egPyBuQN8gbkDcgbkDcgb0DeELvWsne2rOd+uJ4zTz3vh616GhM/r9MbvJwD8gbkDcgbkDcgb5A3IG8gT02tnUzb3JtMujfTNnHyrGqLW9Wz2vcdOb3Byzkgb0DegLwBeQPyBuQN8gZiai29p4smburqOePVczNZ1ed1egPyBuQNyBvkDcgbkDcgb0DeQEZPraXlBNi+XVwZeIvra1OJTm9A3iBvQN6AvAF5A/IG5A3yBmJqLb3nw3rOD1VNU937vFUzbVX70ibOLDq9wcs5IG9A3oC8AXkD8gZ5A/IGGvp6zuJMvKux52ayqttFe86W7XuSTm/wcg7IG5A3IG9A3oC8AXmDvIE8NbVWtU/r3oRQ1bTcaxvReu482/f37PQGL+eAvAF5A/IG5A3IG+QNyBvIshtCM3BfWtUEWNZNcU18VlUzbVX/stMbvJwD8gbkDcgbkDcgb5A3IG8gT02t5bHpohTNllU9jbScw6uahzt5znatAfIG5A3yBuQNyBuQNyBvQN4QN4SWTwhNvNfy3u/sW9jN1Bogb0DeIG9A3oC8AXkD8gbkDTG1xpo7QHvuh/NbOb0BeQPyBnkD8gbkDcgbkDcgb4gbQjNniisDt16d7B6ruuVz4u2iE39npzcgb0DeIG9A3oC8AXkD8gbkDTG1lt4TYDFp136LW9W3XzV32HPSzukNXs4BeQPyBuQNyBuQN8gbkDeQp6bWUjQ99toOsJMnee9OzHvfb9Xc4ck3WDXh5/QGL+eAvAF5A/IG5A3IG+QNyBuIqbW8ures6g7Qe7NlPSfees4sVs20Ob3Byzkgb0DegLwBeQPyBnkD8gZiai2v3qe577eq2g+Xoj1tVbvlnN6AvEHegLwBeQPyBuQNyBvkDcTUWvZOgGXgRNTEaap7E289b2Kt+o6c3uDlHJA3IG9A3oC8AXmDvAF5Aw19EzdmpeVNjml5R2TVJFbcLur0BuQNyBuQN8gbkDcgb0DegLyB/OupNcDpDcgbkDcgb5A3IG9A3oC8AXkD8gbkDfIG5A3IG5A3IG9A3iBvQN5AU38AW3Unpg+CBHwAAAAASUVORK5CYII=';
+
+const APP_VER = 'v8.96';
 const LS_KEY = 'flow_grid_v5';
 const SUMMARY_STATE_KEY = 'flow_summary_state_v3';
 // 流水表默认铺多少行空行。像 Excel 一样随手往下填，不用先点「新增」。
@@ -8948,53 +8957,44 @@ function openSyncDialog() {
   mask.className = 'confirm-mask';
   mask.innerHTML = `
     <div class="sync-box">
-      <div class="sync-title">跨设备同步</div>
-      <div class="sync-hint">同步码里是<b>全部数据</b>（账户、流水、分期），复制它发到另一台设备粘贴即可。</div>
+      <div class="sync-title">同步 / 分享</div>
 
-      <div class="sync-block">
-        <button type="button" class="ghost" id="sync-gen">生成同步码</button>
-        <textarea id="sync-out" class="sync-code" readonly placeholder="点上面的按钮生成"></textarea>
-        <button type="button" class="ghost" id="sync-copy" disabled>复制</button>
+      <div class="sync-hint" style="text-align:left;line-height:1.7">
+        <b>手机上打开这个软件</b>：扫下面的二维码 → 浏览器打开 → 菜单里「添加到主屏幕」，
+        以后点图标就能用，和 App 一样。
       </div>
 
-      <div class="sync-or">— 数据多时改用文件（不受微信字数限制）—</div>
+      <div class="qr-wrap">
+        <img id="sync-qr" alt="扫码打开" width="200" height="200">
+        <div class="qr-url">jefely.github.io/New-repository</div>
+      </div>
+
+      <div class="sync-or">— 备份 / 换设备 —</div>
+
+      <div class="sync-hint" style="text-align:left;line-height:1.7">
+        同步文件里是<b>全部数据</b>（账户、流水、分期），已用你的账本密码加密。
+        用微信「文件」发到另一台设备，在那台设备上选「从文件导入」。
+      </div>
 
       <div class="sync-block">
-        <button type="button" class="ghost" id="sync-save-file">存成文件（发给对方）</button>
-        <button type="button" class="ghost" id="sync-load-file">从文件导入</button>
+        <button type="button" class="ghost" id="sync-save-file">存成同步文件（发到另一台设备）</button>
+        <button type="button" class="ghost" id="sync-load-file">从同步文件导入</button>
         <input type="file" id="sync-file" accept=".lz,.txt,.json" style="display:none">
-      </div>
-
-      <div class="sync-or">— 或者 —</div>
-
-      <div class="sync-block">
-        <textarea id="sync-in" class="sync-code" placeholder="把另一台设备的同步码粘贴到这里"></textarea>
-        <button type="button" id="sync-apply" disabled>用这段码覆盖本机数据</button>
       </div>
 
       <div class="sync-actions"><button type="button" data-act="close">关闭</button></div>
     </div>`;
   document.body.appendChild(mask);
   const close = () => mask.remove();
-  const out = mask.querySelector('#sync-out');
-  const inp = mask.querySelector('#sync-in');
-  const copyBtn = mask.querySelector('#sync-copy');
-  const applyBtn = mask.querySelector('#sync-apply');
+  mask.addEventListener('click', e => {
+    if (e.target === mask || (e.target.dataset && e.target.dataset.act === 'close')) close();
+  });
 
-  mask.querySelector('#sync-gen').onclick = async () => {
-    try {
-      out.value = await buildSyncCode();
-      copyBtn.disabled = false;
-      out.select();
-      toast(`同步码已生成（${out.value.length} 个字符）`);
-    } catch (e) { toast('生成失败：' + e.message, { type: 'error' }); }
-  };
-  copyBtn.onclick = () => {
-    if (!out.value) return;
-    if (copyText(out.value)) toast('已复制，发到另一台设备粘贴即可');
-    else { out.select(); toast('复制失败，请手动全选复制', { type: 'error' }); }
-  };
-  // 存成文件：把同步码写成 .lz 文件，微信可当文件发（不受文字条数限制）
+  // 二维码：内嵌的 base64 PNG，离线也能显示
+  const qr = mask.querySelector('#sync-qr');
+  if (qr) qr.src = QR_DATA_URL;
+
+  // 存成同步文件
   mask.querySelector('#sync-save-file').onclick = async () => {
     try {
       const code = await buildSyncCode();
@@ -9021,45 +9021,15 @@ function openSyncDialog() {
     try {
       const text = await f.text();
       const code = text.trim();
-      if (!/^LZ[01][:：]/i.test(code)) throw new Error('这不是本程序的同步文件');
-      inp.value = code;
-      applyBtn.disabled = false;
-      toast('已读取 ' + f.name + '（' + Math.round(f.size / 1024) + ' KB），点下面按钮应用', { duration: 5000 });
-    } catch (e) { toast('读取失败：' + e.message, { type: 'error' }); }
+      if (!/^LZ[0-2][:：]/i.test(code)) throw new Error('这不是本程序的同步文件');
+      if (confirm('用「' + f.name + '」的数据覆盖本机？\n\n本机当前的账户、流水、分期都会被替换。')) {
+        await applySyncCode(code);
+      }
+    } catch (e) { toast('读取失败：' + e.message, { type: 'error', duration: 6000 }); }
     finally { fileInp.value = ''; }
   };
-
-  inp.oninput = () => { applyBtn.disabled = !inp.value.trim(); };
-  applyBtn.onclick = () => {
-    const code = inp.value.trim();
-    if (!code) return;
-    askConfirm('这会用同步码里的数据<b>替换本机现有数据</b>，确定吗？', async () => {
-      try {
-        const r = await applySyncCode(code);
-        close();
-        toast(`已同步：账户 ${r.accounts} 个、流水 ${r.transactions} 笔、分期 ${r.installments} 个`);
-      } catch (e) { toast('同步失败：' + e.message, { type: 'error' }); }
-    });
-  };
-  mask.addEventListener('click', e => {
-    if (e.target === mask || (e.target.dataset && e.target.dataset.act === 'close')) close();
-  });
 }
 
-/* ============================================================
-   VIII. 列宽拖拽（Excel 式）
-   ------------------------------------------------------------
-   两种模式，按表区分：
-   · 查询表 —— 拖列线时相邻两列此消彼长，表格宽度恒为 100%。三栏因此
-     始终保持窗口 1/3，表格右边缘也永远贴住栏的分割线。
-   · 流水 / 汇总 —— 列宽是绝对像素，只动被拖的那一列，表格总宽 = 各列
-     之和，因此可以和窗口宽度不一致（窄了右边留白、宽了横向滚动）。
-   双击边界都按内容自适应。
-   ============================================================ */
-const COLW_KEY = 'flow_col_widths_v3';        // v3：统一存像素
-const COLW_KEY_V1 = 'flow_col_widths_v1';     // v1：存像素，格式相同可直接用
-const COLW_KEY_V2 = 'flow_col_widths_v2';     // v2：曾经存过比例，×1000 折算成像素
-const COL_MIN = 36;
 
 function normShares(arr) {
   const sum = arr.reduce((a, b) => a + (Number(b) > 0 ? Number(b) : 0), 0) || 1;
@@ -9167,6 +9137,9 @@ function ensureColgroup(table) {
   table.insertBefore(cg, table.firstChild);
   return cg;
 }
+
+// 列宽下限（像素）。之前定义在别处，被重写时弄丢了，这里补回。
+const COL_MIN = 44;
 
 // 当前各列的实际像素宽度（拖动过程中始终以屏幕上真实渲染的宽度为基准）
 function widthsOf(table) {
