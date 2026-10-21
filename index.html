@@ -4022,7 +4022,7 @@ async function encryptWithSession(text) {
 // 网站二维码（内嵌 base64，离线可显示），扫码打开 https://jefely.github.io/New-repository/
 const QR_DATA_URL = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAUoAAAFKCAIAAAD0S4FSAAAFCUlEQVR42u3dS3IUMRBF0VcE+9+y2QETIfKjc+YGd7VvqAYZqe/n5yfARr88ApA3IG9A3oC8AXkD8gZ5A/IG5A3IG5A3IG+QNyBvQN6AvAF5A/KGl/0++eHv+5Y9jr9vnjv5vD3/5Xub9nr+v/v+Jp3e4OUckDcgb0DegLwBeQPyBnkDeWpqLdembe7pOdV071nt+xZOPtFrf5NOb/ByDsgbkDcgb0DegLxB3oC8gTw1tZaiSZ2Jk0n3NrFVPcmTn636vPv+Jp3e4OUckDcgb0DegLwBeYO8AXkDMbUW94du2eI2cQ7P6Q3IG5A3IG9A3oC8Qd6AvAF5AzG1Nsi9Oa2qGzPNpTm9AXkD8gbkDcgbkDfIG5A3IG8gj0yt9bzHs+eutZP/t+qWz33fr9MbkDcgb0DegLxB3oC8AXkD8gbSfGpt37ate7vH/Gz+yxzeaxvgnN4gb0DegLwBeQPyBuQN8gbkDTT07dsvNXGmrWrWque3f+9JOr0BeQPyBuQNyBuQN8gbkDcgbyCjd63ZiZUGe+nu3Vta9S303MTW835Ypzd4OQfkDcgbkDcgb0DegLxB3kCemlq7N8djB9j0ezxTNNM2cRry3l+O0xu8nAPyBuQNyBuQNyBvkDcgbyDLbgidOAM0cU6ranbwtcnCqp91egPyBuQN8gbkDcgbkDcgb0DeELvWsne2rOd+uJ4zTz3vh616GhM/r9MbvJwD8gbkDcgbkDcgb5A3IG8gT02tnUzb3JtMujfTNnHyrGqLW9Wz2vcdOb3Byzkgb0DegLwBeQPyBuQN8gZiai29p4smburqOePVczNZ1ed1egPyBuQNyBvkDcgbkDcgb0DeQEZPraXlBNi+XVwZeIvra1OJTm9A3iBvQN6AvAF5A/IG5A3yBmJqLb3nw3rOD1VNU937vFUzbVX70ibOLDq9wcs5IG9A3oC8AXkD8gZ5A/IGGvp6zuJMvKux52ayqttFe86W7XuSTm/wcg7IG5A3IG9A3oC8AXmDvIE8NbVWtU/r3oRQ1bTcaxvReu482/f37PQGL+eAvAF5A/IG5A3IG+QNyBvIshtCM3BfWtUEWNZNcU18VlUzbVX/stMbvJwD8gbkDcgbkDcgb5A3IG8gT02t5bHpohTNllU9jbScw6uahzt5znatAfIG5A3yBuQNyBuQNyBvQN4QN4SWTwhNvNfy3u/sW9jN1Bogb0DeIG9A3oC8AXkD8gbkDTG1xpo7QHvuh/NbOb0BeQPyBnkD8gbkDcgbkDcgb4gbQjNniisDt16d7B6ruuVz4u2iE39npzcgb0DeIG9A3oC8AXkD8gbkDTG1lt4TYDFp136LW9W3XzV32HPSzukNXs4BeQPyBuQNyBuQN8gbkDeQp6bWUjQ99toOsJMnee9OzHvfb9Xc4ck3WDXh5/QGL+eAvAF5A/IG5A3IG+QNyBuIqbW8ures6g7Qe7NlPSfees4sVs20Ob3Byzkgb0DegLwBeQPyBnkD8gZiai2v3qe577eq2g+Xoj1tVbvlnN6AvEHegLwBeQPyBuQNyBvkDcTUWvZOgGXgRNTEaap7E289b2Kt+o6c3uDlHJA3IG9A3oC8AXmDvAF5Aw19EzdmpeVNjml5R2TVJFbcLur0BuQNyBuQN8gbkDcgb0DegLyB/OupNcDpDcgbkDcgb5A3IG9A3oC8AXkD8gbkDfIG5A3IG5A3IG9A3iBvQN5AU38AW3Unpg+CBHwAAAAASUVORK5CYII=';
 
-const APP_VER = 'v9.45';
+const APP_VER = 'v9.47';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -9268,11 +9268,18 @@ const DEFAULT_COL_WIDTHS = {
   flow:    [50, 77, 107, 117, 109, 179, 52],
   summary: [52, 76, 59, 73, 127, 124, 123, 120, 86, 85, 137, 40, 90, 64],
   query:   [54, 65, 109, 116, 96, 184],
-  fixed:   [56, 76, 150, 150, 108, 150, 84, 64],
+  fixed:   [56, 70, 70, 150, 150, 108, 150, 84, 64],   // 9 列（加了「频率」后从 8 变 9）
   // 分类表去掉「类型」列后是 5 列，用户给的 6 个值取前 2 个 + 后 3 个
   cat:     [62, 88, 122, 90, 99],
   installFixed: [113, 60, 99]   // 分期表前三列（账户名称/账单日/每月合计）
 };
+
+// 列宽的 localStorage 键。v3 统一存像素；v1 同格式可直接用；v2 曾经存过比例（×1000 折算）。
+// 这三个常量曾在某次改动里丢失，导致 saveColWidths() 抛 ReferenceError 并被空 catch 吞掉，
+// 表现就是「拖动列宽能生效、刷新后回到默认」。
+const COLW_KEY = 'flow_col_widths_v3';
+const COLW_KEY_V1 = 'flow_col_widths_v1';
+const COLW_KEY_V2 = 'flow_col_widths_v2';
 
 // 布局参数：行高 / 正文字号 / 表头字号（跟列宽一起存）
 const LAYOUT_KEY = 'flow_layout_v1';
@@ -9343,7 +9350,12 @@ let colWidths = (() => {
 })();
 
 function saveColWidths() {
-  try { localStorage.setItem(COLW_KEY, JSON.stringify(colWidths)); } catch (e) {}
+  try {
+    localStorage.setItem(COLW_KEY, JSON.stringify(colWidths));
+  } catch (e) {
+    // 以前这里是个空 catch，存不上也不吭声。列宽存不上是要让用户知道的。
+    try { toast('列宽保存失败：' + (e && e.message ? e.message : e), { type: 'error', duration: 6000 }); } catch (_) {}
+  }
 }
 
 // 列头行：流水/汇总就是 thead 唯一一行；查询页是蓝色那行（thead 最后一行）
@@ -9455,6 +9467,13 @@ function initColResize(table, key) {
   const ths = Array.from(headRow.querySelectorAll('th'));
   if (Array.isArray(colWidths[key]) && colWidths[key].length === ths.length) {
     applyWidths(table, key, colWidths[key]);
+  } else if (Array.isArray(DEFAULT_COL_WIDTHS[key])) {
+    // 存的列宽数量和当前表结构对不上（比如表加了/删了一列）。
+    // 以前这里静默跳过 → 拖完列宽看起来「保存不了」。现在按默认值重建并落盘。
+    const dft = DEFAULT_COL_WIDTHS[key];
+    colWidths[key] = ths.map((_, i) => dft[i] != null ? dft[i] : (dft[dft.length - 1] || 100));
+    applyWidths(table, key, colWidths[key]);
+    saveColWidths();
   }
 
   ths.forEach((th, idx) => {
