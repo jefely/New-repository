@@ -3187,8 +3187,8 @@ table#summary-table tbody tr.cat-row:nth-child(even) > td.col-repay,
   background: var(--billcell-bg, transparent) !important;
   background-color: var(--billcell-bg, transparent) !important;
 }
-:root { --billcell-bg: transparent; }
-[data-theme="dark"] { --billcell-bg: transparent; }
+:root { --billcell-bg: #ffffff; }                 /* 浅色：纯白 */
+[data-theme="dark"] { --billcell-bg: #0a0a0a; }   /* 深色：最黑 */
 /* 删除列左边框：所有行统一 1px */
 table#summary-table tbody td.col-del,
 table#summary-table tbody tr.cat-row > td.col-del,
@@ -3230,6 +3230,13 @@ table#summary-table tbody tr.cat-row:nth-child(even) > td.col-del,
 [data-theme="dark"] table#summary-table tbody tr.cat-row:nth-child(odd) > td.col-del,
 [data-theme="dark"] table#summary-table tbody tr.cat-row:nth-child(even) > td.col-del {
   border-left: 1px solid #2a2a2a !important;
+}
+/* 删除/账单日/还款日 三列：固定用最黑（深色）/ 纯白（浅色），不跟随斑马纹 */
+table#summary-table th.col-del, table#summary-table td.col-del,
+table#summary-table th.col-bill, table#summary-table td.col-bill,
+table#summary-table th.col-repay, table#summary-table td.col-repay {
+  background: var(--billcell-bg) !important;
+  background-color: var(--billcell-bg) !important;
 }
 </style>
 </head>
@@ -3333,7 +3340,7 @@ function toggleTheme() {
   toast(theme === 'dark' ? '已切换到反色主题' : '已切换到浅色主题');
 }
 
-const APP_VER = 'v8.53';
+const APP_VER = 'v8.55';
 const LS_KEY = 'flow_grid_v5';
 const SUMMARY_STATE_KEY = 'flow_summary_state_v3';
 // 流水表默认铺多少行空行。像 Excel 一样随手往下填，不用先点「新增」。
@@ -5101,17 +5108,44 @@ function applySummarySticky() {
 function syncSummaryDelBorder() {
   const table = document.getElementById('summary-table');
   if (!table) return;
-  // 直接读主题变量，避免 theme 属性更新时序问题
+  const dark = document.documentElement.getAttribute('data-theme') === 'dark';
   let color = 'rgb(226, 232, 240)';
   try {
     const v = getComputedStyle(document.documentElement).getPropertyValue('--border-light').trim();
     if (v) color = v;
   } catch (e) {}
-  table.querySelectorAll('tbody td.col-del, thead th.col-del').forEach(td => {
+  // 删除/账单日/还款日 三列底色：深色用最黑 #0a0a0a，浅色用纯白 #ffffff
+  const bg = dark ? '#0a0a0a' : '#ffffff';
+
+  // 三列：背景强制统一
+  table.querySelectorAll('thead th.col-del, thead th.col-bill, thead th.col-repay, tbody td.col-del, tbody td.col-bill, tbody td.col-repay').forEach(cell => {
+    cell.style.setProperty('background-color', bg, 'important');
+    cell.style.setProperty('background-image', 'none', 'important');
+    cell.style.setProperty('box-shadow', 'none', 'important');
+  });
+
+  // 删除列：左边框统一 1px，其它三边清掉
+  table.querySelectorAll('thead th.col-del, tbody td.col-del').forEach(td => {
     td.style.setProperty('border-top', 'none', 'important');
     td.style.setProperty('border-right', 'none', 'important');
     td.style.setProperty('border-bottom', 'none', 'important');
     td.style.setProperty('border-left', '1px solid ' + color, 'important');
+  });
+
+  // 账单日/还款日：清掉所有边框，只留负债类型标签行的下划线
+  table.querySelectorAll('thead th.col-bill, thead th.col-repay, tbody td.col-bill, tbody td.col-repay').forEach(cell => {
+    cell.style.setProperty('border-top', 'none', 'important');
+    cell.style.setProperty('border-left', 'none', 'important');
+    cell.style.setProperty('border-right', 'none', 'important');
+    cell.style.setProperty('border-bottom', 'none', 'important');
+  });
+  // 负债类型标签行的下划线
+  table.querySelectorAll('tbody tr.cat-row.debt-row > td.col-bill, tbody tr.cat-row.debt-row > td.col-repay').forEach(cell => {
+    cell.style.setProperty('border-bottom', '1px solid #b9a6ff', 'important');
+  });
+  // 负债数据行的竖线
+  table.querySelectorAll('tbody tr.debt-row:not(.cat-row) > td.col-repay').forEach(cell => {
+    cell.style.setProperty('border-left', '1px solid ' + (dark ? '#4c3d80' : '#b9a6ff'), 'important');
   });
 }
 
