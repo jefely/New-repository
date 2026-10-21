@@ -1536,6 +1536,31 @@ table#summary-table { min-width: 800px !important; }
   flex: 0 0 auto !important;
   white-space: nowrap !important;
 }
+/* 汇总页：12 个月挤在一行，格子窄一点、字小一号 */
+.toolbar.bar1 { gap: 3px !important; }
+.toolbar.bar1 > #mode-month { flex: 0 0 auto !important; padding: 0 8px !important; max-width: 64px !important; }
+.toolbar.bar1 > #r-year { flex: 0 0 54px !important; width: 54px !important; min-width: 54px !important; max-width: 54px !important; }
+.toolbar.bar1 > .month-row {
+  flex: 1 1 0 !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  display: grid !important;
+  grid-template-columns: repeat(12, minmax(0, 1fr)) !important;
+  gap: 2px !important;
+}
+.toolbar.bar1 > .month-row .m-btn {
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  height: 26px !important;
+  padding: 0 !important;
+  font-size: 12px !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+}
+.toolbar.bar2 { gap: 6px !important; }
+.toolbar.bar2 > #mode-range { flex: 0 0 auto !important; padding: 0 8px !important; max-width: 64px !important; }
+.toolbar.bar2 > #range-clear { flex: 0 0 auto !important; padding: 0 8px !important; max-width: 64px !important; }
 </style>
 </head>
 <body>
@@ -1636,7 +1661,7 @@ function toggleTheme() {
   toast(theme === 'dark' ? '已切换到反色主题' : '已切换到浅色主题');
 }
 
-const APP_VER = 'v7.65';
+const APP_VER = 'v7.66';
 const LS_KEY = 'flow_grid_v5';
 const SUMMARY_STATE_KEY = 'flow_summary_state_v3';
 // 流水表默认铺多少行空行。像 Excel 一样随手往下填，不用先点「新增」。
@@ -2940,28 +2965,26 @@ function reseq() {
 function renderSummary(main, footer) {
   const range = getCurrentRange();
 
-  // 月份按钮：桌面和手机统一拆两半 —— 1-6 月跟「区间 / 月份」放第一行，
-  // 年份框和 7-12 月放第二行。这样两行都排满、不会出现小半行空着。
+  // 月份按钮：12 个全部放在第一行，和「月份」「26年」并排；
+  // 第二行只留「区间」（切到区间模式时放起止输入框）。
   const activeM = parseInt(summaryMonth.month, 10);
-  let monthsTop = '', monthsBottom = '';
+  let monthsAll = '';
   for (let m = 1; m <= 12; m++) {
-    const btn = `<button type="button" class="m-btn" data-m="${m}" data-active="${activeM === m}"><span class="m-num">${m}</span><span class="m-suf">月</span></button>`;
-    if (m <= 6) monthsTop += btn; else monthsBottom += btn;
+    monthsAll += `<button type="button" class="m-btn" data-m="${m}" data-active="${activeM === m}"><span class="m-num">${m}</span><span class="m-suf">月</span></button>`;
   }
   const monthsMode = summaryMode === 'month';
 
-  // 工具栏1：区间 / 月份 两个切换 + 1-6 月
+  // 工具栏1：月份 26年 1月…12月（12 个月一行）
   const bar1 = document.createElement('div');
   bar1.className = 'toolbar bar1';
   bar1.innerHTML = `
     <button id="mode-month" class="ghost" data-active="${summaryMode === 'month'}">月份</button>
-    ${monthsMode ? '' : '<button id="range-clear" class="ghost" title="清空起止日期">清空</button>'}
     ${monthsMode ? `<input id="r-year" class="year-input" placeholder="年" inputmode="numeric" title="输入年份，如 26 或 2026" value="${String(summaryMonth.year).slice(-2)}年">` : ''}
-    ${monthsMode ? `<div class="month-row" id="month-row-top">${monthsTop}</div>` : ''}
+    ${monthsMode ? `<div class="month-row" id="month-row">${monthsAll}</div>` : '<span style="flex:1"></span>'}
   `;
   main.appendChild(bar1);
 
-  // 工具栏2：区间模式是两个日期输入框；月份模式是年份框 + 7-12 月
+  // 工具栏2：区间切换；区间模式下放两个日期框 + 清空
   const bar2 = document.createElement('div');
   bar2.className = 'toolbar bar2';
   if (summaryMode === 'range') {
@@ -2970,11 +2993,12 @@ function renderSummary(main, footer) {
       <input id="r-start" class="grow" placeholder="起始 YY/YYMM/YYMMDD" inputmode="numeric" title="起始：YY / YYMM / YYMMDD，例如 26 / 2608 / 260801" value="${esc(summaryRange.start)}">
       <span class="tilde">~</span>
       <input id="r-end" class="grow" placeholder="结束 YY/YYMM / YYMMDD" inputmode="numeric" title="结束：YY / YYMM / YYMMDD，例如 26 / 2608 / 260801" value="${esc(summaryRange.end)}">
+      <button id="range-clear" class="ghost" title="清空起止日期">清空</button>
     `;
   } else {
     bar2.innerHTML = `
       <button id="mode-range" class="ghost" data-active="false">区间</button>
-      <div class="month-row" id="month-row">${monthsBottom}</div>
+      <span style="flex:1"></span>
     `;
   }
   main.appendChild(bar2);
