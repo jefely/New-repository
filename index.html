@@ -3679,6 +3679,26 @@ table#cat-table {
 .qr-url { font-size: 12px; color: var(--text-muted); word-break: break-all; text-align: center; }
 [data-theme="dark"] .qr-wrap img { background: #ffffff; }
 [data-theme="dark"] .qr-url { color: #9a94ad; }
+/* 固定收支：频率列、空行、关联标记 */
+table#fixed-table td.col-freq select {
+  width: 100%; height: 100%; border: none; background: transparent;
+  font-size: 13px; text-align: center; color: var(--text-main); outline: none;
+}
+table#fixed-table td.col-freq select option { background: var(--bg-main); color: var(--text-main); }
+table#fixed-table tr.fixed-new-row > td { background: var(--bg-gray-light) !important; }
+table#fixed-table tr.fixed-new-row input::placeholder { color: var(--text-light); }
+table#fixed-table input:disabled { color: var(--text-light); }
+.fixed-link-badge {
+  display: inline-block; margin-right: 6px; padding: 1px 6px;
+  font-size: 11px; border-radius: 8px;
+  background: #e0e7ff; color: #4338ca;
+}
+.fixed-daily-tip {
+  padding: 6px 12px; font-size: 12px; color: #b45309; background: #fef3c7;
+}
+[data-theme="dark"] table#fixed-table tr.fixed-new-row > td { background: #101019 !important; }
+[data-theme="dark"] .fixed-link-badge { background: rgba(99,102,241,.2); color: #a5b4fc; }
+[data-theme="dark"] .fixed-daily-tip { background: rgba(180,83,9,.18); color: #fbbf24; }
 </style>
 </head>
 <body>
@@ -3871,7 +3891,7 @@ async function encryptWithSession(text) {
 // 网站二维码（内嵌 base64，离线可显示），扫码打开 https://jefely.github.io/New-repository/
 const QR_DATA_URL = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAUoAAAFKCAIAAAD0S4FSAAAFCUlEQVR42u3dS3IUMRBF0VcE+9+y2QETIfKjc+YGd7VvqAYZqe/n5yfARr88ApA3IG9A3oC8AXkD8gZ5A/IG5A3IG5A3IG+QNyBvQN6AvAF5A/KGl/0++eHv+5Y9jr9vnjv5vD3/5Xub9nr+v/v+Jp3e4OUckDcgb0DegLwBeQPyBnkDeWpqLdembe7pOdV071nt+xZOPtFrf5NOb/ByDsgbkDcgb0DegLxB3oC8gTw1tZaiSZ2Jk0n3NrFVPcmTn636vPv+Jp3e4OUckDcgb0DegLwBeYO8AXkDMbUW94du2eI2cQ7P6Q3IG5A3IG9A3oC8Qd6AvAF5AzG1Nsi9Oa2qGzPNpTm9AXkD8gbkDcgbkDfIG5A3IG8gj0yt9bzHs+eutZP/t+qWz33fr9MbkDcgb0DegLxB3oC8AXkD8gbSfGpt37ate7vH/Gz+yxzeaxvgnN4gb0DegLwBeQPyBuQN8gbkDTT07dsvNXGmrWrWque3f+9JOr0BeQPyBuQNyBuQN8gbkDcgbyCjd63ZiZUGe+nu3Vta9S303MTW835Ypzd4OQfkDcgbkDcgb0DegLxB3kCemlq7N8djB9j0ezxTNNM2cRry3l+O0xu8nAPyBuQNyBuQNyBvkDcgbyDLbgidOAM0cU6ranbwtcnCqp91egPyBuQN8gbkDcgbkDcgb0DeELvWsne2rOd+uJ4zTz3vh616GhM/r9MbvJwD8gbkDcgbkDcgb5A3IG8gT02tnUzb3JtMujfTNnHyrGqLW9Wz2vcdOb3Byzkgb0DegLwBeQPyBuQN8gZiai29p4smburqOePVczNZ1ed1egPyBuQNyBvkDcgbkDcgb0DeQEZPraXlBNi+XVwZeIvra1OJTm9A3iBvQN6AvAF5A/IG5A3yBmJqLb3nw3rOD1VNU937vFUzbVX70ibOLDq9wcs5IG9A3oC8AXkD8gZ5A/IGGvp6zuJMvKux52ayqttFe86W7XuSTm/wcg7IG5A3IG9A3oC8AXmDvIE8NbVWtU/r3oRQ1bTcaxvReu482/f37PQGL+eAvAF5A/IG5A3IG+QNyBvIshtCM3BfWtUEWNZNcU18VlUzbVX/stMbvJwD8gbkDcgbkDcgb5A3IG8gT02t5bHpohTNllU9jbScw6uahzt5znatAfIG5A3yBuQNyBuQNyBvQN4QN4SWTwhNvNfy3u/sW9jN1Bogb0DeIG9A3oC8AXkD8gbkDTG1xpo7QHvuh/NbOb0BeQPyBnkD8gbkDcgbkDcgb4gbQjNniisDt16d7B6ruuVz4u2iE39npzcgb0DeIG9A3oC8AXkD8gbkDTG1lt4TYDFp136LW9W3XzV32HPSzukNXs4BeQPyBuQNyBuQN8gbkDeQp6bWUjQ99toOsJMnee9OzHvfb9Xc4ck3WDXh5/QGL+eAvAF5A/IG5A3IG+QNyBuIqbW8ures6g7Qe7NlPSfees4sVs20Ob3Byzkgb0DegLwBeQPyBnkD8gZiai2v3qe577eq2g+Xoj1tVbvlnN6AvEHegLwBeQPyBuQNyBvkDcTUWvZOgGXgRNTEaap7E289b2Kt+o6c3uDlHJA3IG9A3oC8AXmDvAF5Aw19EzdmpeVNjml5R2TVJFbcLur0BuQNyBuQN8gbkDcgb0DegLyB/OupNcDpDcgbkDcgb5A3IG9A3oC8AXkD8gbkDfIG5A3IG5A3IG9A3iBvQN5AU38AW3Unpg+CBHwAAAAASUVORK5CYII=';
 
-const APP_VER = 'v8.99';
+const APP_VER = 'v9.00';
 const LS_KEY = 'flow_grid_v5';
 const SUMMARY_STATE_KEY = 'flow_summary_state_v3';
 // 流水表默认铺多少行空行。像 Excel 一样随手往下填，不用先点「新增」。
@@ -4072,8 +4092,16 @@ function runFixedExpenses() {
   if (ranToday) return 0;
   let added = 0;
   for (const f of state.fixed) {
-    if (day < (f.day || 1)) continue;
-    if (f.lastMonth === ym) continue;
+    const isDaily = f.freq === 'day';
+    if (isDaily) {
+      // 每天：按「日」去重
+      if (f.lastDate === today) continue;
+    } else {
+      // 每月：到号才触发，按「月」去重
+      if (day < (f.day || 1)) continue;
+      if (f.lastMonth === ym) continue;
+    }
+    if (!String(f.from || '').trim() && !String(f.to || '').trim()) continue;
     state.transactions.push({
       id: 't' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6) + (added++),
       seq: 0, date: today,
@@ -4082,7 +4110,7 @@ function runFixedExpenses() {
       note: f.note || '',
       fixedId: f.id
     });
-    f.lastMonth = ym;
+    if (isDaily) f.lastDate = today; else f.lastMonth = ym;
   }
   try { localStorage.setItem(FIXED_RUN_KEY, today); } catch (e) {}
   if (added) { reseq(); save(); }
@@ -4240,16 +4268,23 @@ function renderAudit(main, footer) {
 
 // 固定收支页
 function renderFixed(main, footer) {
-  const list = (state.fixed || []).slice().sort((a, b) => (a.day || 1) - (b.day || 1));
+  const list = (state.fixed || []).slice().sort((a, b) => {
+    const fa = a.freq === 'day' ? 0 : 1, fb = b.freq === 'day' ? 0 : 1;
+    if (fa !== fb) return fa - fb;
+    return (a.day || 1) - (b.day || 1);
+  });
   const catOf = (name) => {
     const a = state.accounts.find(x => (x.name || '').trim() === String(name || '').trim());
     return a ? String(a.cat || '') : '';
   };
+  const isIn = f => catOf(f.from) === '收入类';
   let sumIn = 0, sumOut = 0;
   for (const f of list) {
     const amt = Number(f.amount) || 0;
-    if (catOf(f.from) === '收入类') sumIn += amt; else sumOut += amt;
+    if (isIn(f)) sumIn += amt; else sumOut += amt;
   }
+  const dailyIn = list.filter(f => f.freq === 'day' && isIn(f)).reduce((s, f) => s + (Number(f.amount) || 0), 0);
+  const dailyOut = list.filter(f => f.freq === 'day' && !isIn(f)).reduce((s, f) => s + (Number(f.amount) || 0), 0);
 
   const bar = document.createElement('div');
   bar.className = 'toolbar flow-bar fixed-bar';
@@ -4259,6 +4294,13 @@ function renderFixed(main, footer) {
     <span class="fixed-sum"><i>支出合计：</i><b class="out">${fmtMoney(sumOut)}</b></span>
   `;
   main.appendChild(bar);
+  if (dailyIn || dailyOut) {
+    const tip = document.createElement('div');
+    tip.className = 'fixed-daily-tip';
+    tip.textContent = '其中「每天」的条目：收入 ' + fmtMoney(dailyIn) + ' / 天，支出 ' + fmtMoney(dailyOut) + ' / 天'
+      + '（按月约 ' + fmtMoney(dailyOut * 30) + ' 支出）';
+    main.appendChild(tip);
+  }
 
   const wrap = document.createElement('div');
   wrap.className = 'grid-wrap';
@@ -4268,7 +4310,8 @@ function renderFixed(main, footer) {
   table.innerHTML = `
     <thead><tr>
       <th class="col-seq">序</th>
-      <th class="col-day">每月</th>
+      <th class="col-freq">频率</th>
+      <th class="col-day">日期</th>
       <th class="col-from">转出</th>
       <th class="col-to">转入</th>
       <th class="col-amount">金额</th>
@@ -4278,62 +4321,226 @@ function renderFixed(main, footer) {
     </tr></thead><tbody></tbody>`;
   const tbody = table.querySelector('tbody');
   const nowYm = todayISO().slice(0, 7);
+  const today = todayISO();
 
-  if (!list.length) {
-    const tr = document.createElement('tr');
-    tr.innerHTML = '<td colspan="8" style="padding:18px;text-align:center;color:var(--text-muted)">还没有固定收支。到「流水」页勾选行尾的复选框即可添加。</td>';
-    tbody.appendChild(tr);
-  } else {
-    list.forEach((f, i) => {
-      const tr = document.createElement('tr');
-      tr.dataset.fid = f.id;
-      const done = f.lastMonth === nowYm;
-      const cells = [
-        { cls: 'col-seq', text: String(i + 1) },
-        { cls: 'col-day', text: (f.day || 1) + ' 号' },
-        { cls: 'col-from', text: f.from || '' },
-        { cls: 'col-to', text: f.to || '' },
-        { cls: 'col-amount', text: f.amount === '' || f.amount == null ? '' : fmtMoney(f.amount) },
-        { cls: 'col-note', text: f.note || '' },
-        { cls: 'col-state', text: done ? '已写入' : '待写入' }
-      ];
-      cells.forEach(c => {
-        const td = document.createElement('td');
-        td.className = c.cls;
-        td.textContent = c.text;
-        if (c.cls === 'col-state') td.style.color = done ? 'var(--success)' : 'var(--text-muted)';
-        tr.appendChild(td);
-      });
-      const op = document.createElement('td');
-      op.className = 'col-op';
-      const del = document.createElement('button');
-      del.type = 'button';
-      del.className = 'row-del';
-      del.textContent = '×';
-      del.title = '取消这条固定收支（不影响已有流水）';
-      del.style.position = 'static';
-      del.style.width = 'auto';
-      del.style.padding = '0 8px';
-      del.onclick = () => {
-        removeFixedBySource(f.sourceTxId);
-        save(); render();
-        toast('已取消固定收支（原流水保留）');
-      };
-      op.appendChild(del);
-      tr.appendChild(op);
-      tbody.appendChild(tr);
+  // 某个字段被编辑 → 断开关联，变成手动条目
+  const detach = (f, tr) => {
+    if (!f.sourceTxId) return false;
+    delete f.sourceTxId;
+    tr.classList.remove('fixed-linked');
+    const badge = tr.querySelector('.fixed-link-badge');
+    if (badge) badge.remove();
+    return true;
+  };
+
+  const mkInputCell = (f, field, cls, opts) => {
+    const td = document.createElement('td');
+    td.className = cls;
+    const inp = document.createElement('input');
+    inp.type = 'text';
+    if (opts && opts.inputMode) inp.inputMode = opts.inputMode;
+    inp.value = opts && opts.fmt ? opts.fmt(f[field]) : (f[field] == null ? '' : f[field]);
+    inp.placeholder = (opts && opts.placeholder) || '';
+    inp.addEventListener('focus', () => { if (opts && opts.onFocus) opts.onFocus(inp, f); });
+    inp.addEventListener('blur', () => { if (opts && opts.onBlur) opts.onBlur(inp, f); });
+    inp.addEventListener('input', () => {
+      const tr = td.closest('tr');
+      const wasLinked = detach(f, tr);
+      if (field === 'amount') {
+        const n = normalizeAmount(inp.value);
+        f.amount = n === '' ? '' : n;
+      } else {
+        f[field] = inp.value;
+      }
+      if (wasLinked) toast('这条已改为手动设置，不再跟随原流水', { duration: 4000 });
+      save();
+      if (field === 'amount' || field === 'from' || field === 'to') updateSums();
     });
+    td.appendChild(inp);
+    return td;
+  };
+
+  const updateSums = () => {
+    let si = 0, so = 0;
+    for (const f of state.fixed || []) {
+      const a = Number(f.amount) || 0;
+      if (catOf(f.from) === '收入类') si += a; else so += a;
+    }
+    const els = document.querySelectorAll('.fixed-bar .fixed-sum b');
+    if (els[0]) els[0].textContent = fmtMoney(si);
+    if (els[1]) els[1].textContent = fmtMoney(so);
+  };
+
+  const addRow = (f, idx) => {
+    const tr = document.createElement('tr');
+    tr.dataset.fid = f.id;
+    if (f.sourceTxId) tr.classList.add('fixed-linked');
+
+    // 序
+    const tdSeq = document.createElement('td');
+    tdSeq.className = 'col-seq';
+    tdSeq.textContent = idx == null ? '' : idx;
+    tr.appendChild(tdSeq);
+
+    // 频率：每月 / 每天
+    const tdFreq = document.createElement('td');
+    tdFreq.className = 'col-freq';
+    const sel = document.createElement('select');
+    sel.innerHTML = '<option value="month">每月</option><option value="day">每天</option>';
+    sel.value = f.freq === 'day' ? 'day' : 'month';
+    sel.onchange = () => {
+      detach(f, tr);
+      f.freq = sel.value;
+      if (sel.value === 'day') { f.day = ''; delete f.lastMonth; }
+      save(); render();
+    };
+    tdFreq.appendChild(sel);
+    tr.appendChild(tdFreq);
+
+    // 日期（每月几号；每天时禁用）
+    const tdDay = document.createElement('td');
+    tdDay.className = 'col-day';
+    const dayInp = document.createElement('input');
+    dayInp.type = 'text';
+    dayInp.inputMode = 'numeric';
+    dayInp.placeholder = f.freq === 'day' ? '每天' : '几号';
+    dayInp.value = f.freq === 'day' ? '' : (f.day || '');
+    dayInp.disabled = f.freq === 'day';
+    dayInp.addEventListener('input', () => {
+      detach(f, tr);
+      const n = parseInt(String(dayInp.value).replace(/\D/g, ''), 10);
+      f.day = isNaN(n) ? '' : Math.max(1, Math.min(31, n));
+      save();
+    });
+    dayInp.addEventListener('blur', () => {
+      if (f.freq !== 'day') dayInp.value = f.day || '';
+    });
+    tdDay.appendChild(dayInp);
+    tr.appendChild(tdDay);
+
+    tr.appendChild(mkInputCell(f, 'from', 'col-from', { placeholder: '简码/名称' }));
+    tr.appendChild(mkInputCell(f, 'to', 'col-to', { placeholder: '简码/名称' }));
+    tr.appendChild(mkInputCell(f, 'amount', 'col-amount', {
+      inputMode: 'decimal',
+      placeholder: '0.00',
+      fmt: v => (v === '' || v == null) ? '' : fmtMoney(v),
+      onFocus: (inp) => { const n = normalizeAmount(inp.value); inp.value = n === '' ? '' : String(n); },
+      onBlur: (inp, ff) => { inp.value = ff.amount === '' || ff.amount == null ? '' : fmtMoney(ff.amount); }
+    }));
+    tr.appendChild(mkInputCell(f, 'note', 'col-note', { placeholder: '备注' }));
+
+    // 本月状态
+    const tdState = document.createElement('td');
+    tdState.className = 'col-state';
+    const done = f.freq === 'day' ? (f.lastDate === today) : (f.lastMonth === nowYm);
+    tdState.textContent = done ? '已写入' : '待写入';
+    tdState.style.color = done ? 'var(--success)' : 'var(--text-muted)';
+    tr.appendChild(tdState);
+
+    // 操作
+    const op = document.createElement('td');
+    op.className = 'col-op';
+    if (f.sourceTxId) {
+      const badge = document.createElement('span');
+      badge.className = 'fixed-link-badge';
+      badge.textContent = '跟流水';
+      badge.title = '这条由流水的勾选框生成；编辑任一格就会脱钩';
+      op.appendChild(badge);
+    }
+    const del = document.createElement('button');
+    del.type = 'button';
+    del.className = 'row-del';
+    del.textContent = '×';
+    del.title = '删除这条固定收支（不影响已有流水）';
+    del.style.position = 'static';
+    del.style.width = 'auto';
+    del.style.padding = '0 8px';
+    del.onclick = () => {
+      state.fixed = (state.fixed || []).filter(x => x.id !== f.id);
+      save(); render(); toast('已删除这条固定收支');
+    };
+    op.appendChild(del);
+    tr.appendChild(op);
+    tbody.appendChild(tr);
+  };
+
+  if (list.length) {
+    list.forEach((f, i) => addRow(f, i + 1));
   }
+
+  // 末尾空行：直接在里面填就是新增（频率默认每月）
+  const blank = { id: '__new__', freq: 'month', day: '', from: '', to: '', amount: '', note: '' };
+  const trNew = document.createElement('tr');
+  trNew.dataset.fid = '__new__';
+  trNew.className = 'fixed-new-row';
+  trNew.innerHTML = `
+    <td class="col-seq">+</td>
+    <td class="col-freq"><select class="new-freq"><option value="month">每月</option><option value="day">每天</option></select></td>
+    <td class="col-day"><input class="new-day" type="text" inputmode="numeric" placeholder="几号" maxlength="2"></td>
+    <td class="col-from"><input class="new-from" type="text" placeholder="简码/名称"></td>
+    <td class="col-to"><input class="new-to" type="text" placeholder="简码/名称"></td>
+    <td class="col-amount"><input class="new-amount" type="text" inputmode="decimal" placeholder="0.00"></td>
+    <td class="col-note"><input class="new-note" type="text" placeholder="加一条…"></td>
+    <td class="col-state">新增</td>
+    <td class="col-op"></td>`;
+  const nf = trNew.querySelector('.new-freq');
+  const nd = trNew.querySelector('.new-day');
+  nf.onchange = () => {
+    nd.disabled = nf.value === 'day';
+    nd.value = '';
+    nd.placeholder = nf.value === 'day' ? '每天' : '几号';
+  };
+  const commitNew = () => {
+    const from = trNew.querySelector('.new-from').value.trim();
+    const to = trNew.querySelector('.new-to').value.trim();
+    const amtRaw = trNew.querySelector('.new-amount').value;
+    const note = trNew.querySelector('.new-note').value.trim();
+    const freq = nf.value;
+    const dayRaw = parseInt(String(nd.value).replace(/\D/g, ''), 10);
+    const amt = normalizeAmount(amtRaw);
+    // 没有账户也没有金额 → 视为空行，不建
+    if (!from && !to && (amt === '' || amt === '0') && !note) return false;
+    if (!from && !to) { toast('至少填一个账户（转出或转入）', { type: 'error' }); return false; }
+    if (freq === 'month' && (isNaN(dayRaw) || dayRaw < 1)) {
+      toast('「每月」需要填几号', { type: 'error' }); return false;
+    }
+    const nfItem = {
+      id: uid(),
+      freq: freq,
+      day: freq === 'day' ? '' : Math.max(1, Math.min(31, dayRaw)),
+      from, to, amount: amt === '' ? '' : amt, note
+    };
+    state.fixed = state.fixed || [];
+    state.fixed.push(nfItem);
+    save(); render();
+    toast('已加一条固定收支（' + (freq === 'day' ? '每天' : '每月 ' + nfItem.day + ' 号') + '）');
+    return true;
+  };
+  trNew.querySelectorAll('input').forEach(inp => {
+    inp.addEventListener('keydown', ev => {
+      if (ev.key === 'Enter') { ev.preventDefault(); commitNew(); }
+    });
+    inp.addEventListener('blur', () => {
+      // 失焦时若本行已有内容，自动提交（切到别的行不会丢）
+      setTimeout(() => {
+        if (!document.body.contains(trNew)) return;
+        const active = document.activeElement;
+        if (active && trNew.contains(active)) return;
+        commitNew();
+      }, 180);
+    });
+  });
+  tbody.appendChild(trNew);
+
   wrap.appendChild(table);
   main.appendChild(wrap);
-
-  if (!Array.isArray(colWidths.fixed) || colWidths.fixed.length !== 8) {
-    colWidths.fixed = [56, 76, 150, 150, 108, 150, 84, 64];
-    saveColWidths();
-  }
   initColResize(table, 'fixed');
-  setFooterText('共 ' + list.length + ' 条固定收支 · 每天 5:00 后首次打开时，到期的自动写入流水');
+
+  if (!Array.isArray(state.fixed)) state.fixed = [];
+  setFooterText((state.fixed.length || 0) + ' 条固定收支 · 编辑任一格即与流水脱钩');
 }
+
+
 
 function buildSubSummary(range) {
   const map = new Map();
