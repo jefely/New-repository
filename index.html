@@ -3595,6 +3595,18 @@ table#flow-table {
   max-width: none !important;
 }
 table#flow-table.cols-custom { width: auto; }
+/* 期初配平对话框里的明细表 */
+.bal-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 10px; }
+.bal-table td { padding: 5px 2px; border-bottom: 1px solid var(--border-light); }
+.bal-table td.num { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
+.bal-table tr.bal-line td { color: var(--text-muted); }
+.bal-table tr.bal-total td { border-bottom: none; border-top: 2px solid var(--border); font-weight: 800; }
+.bal-table td.good { color: #059669; }
+.bal-table td.bad { color: #dc2626; }
+[data-theme="dark"] .bal-table td { border-bottom-color: #2a2a2a; color: #e8e2f4; }
+[data-theme="dark"] .bal-table tr.bal-total td { border-top-color: #3b2f59; }
+[data-theme="dark"] .bal-table td.good { color: #4ade80; }
+[data-theme="dark"] .bal-table td.bad { color: #ff8a8a; }
 </style>
 </head>
 <body>
@@ -3784,7 +3796,7 @@ async function encryptWithSession(text) {
   return b64u(catBytes(_sessionSalt, iv, ct));
 }
 
-const APP_VER = 'v8.78';
+const APP_VER = 'v8.79';
 const LS_KEY = 'flow_grid_v5';
 const SUMMARY_STATE_KEY = 'flow_summary_state_v3';
 // 流水表默认铺多少行空行。像 Excel 一样随手往下填，不用先点「新增」。
@@ -5636,6 +5648,75 @@ function reseq() {
 /* ============================================================
    V. 视图渲染：汇总页面 (Summary View)
    ============================================================ */
+// 期初配平：算出恒等式差额，展示方案，确认后写进「实收资本」期初
+function openBalanceDialog() {
+  const CATS = ['资产类', '负债类', '收入类', '权益类', '费用类'];
+  const byCat = {};
+  for (const c of CATS) byCat[c] = 0;
+  for (const a of state.accounts) {
+    if (!CATS.includes(a.cat)) continue;
+    byCat[a.cat] += Number(a.opening) || 0;
+  }
+  const A = byCat['资产类'], L = byCat['负债类'], E = byCat['权益类'];
+  const I = byCat['收入类'], X = byCat['费用类'];
+  const need = A - L - (I - X);      // 权益应有的合计
+  const gap = need - E;              // 权益还差多少
+
+  // 找一个权益类账户来承接（优先「实收资本」）
+  let target = state.accounts.find(a => a.cat === '权益类' && /实收资本/.test(a.name || ''));
+  if (!target) target = state.accounts.find(a => a.cat === '权益类');
+  if (!target) {
+    toast('账户表里没有「权益类」账户，无法配平', { type: 'error', duration: 5000 });
+    return;
+  }
+
+  const f2 = v => (v < 0 ? '-¥' : '¥') + Math.abs(v).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const ok = Math.abs(gap) < 0.005;
+
+  const mask = document.createElement('div');
+  mask.className = 'confirm-mask';
+  mask.innerHTML = `
+    <div class="sync-box" style="max-width:min(94vw,480px)">
+      <div class="sync-title">期初配平</div>
+      <div class="sync-hint" style="text-align:left;line-height:1.7">
+        钱不会凭空出现，所以「资产」必须等于「负债 + 权益 + 收入 − 费用」。
+        下面是当前的期初构成：
+      </div>
+      <table class="bal-table">
+        <tbody>
+          <tr><td>资产类期初</td><td class="num">${f2(A)}</td></tr>
+          <tr><td>负债类期初</td><td class="num">${f2(L)}</td></tr>
+          <tr><td>权益类期初（现在）</td><td class="num">${f2(E)}</td></tr>
+          <tr class="bal-line"><td>权益类应为</td><td class="num">${f2(need)}</td></tr>
+          <tr class="bal-total"><td>还差多少</td>
+            <td class="num ${ok ? 'good' : 'bad'}">${f2(gap)}</td></tr>
+        </tbody>
+      </table>
+      ${ok
+        ? `<div class="sync-hint" style="text-align:left;margin-top:10px">已经平了，不需要调整。</div>`
+        : `<div class="sync-hint" style="text-align:left;margin-top:10px">
+            配平方案：把 <b>${f2(gap)}</b> 计入「<b>${esc(target.name)}</b>」的期初
+            （从 ${f2(Number(target.opening) || 0)} 变成 ${f2((Number(target.opening) || 0) + gap)}）。
+            这等于声明「这笔差额是你自己的家底，不是借来的」。
+          </div>`}
+      <div class="sync-actions">
+        ${ok ? '' : `<button type="button" id="bal-go">按此方案配平</button>`}
+        <button type="button" class="ghost" data-act="close">关闭</button>
+      </div>
+    </div>`;
+  document.body.appendChild(mask);
+  const close = () => mask.remove();
+  mask.addEventListener('click', e => {
+    if (e.target === mask || (e.target.dataset && e.target.dataset.act === 'close')) close();
+  });
+  const go = mask.querySelector('#bal-go');
+  if (go) go.onclick = () => {
+    target.opening = (Number(target.opening) || 0) + gap;
+    save(); close(); render();
+    toast('已配平：' + target.name + ' 期初 ' + f2(target.opening), { duration: 5000 });
+  };
+}
+
 function renderSummary(main, footer) {
   const range = getCurrentRange();
 
@@ -5665,6 +5746,17 @@ function renderSummary(main, footer) {
       if (doRender !== false) render();
     }
   });
+  // 「期初配平」按钮挂在第一条工具栏末尾
+  try {
+    const balBtn = document.createElement('button');
+    balBtn.type = 'button';
+    balBtn.className = 'plan-btn';
+    balBtn.textContent = '期初配平';
+    balBtn.title = '自动把期初差额记入「实收资本」，让会计恒等式平衡';
+    balBtn.onclick = () => openBalanceDialog();
+    bar1.appendChild(balBtn);
+  } catch (e) {}
+
   main.appendChild(bar1);
   main.appendChild(bar2);
 
