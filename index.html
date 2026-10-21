@@ -2626,7 +2626,7 @@ function toggleTheme() {
   toast(theme === 'dark' ? '已切换到反色主题' : '已切换到浅色主题');
 }
 
-const APP_VER = 'v8.19';
+const APP_VER = 'v8.20';
 const LS_KEY = 'flow_grid_v5';
 const SUMMARY_STATE_KEY = 'flow_summary_state_v3';
 // 流水表默认铺多少行空行。像 Excel 一样随手往下填，不用先点「新增」。
@@ -3082,7 +3082,6 @@ function renderCat(main, footer) {
       bodyParts.push(`<tr>
         <td class="center">${seq++}</td>
         <td class="cat-name">${esc(g.sub)}</td>
-        <td class="center">${esc(g.mainCat)}</td>
         <td class="num">${money0(g.bal)}</td>
         <td class="num">${money0(g.out)}</td>
         <td class="num">${money0(g.inn)}</td>
@@ -3092,7 +3091,7 @@ function renderCat(main, footer) {
     if (isZero(sBal) && isZero(sOut) && isZero(sIn)) continue;
     // 小计行紧跟本组最后一行，一起放进 tbody
     bodyParts.push(`<tr class="cat-total-row">
-      <td colspan="3" class="center">${esc(cat)} 合计</td>
+      <td colspan="2" class="center">${esc(cat)} 合计</td>
       <td class="num">${money0(sBal)}</td>
       <td class="num">${money0(sOut)}</td>
       <td class="num">${money0(sIn)}</td>
@@ -3101,10 +3100,10 @@ function renderCat(main, footer) {
 
   table.innerHTML = `
     <thead><tr>
-      <th class="center">序号</th><th>汇总分类</th><th class="center">类型</th>
+      <th class="center">序号</th><th>汇总分类</th>
       <th class="num">当前结余</th><th class="num">转出</th><th class="num">转入</th>
     </tr></thead>
-    <tbody>${bodyParts.length ? bodyParts.join('') : '<tr><td colspan="6" class="query-empty">这个时间段还没有数据</td></tr>'}</tbody>`;
+    <tbody>${bodyParts.length ? bodyParts.join('') : '<tr><td colspan="5" class="query-empty">这个时间段还没有数据</td></tr>'}</tbody>`;
   wrap.appendChild(table);
   main.appendChild(wrap);
   initColResize(table, 'cat');
@@ -7037,7 +7036,7 @@ const DEFAULT_COL_WIDTHS = {
   summary: [52, 76, 59, 73, 127, 124, 123, 120, 86, 85, 137, 90, 64],
   query:   [54, 65, 109, 116, 96, 184],
   fixed:   [56, 76, 150, 150, 108, 150, 84, 64],
-  cat:     [82, 86, 85, 133, 111, 103],
+  cat:     [70, 150, 160, 130, 120],
   installFixed: [126, 76, 82]   // 分期表前三列（账户名称/账单日/每月合计）
 };
 
