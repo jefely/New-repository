@@ -4138,6 +4138,46 @@ html[data-theme] table.query-table thead th.col-seq,
 html[data-theme] table.query-table tbody td.col-seq {
   box-shadow: none !important;
 }
+
+/* ⑨ 同步窗口重新排版：两个标签页（备份 / 换设备、扫码合并），
+   每个面板内再分成编号小节，主按钮通栏、次按钮并排。 */
+.sync-box-wide { width: min(94vw, 520px) !important; max-width: 94vw !important; }
+.sync-tabs { display: flex; margin: 10px 0 2px; border-bottom: 1px solid var(--border-light); }
+.sync-tab {
+  flex: 1 1 0; height: 36px; border: none; border-bottom: 2px solid transparent;
+  background: transparent !important; color: var(--text-muted) !important;
+  font-size: 13px; font-weight: 700; cursor: pointer; border-radius: 0 !important;
+}
+.sync-tab.active { color: var(--primary) !important; border-bottom-color: var(--primary); }
+[data-theme="dark"] .sync-tabs .sync-tab {
+  background: transparent !important; border: none !important;
+  border-bottom: 2px solid transparent !important; color: #c8c8c8 !important;
+}
+[data-theme="dark"] .sync-tabs .sync-tab.active {
+  color: #ffffff !important; border-bottom-color: var(--primary) !important;
+}
+.sync-sec { padding: 12px 0 10px; border-bottom: 1px dashed var(--border-light); }
+.sync-sec:last-of-type { border-bottom: none; padding-bottom: 2px; }
+.sync-sec-title { font-size: 12px; font-weight: 700; color: var(--text-muted); margin-bottom: 8px; letter-spacing: .3px; }
+.sync-btncol { display: flex; flex-direction: column; gap: 8px; margin: 10px 0 8px; }
+.sync-btn-main {
+  width: 100%; height: 34px; border: none; border-radius: 6px;
+  background: var(--primary) !important; color: #ffffff !important;
+  font-size: 13px; font-weight: 700; cursor: pointer;
+}
+.sync-btn-main:active { opacity: .9; }
+.sync-btnrow { display: flex; gap: 8px; }
+.sync-btnrow button { flex: 1 1 0; height: 30px; }
+.sync-hint.small { font-size: 11.5px; margin: 6px 0 0; line-height: 1.65; }
+.sync-site { display: flex; gap: 12px; align-items: center; }
+.sync-site img { width: 120px; height: 120px; border-radius: 6px; background: #fff; flex: 0 0 auto; }
+.sync-site-text { font-size: 12px; color: var(--text-muted); line-height: 1.65; }
+.sync-site-url { margin-top: 4px; color: var(--primary); font-weight: 700; word-break: break-all; }
+.sync-range { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 10px; }
+.sync-range label { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-muted); }
+.sync-range input { height: 28px; padding: 0 6px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg-main); color: var(--text-main); }
+.sync-warn { font-size: 11.5px; line-height: 1.65; color: #b45309; border-left: 3px solid #b45309; padding-left: 8px; }
+[data-theme="dark"] .sync-warn { color: #fbbf24; border-left-color: #fbbf24; }
 </style>
 </head>
 <body>
@@ -4335,7 +4375,7 @@ async function encryptWithSession(text) {
 // 网站二维码（内嵌 base64，离线可显示），扫码打开 https://jefely.github.io/New-repository/
 const QR_DATA_URL = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAUoAAAFKCAIAAAD0S4FSAAAFCUlEQVR42u3dS3IUMRBF0VcE+9+y2QETIfKjc+YGd7VvqAYZqe/n5yfARr88ApA3IG9A3oC8AXkD8gZ5A/IG5A3IG5A3IG+QNyBvQN6AvAF5A/KGl/0++eHv+5Y9jr9vnjv5vD3/5Xub9nr+v/v+Jp3e4OUckDcgb0DegLwBeQPyBnkDeWpqLdembe7pOdV071nt+xZOPtFrf5NOb/ByDsgbkDcgb0DegLxB3oC8gTw1tZaiSZ2Jk0n3NrFVPcmTn636vPv+Jp3e4OUckDcgb0DegLwBeYO8AXkDMbUW94du2eI2cQ7P6Q3IG5A3IG9A3oC8Qd6AvAF5AzG1Nsi9Oa2qGzPNpTm9AXkD8gbkDcgbkDfIG5A3IG8gj0yt9bzHs+eutZP/t+qWz33fr9MbkDcgb0DegLxB3oC8AXkD8gbSfGpt37ate7vH/Gz+yxzeaxvgnN4gb0DegLwBeQPyBuQN8gbkDTT07dsvNXGmrWrWque3f+9JOr0BeQPyBuQNyBuQN8gbkDcgbyCjd63ZiZUGe+nu3Vta9S303MTW835Ypzd4OQfkDcgbkDcgb0DegLxB3kCemlq7N8djB9j0ezxTNNM2cRry3l+O0xu8nAPyBuQNyBuQNyBvkDcgbyDLbgidOAM0cU6ranbwtcnCqp91egPyBuQN8gbkDcgbkDcgb0DeELvWsne2rOd+uJ4zTz3vh616GhM/r9MbvJwD8gbkDcgbkDcgb5A3IG8gT02tnUzb3JtMujfTNnHyrGqLW9Wz2vcdOb3Byzkgb0DegLwBeQPyBuQN8gZiai29p4smburqOePVczNZ1ed1egPyBuQNyBvkDcgbkDcgb0DeQEZPraXlBNi+XVwZeIvra1OJTm9A3iBvQN6AvAF5A/IG5A3yBmJqLb3nw3rOD1VNU937vFUzbVX70ibOLDq9wcs5IG9A3oC8AXkD8gZ5A/IGGvp6zuJMvKux52ayqttFe86W7XuSTm/wcg7IG5A3IG9A3oC8AXmDvIE8NbVWtU/r3oRQ1bTcaxvReu482/f37PQGL+eAvAF5A/IG5A3IG+QNyBvIshtCM3BfWtUEWNZNcU18VlUzbVX/stMbvJwD8gbkDcgbkDcgb5A3IG8gT02t5bHpohTNllU9jbScw6uahzt5znatAfIG5A3yBuQNyBuQNyBvQN4QN4SWTwhNvNfy3u/sW9jN1Bogb0DeIG9A3oC8AXkD8gbkDTG1xpo7QHvuh/NbOb0BeQPyBnkD8gbkDcgbkDcgb4gbQjNniisDt16d7B6ruuVz4u2iE39npzcgb0DeIG9A3oC8AXkD8gbkDTG1lt4TYDFp136LW9W3XzV32HPSzukNXs4BeQPyBuQNyBuQN8gbkDeQp6bWUjQ99toOsJMnee9OzHvfb9Xc4ck3WDXh5/QGL+eAvAF5A/IG5A3IG+QNyBuIqbW8ures6g7Qe7NlPSfees4sVs20Ob3Byzkgb0DegLwBeQPyBnkD8gZiai2v3qe577eq2g+Xoj1tVbvlnN6AvEHegLwBeQPyBuQNyBvkDcTUWvZOgGXgRNTEaap7E289b2Kt+o6c3uDlHJA3IG9A3oC8AXmDvAF5Aw19EzdmpeVNjml5R2TVJFbcLur0BuQNyBuQN8gbkDcgb0DegLyB/OupNcDpDcgbkDcgb5A3IG9A3oC8AXkD8gbkDfIG5A3IG5A3IG9A3iBvQN5AU38AW3Unpg+CBHwAAAAASUVORK5CYII=';
 
-const APP_VER = 'v9.63';
+const APP_VER = 'v9.64';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -9959,83 +9999,90 @@ function openSyncDialog() {
   const mask = document.createElement('div');
   mask.className = 'confirm-mask';
   mask.innerHTML = `
-    <div class="sync-box">
+    <div class="sync-box sync-box-wide">
       <div class="sync-title">同步 / 分享</div>
 
-      <div class="sync-hint" style="text-align:left;line-height:1.7">
-        <b>手机上打开这个软件</b>：扫下面的二维码 → 浏览器打开 → 菜单里「添加到主屏幕」，
-        以后点图标就能用，和 App 一样。
+      <div class="sync-tabs">
+        <button type="button" class="sync-tab active" data-sync-tab="file">备份 / 换设备</button>
+        <button type="button" class="sync-tab" data-sync-tab="qr">扫码合并</button>
       </div>
 
-      <div class="qr-wrap">
-        <img id="sync-qr" alt="扫码打开" width="200" height="200">
-        <div class="qr-url">jefely.github.io/New-repository</div>
-      </div>
+      <!-- ① 文件方式 -->
+      <section class="sync-pane" id="sync-pane-file">
+        <div class="sync-sec">
+          <div class="sync-sec-title">① 同步文件（全部数据 · 已加密）</div>
+          <div class="sync-hint small" style="margin-top:0">
+            文件里是<b>全部数据</b>（账户、流水、分期、固定），用你的账本密码加密。
+          </div>
+          <div class="sync-btncol">
+            <button type="button" class="sync-btn-main" id="sync-save-file">存成同步文件（发到另一台设备）</button>
+            <div class="sync-btnrow">
+              <button type="button" class="ghost" id="sync-load-file">覆盖导入</button>
+              <button type="button" class="ghost" id="sync-merge-file">合并导入</button>
+            </div>
+          </div>
+          <div class="sync-hint small">
+            <b>覆盖导入</b>：整本替换成文件里的数据（换手机 / 恢复备份）。<br>
+            <b>合并导入</b>：只添加本机没有的流水 / 分期 / 账户，一条不删；
+            同一笔（同 id，或日期·账户·金额·备注全同）只算一次。
+          </div>
+        </div>
 
-      <div class="sync-or">— 备份 / 换设备 —</div>
-
-      <div class="sync-hint" style="text-align:left;line-height:1.7">
-        同步文件里是<b>全部数据</b>（账户、流水、分期、固定），已用你的账本密码加密。
-        用微信「文件」发到另一台设备，在那台设备上选下面两种导入方式之一。
-      </div>
-
-      <div class="sync-block">
-        <button type="button" class="ghost" id="sync-save-file">存成同步文件（发到另一台设备）</button>
-        <button type="button" class="ghost" id="sync-load-file">覆盖导入（整本替换成文件里的数据）</button>
-        <button type="button" class="ghost" id="sync-merge-file">合并导入（只把文件里新的记录加进来）</button>
+        <div class="sync-sec">
+          <div class="sync-sec-title">② 在新设备上安装</div>
+          <div class="sync-site">
+            <img id="sync-qr" alt="扫码打开" width="120" height="120">
+            <div class="sync-site-text">
+              扫这个码打开网页 → 浏览器菜单里「添加到主屏幕」，
+              以后点图标就能用，<b>断网也能开</b>。
+              <div class="sync-site-url">jefely.github.io/New-repository</div>
+            </div>
+          </div>
+        </div>
         <input type="file" id="sync-file" accept=".lz,.txt,.json" style="display:none">
-        <div class="sync-hint" style="margin:0;font-size:12px">
-          <b>合并导入</b>不会删掉本机的任何记录：只添加本机没有的流水 / 分期 / 账户，
-          同一笔（同 id，或日期·账户·金额·备注全同）只算一次。
-        </div>
-      </div>
+      </section>
 
-      <div class="sync-or">— 二维码合并（另一台手机用相机扫） —</div>
+      <!-- ② 扫码合并 -->
+      <section class="sync-pane" id="sync-pane-qr" hidden>
+        <div class="sync-sec">
+          <div class="sync-sec-title">① 选择要带的记录</div>
+          <div class="sync-range">
+            <label>截止到 <input type="date" id="sync-qr-until"></label>
+            <label>之前 <input type="number" id="sync-qr-days" min="1" max="60" value="7" style="width:56px"> 天</label>
+            <label>每张 <input type="number" id="sync-qr-per" min="3" max="100" value="20" style="width:56px"> 笔</label>
+          </div>
+          <div class="sync-btncol" style="margin-top:0">
+            <button type="button" class="sync-btn-main" id="sync-qr-make">生成二维码</button>
+          </div>
+          <div class="sync-hint small">
+            一张装不下会自动切成几张，按「上一张 / 下一张」依次扫；
+            每张都只加本机没有的记录。
+          </div>
+        </div>
 
-      <div class="sync-hint" style="text-align:left;line-height:1.7">
-        把<b>最近的流水</b>装进一个二维码：从最新的一笔往前放，装到快满为止，
-        并告诉你截止到哪一天。<br>
-        另一台手机用<b>系统相机</b>扫 → 打开网页 → 自动问你要不要合并；
-        重复的记录会当场跳过，只加真正缺的。<br>
-        <span style="color:#b45309">微信 / 支付宝的「扫一扫」会把这个码当成商品码，提示
-        「未找到商品信息」—— 请用手机自带相机，或先在浏览器里打开本页再点二维码放大。</span>
-      </div>
+        <div class="sync-sec" id="sync-qr-result" hidden>
+          <div class="sync-sec-title">② 让另一台手机扫</div>
+          <canvas id="sync-qr-canvas" title="点一下放大" style="display:block;margin:0 auto;max-width:100%;height:auto;image-rendering:pixelated;border:1px solid var(--border);border-radius:6px;background:#fff;cursor:zoom-in"></canvas>
+          <div id="sync-qr-info" class="sync-hint" style="margin:8px 0 0;text-align:center;font-size:12px"></div>
+          <div id="sync-qr-nav" style="display:none;align-items:center;justify-content:center;gap:10px;margin-top:8px">
+            <button type="button" class="ghost" id="sync-qr-prev" style="padding:0 10px;height:26px">上一张</button>
+            <span id="sync-qr-idx" style="font-size:12px;color:var(--text-muted)"></span>
+            <button type="button" class="ghost" id="sync-qr-next" style="padding:0 10px;height:26px">下一张</button>
+          </div>
+          <div class="sync-hint small" style="text-align:center">点二维码可全屏放大（更容易扫）</div>
+          <textarea id="sync-qr-text" readonly spellcheck="false" style="width:100%;height:54px;margin-top:6px;font-size:10px;font-family:ui-monospace,Consolas,monospace;padding:6px;box-sizing:border-box;border:1px solid var(--border);border-radius:6px;background:var(--bg-main);color:var(--text-muted)"></textarea>
+          <div class="sync-hint small">
+            二维码里是明文，别给外人扫；实在扫不动就把上面这段发到另一台设备。
+          </div>
+        </div>
 
-      <div class="sync-block" style="gap:8px">
-        <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center">
-          <label class="inst-label" style="gap:6px;font-size:12px">截止到
-            <input type="date" id="sync-qr-until"
-              style="height:28px;padding:0 6px;border:1px solid var(--border);border-radius:6px;background:var(--bg-main);color:var(--text-main)">
-          </label>
-          <label class="inst-label" style="gap:6px;font-size:12px">之前
-            <input type="number" id="sync-qr-days" min="1" max="60" value="7"
-              style="width:56px;height:28px;padding:0 6px;border:1px solid var(--border);border-radius:6px;background:var(--bg-main);color:var(--text-main)"> 天
-          </label>
-          <label class="inst-label" style="gap:6px;font-size:12px">每张
-            <input type="number" id="sync-qr-per" min="3" max="100" value="20"
-              style="width:56px;height:28px;padding:0 6px;border:1px solid var(--border);border-radius:6px;background:var(--bg-main);color:var(--text-main)"> 笔
-          </label>
+        <div class="sync-sec">
+          <div class="sync-warn">
+            用手机的<b>系统相机</b>扫。微信 / 支付宝的「扫一扫」会把这个码当成商品码，
+            提示「未找到商品信息」—— 那是它们的问题，不是二维码坏了。
+          </div>
         </div>
-        <button type="button" class="ghost" id="sync-qr-make">生成合并二维码</button>
-        <div class="sync-hint" style="margin:0;font-size:11px">
-          一张装不下会自动切成几张，按「上一张 / 下一张」依次扫；每张都只加本机没有的记录。
-        </div>
-      </div>
-
-      <div id="sync-qr-box" style="display:none;margin-top:10px">
-        <canvas id="sync-qr-canvas" title="点一下放大" style="display:block;margin:0 auto;max-width:100%;height:auto;image-rendering:pixelated;border:1px solid var(--border);border-radius:6px;background:#fff;cursor:zoom-in"></canvas>
-        <div id="sync-qr-info" class="sync-hint" style="margin:8px 0 0;text-align:center;font-size:12px"></div>
-        <div id="sync-qr-nav" style="display:none;align-items:center;justify-content:center;gap:10px;margin-top:8px">
-          <button type="button" class="ghost" id="sync-qr-prev" style="padding:0 10px;height:26px">上一张</button>
-          <span id="sync-qr-idx" style="font-size:12px;color:var(--text-muted)"></span>
-          <button type="button" class="ghost" id="sync-qr-next" style="padding:0 10px;height:26px">下一张</button>
-        </div>
-        <div class="sync-hint" style="margin:4px 0 0;text-align:center;font-size:11px">点二维码可全屏放大（更容易扫）</div>
-        <textarea id="sync-qr-text" readonly spellcheck="false" style="width:100%;height:54px;margin-top:6px;font-size:10px;font-family:ui-monospace,Consolas,monospace;padding:6px;box-sizing:border-box;border:1px solid var(--border);border-radius:6px;background:var(--bg-main);color:var(--text-muted)"></textarea>
-        <div class="sync-hint" style="margin:4px 0 0;font-size:11px">
-          二维码里是明文，别给外人扫；实在扫不动就把上面这段发到另一台设备。
-        </div>
-      </div>
+      </section>
 
       <div class="sync-actions"><button type="button" data-act="close">关闭</button></div>
     </div>`;
@@ -10046,6 +10093,17 @@ function openSyncDialog() {
   // 二维码：内嵌的 base64 PNG，离线也能显示
   const qr = mask.querySelector('#sync-qr');
   if (qr) qr.src = QR_DATA_URL;
+
+  // 两个标签页：备份 / 换设备 · 扫码合并
+  const syncTabs = [...mask.querySelectorAll('.sync-tab')];
+  const panes = { file: mask.querySelector('#sync-pane-file'), qr: mask.querySelector('#sync-pane-qr') };
+  syncTabs.forEach(tab => {
+    tab.onclick = () => {
+      syncTabs.forEach(x => x.classList.toggle('active', x === tab));
+      Object.keys(panes).forEach(k => { if (panes[k]) panes[k].hidden = (k !== tab.dataset.syncTab); });
+      try { mask.querySelector('.sync-box').scrollTop = 0; } catch (e) {}
+    };
+  });
 
   // 存成同步文件
   mask.querySelector('#sync-save-file').onclick = async () => {
@@ -10071,7 +10129,7 @@ function openSyncDialog() {
   const qrDays = mask.querySelector('#sync-qr-days');
   const qrPer = mask.querySelector('#sync-qr-per');
   const qrCanvas = mask.querySelector('#sync-qr-canvas');
-  const qrBox = mask.querySelector('#sync-qr-box');
+  const qrBox = mask.querySelector('#sync-qr-result');
   const qrNav = mask.querySelector('#sync-qr-nav');
   const qrIdxEl = mask.querySelector('#sync-qr-idx');
   if (qrUntil) qrUntil.value = todayISO();
@@ -10129,8 +10187,8 @@ function openSyncDialog() {
     qrMake.textContent = '正在生成…';
     try {
       const until = qrUntil ? qrUntil.value : '';
-      const days = qrDays ? qrDays.value : '4';
-      const per = qrPer ? qrPer.value : '15';
+      const days = qrDays ? qrDays.value : '7';
+      const per = qrPer ? qrPer.value : '20';
       const res = await packRecentForQR(until, days, per);
       if (!res) { toast('这个日期范围内没有流水', { type: 'error' }); return; }
       if (res.tooDense) {
@@ -10139,7 +10197,7 @@ function openSyncDialog() {
       }
       qrParts = res.parts;
       qrIdx = 0;
-      qrBox.style.display = 'block';
+      if (qrBox) qrBox.hidden = false;
       showQRPart();
       try { qrBox.scrollIntoView({ block: 'center' }); } catch (e) {}
     } catch (e) {
