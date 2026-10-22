@@ -5,11 +5,11 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#4c3d80">
-<link rel="icon" type="image/png" sizes="192x192" href="nt-192.png" media="(prefers-color-scheme: light)">
-<link rel="icon" type="image/png" sizes="192x192" href="nt-light-192.png" media="(prefers-color-scheme: dark)">
-<link rel="icon" type="image/png" sizes="512x512" href="nt-512.png">
+<link rel="icon" type="image/png" sizes="512x512" href="nt-512.png" media="(prefers-color-scheme: light)">
+<link rel="icon" type="image/png" sizes="512x512" href="nt-light-512.png" media="(prefers-color-scheme: dark)">
+<link rel="icon" type="image/png" sizes="192x192" href="nt-192.png">
 <!-- iOS 主屏图标：白底紫字，放在任何壁纸上都清楚；主屏图标本身没有「按深浅色切换」的接口 -->
-<link rel="apple-touch-icon" sizes="192x192" href="nt-light-192.png">
+<link rel="apple-touch-icon" sizes="512x512" href="nt-light-512.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -4434,7 +4434,7 @@ async function encryptWithSession(text) {
 // 网站二维码（内嵌 base64，离线可显示），扫码打开 https://jefely.github.io/New-repository/
 const QR_DATA_URL = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAUoAAAFKCAIAAAD0S4FSAAAFCUlEQVR42u3dS3IUMRBF0VcE+9+y2QETIfKjc+YGd7VvqAYZqe/n5yfARr88ApA3IG9A3oC8AXkD8gZ5A/IG5A3IG5A3IG+QNyBvQN6AvAF5A/KGl/0++eHv+5Y9jr9vnjv5vD3/5Xub9nr+v/v+Jp3e4OUckDcgb0DegLwBeQPyBnkDeWpqLdembe7pOdV071nt+xZOPtFrf5NOb/ByDsgbkDcgb0DegLxB3oC8gTw1tZaiSZ2Jk0n3NrFVPcmTn636vPv+Jp3e4OUckDcgb0DegLwBeYO8AXkDMbUW94du2eI2cQ7P6Q3IG5A3IG9A3oC8Qd6AvAF5AzG1Nsi9Oa2qGzPNpTm9AXkD8gbkDcgbkDfIG5A3IG8gj0yt9bzHs+eutZP/t+qWz33fr9MbkDcgb0DegLxB3oC8AXkD8gbSfGpt37ate7vH/Gz+yxzeaxvgnN4gb0DegLwBeQPyBuQN8gbkDTT07dsvNXGmrWrWque3f+9JOr0BeQPyBuQNyBuQN8gbkDcgbyCjd63ZiZUGe+nu3Vta9S303MTW835Ypzd4OQfkDcgbkDcgb0DegLxB3kCemlq7N8djB9j0ezxTNNM2cRry3l+O0xu8nAPyBuQNyBuQNyBvkDcgbyDLbgidOAM0cU6ranbwtcnCqp91egPyBuQN8gbkDcgbkDcgb0DeELvWsne2rOd+uJ4zTz3vh616GhM/r9MbvJwD8gbkDcgbkDcgb5A3IG8gT02tnUzb3JtMujfTNnHyrGqLW9Wz2vcdOb3Byzkgb0DegLwBeQPyBuQN8gZiai29p4smburqOePVczNZ1ed1egPyBuQNyBvkDcgbkDcgb0DeQEZPraXlBNi+XVwZeIvra1OJTm9A3iBvQN6AvAF5A/IG5A3yBmJqLb3nw3rOD1VNU937vFUzbVX70ibOLDq9wcs5IG9A3oC8AXkD8gZ5A/IGGvp6zuJMvKux52ayqttFe86W7XuSTm/wcg7IG5A3IG9A3oC8AXmDvIE8NbVWtU/r3oRQ1bTcaxvReu482/f37PQGL+eAvAF5A/IG5A3IG+QNyBvIshtCM3BfWtUEWNZNcU18VlUzbVX/stMbvJwD8gbkDcgbkDcgb5A3IG8gT02t5bHpohTNllU9jbScw6uahzt5znatAfIG5A3yBuQNyBuQNyBvQN4QN4SWTwhNvNfy3u/sW9jN1Bogb0DeIG9A3oC8AXkD8gbkDTG1xpo7QHvuh/NbOb0BeQPyBnkD8gbkDcgbkDcgb4gbQjNniisDt16d7B6ruuVz4u2iE39npzcgb0DeIG9A3oC8AXkD8gbkDTG1lt4TYDFp136LW9W3XzV32HPSzukNXs4BeQPyBuQNyBuQN8gbkDeQp6bWUjQ99toOsJMnee9OzHvfb9Xc4ck3WDXh5/QGL+eAvAF5A/IG5A3IG+QNyBuIqbW8ures6g7Qe7NlPSfees4sVs20Ob3Byzkgb0DegLwBeQPyBnkD8gZiai2v3qe577eq2g+Xoj1tVbvlnN6AvEHegLwBeQPyBuQNyBvkDcTUWvZOgGXgRNTEaap7E289b2Kt+o6c3uDlHJA3IG9A3oC8AXmDvAF5Aw19EzdmpeVNjml5R2TVJFbcLur0BuQNyBuQN8gbkDcgb0DegLyB/OupNcDpDcgbkDcgb5A3IG9A3oC8AXkD8gbkDfIG5A3IG5A3IG9A3iBvQN5AU38AW3Unpg+CBHwAAAAASUVORK5CYII=';
 
-const APP_VER = 'v9.81';
+const APP_VER = 'v9.82';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -7905,9 +7905,9 @@ function renderFlow(main, footer) {
       const td = more.querySelector('.flow-more-td');
       if (td) td.innerHTML = '正在加载…';
       requestAnimationFrame(() => setTimeout(() => {
-        flowShown = Math.min(state.transactions.length, flowShown + FLOW_BATCH);
         _flowLoading = false;
-        render();
+        ensureFlowBuffer();
+        observeFlowMore();
       }, 24));
     });
     tbody.appendChild(more);
@@ -7923,13 +7923,59 @@ function renderFlow(main, footer) {
   updateFlowFooter(footer);
   syncFlowTitleWidth();
   observeFlowMore();
+  ensureFlowBuffer();
+}
+
+// 追加下一批流水行 —— **只 append 新行，不重建整张表**。
+// 重建的话每滚一批都要把已显示的全部行重新造一遍，越往下越慢（2 万笔时会明显卡）。
+function appendFlowRows(n) {
+  const tbody = document.querySelector('#flow-table tbody');
+  if (!tbody) return 0;
+  const txs = state.transactions.slice().sort((a, b) => (a.seq || 0) - (b.seq || 0));
+  const to = Math.min(txs.length, flowShown + n);
+  if (to <= flowShown) return 0;
+  const moreRow = tbody.querySelector('tr.flow-more');
+  const frag = document.createDocumentFragment();
+  const rows = [];
+  for (let i = flowShown; i < to; i++) {
+    const tr = makeFlowRow(txs[i], 0, false);
+    frag.appendChild(tr);
+    rows.push(tr);
+  }
+  if (moreRow) tbody.insertBefore(frag, moreRow); else tbody.appendChild(frag);
+  rows.forEach(tr => attachFixedCheckbox(tr));
+  const added = to - flowShown;
+  flowShown = to;
+  renumberFlowRows(tbody);
+  if (moreRow) {
+    if (txs.length > flowShown) {
+      const td = moreRow.querySelector('.flow-more-td');
+      if (td) td.innerHTML = '还有 ' + (txs.length - flowShown) + ' 笔没显示 · 已显示 '
+        + flowShown + ' / ' + txs.length + ' 笔 · <b>点击加载更多</b>';
+    } else {
+      moreRow.remove();
+    }
+  }
+  const footer = document.getElementById('footer');
+  if (footer) updateFlowFooter(footer);
+  return added;
+}
+
+// 「视口下方始终富余一屏」：不够一屏就继续追加，直到够了为止。
+// 用 more 行的位置量剩余空间，比 rootMargin 的粗估更贴近用户的感受。
+let _flowChains = 0;
+function ensureFlowBuffer() {
+  if (_flowChains > 4) return;                 // 极端情况下别狂刷
+  const more = document.querySelector('#flow-table tr.flow-more');
+  if (!more) return;
+  const need = Math.round((window.innerHeight || 800) * 1.05);
+  if (more.getBoundingClientRect().top > need) return;   // 还有富余，不动
+  _flowChains++;
+  appendFlowRows(FLOW_BATCH);
+  setTimeout(() => { _flowChains--; ensureFlowBuffer(); }, 16);
 }
 
 // 「还有 N 笔没显示」那一行滚到视野附近就自动追加，手机上不用反复点。
-// 两个细节：
-//   ① 提前 800px（约一屏半）触发，别等真的滚到底才转圈；
-//   ② 触发时先把文字换成「正在加载…」再渲染，否则手机上会有一小段「没反应」的空白期；
-//      并且加 350ms 冷却，快速滚到底时不会一次连刷十几批把人卡住。
 let _flowMoreObs = null;
 let _flowLoading = false;
 let _lastFlowLoad = 0;
@@ -7941,19 +7987,18 @@ function observeFlowMore() {
     _flowMoreObs = new IntersectionObserver(entries => {
       if (!entries.some(e => e.isIntersecting)) return;
       if (_flowLoading) return;
-      if (Date.now() - _lastFlowLoad < 350) return;
+      if (Date.now() - _lastFlowLoad < 300) return;
       _flowLoading = true;
       _lastFlowLoad = Date.now();
       if (_flowMoreObs) { _flowMoreObs.disconnect(); _flowMoreObs = null; }
       const td = more.querySelector('.flow-more-td');
       if (td) td.innerHTML = '正在加载…';
-      // 让「正在加载…」先画出来，再做那一次重建（一帧后再干活）
       requestAnimationFrame(() => setTimeout(() => {
-        flowShown = Math.min(state.transactions.length, flowShown + FLOW_BATCH);
         _flowLoading = false;
-        render();
+        ensureFlowBuffer();
+        observeFlowMore();
       }, 24));
-    }, { rootMargin: '800px 0px' });
+    }, { rootMargin: Math.round((window.innerHeight || 800) * 0.6) + 'px 0px' });
     _flowMoreObs.observe(more);
   } catch (e) { /* 老浏览器没有 IntersectionObserver：保留点击加载 */ }
 }
