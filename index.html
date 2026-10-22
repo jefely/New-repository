@@ -4364,6 +4364,8 @@ const PW_HINT_KEY = 'flow_pw_hint_v1';   // 密码提示词（明文，因为它
 let _sessionKey = null;       // 解锁后常驻内存的 CryptoKey
 let _sessionSalt = null;      // 本机存储用的 salt（固定，避免每次重算）
 let _saveTimer = null;
+// 数据版本号：每次 save() 且内容真的变了就 +1，用来判断页面 DOM 能不能复用
+let _dataVersion = 0;
 let _savePending = false;
 
 function b64u(bytes) {
@@ -4432,7 +4434,7 @@ async function encryptWithSession(text) {
 // 网站二维码（内嵌 base64，离线可显示），扫码打开 https://jefely.github.io/New-repository/
 const QR_DATA_URL = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAUoAAAFKCAIAAAD0S4FSAAAFCUlEQVR42u3dS3IUMRBF0VcE+9+y2QETIfKjc+YGd7VvqAYZqe/n5yfARr88ApA3IG9A3oC8AXkD8gZ5A/IG5A3IG5A3IG+QNyBvQN6AvAF5A/KGl/0++eHv+5Y9jr9vnjv5vD3/5Xub9nr+v/v+Jp3e4OUckDcgb0DegLwBeQPyBnkDeWpqLdembe7pOdV071nt+xZOPtFrf5NOb/ByDsgbkDcgb0DegLxB3oC8gTw1tZaiSZ2Jk0n3NrFVPcmTn636vPv+Jp3e4OUckDcgb0DegLwBeYO8AXkDMbUW94du2eI2cQ7P6Q3IG5A3IG9A3oC8Qd6AvAF5AzG1Nsi9Oa2qGzPNpTm9AXkD8gbkDcgbkDfIG5A3IG8gj0yt9bzHs+eutZP/t+qWz33fr9MbkDcgb0DegLxB3oC8AXkD8gbSfGpt37ate7vH/Gz+yxzeaxvgnN4gb0DegLwBeQPyBuQN8gbkDTT07dsvNXGmrWrWque3f+9JOr0BeQPyBuQNyBuQN8gbkDcgbyCjd63ZiZUGe+nu3Vta9S303MTW835Ypzd4OQfkDcgbkDcgb0DegLxB3kCemlq7N8djB9j0ezxTNNM2cRry3l+O0xu8nAPyBuQNyBuQNyBvkDcgbyDLbgidOAM0cU6ranbwtcnCqp91egPyBuQN8gbkDcgbkDcgb0DeELvWsne2rOd+uJ4zTz3vh616GhM/r9MbvJwD8gbkDcgbkDcgb5A3IG8gT02tnUzb3JtMujfTNnHyrGqLW9Wz2vcdOb3Byzkgb0DegLwBeQPyBuQN8gZiai29p4smburqOePVczNZ1ed1egPyBuQNyBvkDcgbkDcgb0DeQEZPraXlBNi+XVwZeIvra1OJTm9A3iBvQN6AvAF5A/IG5A3yBmJqLb3nw3rOD1VNU937vFUzbVX70ibOLDq9wcs5IG9A3oC8AXkD8gZ5A/IGGvp6zuJMvKux52ayqttFe86W7XuSTm/wcg7IG5A3IG9A3oC8AXmDvIE8NbVWtU/r3oRQ1bTcaxvReu482/f37PQGL+eAvAF5A/IG5A3IG+QNyBvIshtCM3BfWtUEWNZNcU18VlUzbVX/stMbvJwD8gbkDcgbkDcgb5A3IG8gT02t5bHpohTNllU9jbScw6uahzt5znatAfIG5A3yBuQNyBuQNyBvQN4QN4SWTwhNvNfy3u/sW9jN1Bogb0DeIG9A3oC8AXkD8gbkDTG1xpo7QHvuh/NbOb0BeQPyBnkD8gbkDcgbkDcgb4gbQjNniisDt16d7B6ruuVz4u2iE39npzcgb0DeIG9A3oC8AXkD8gbkDTG1lt4TYDFp136LW9W3XzV32HPSzukNXs4BeQPyBuQNyBuQN8gbkDeQp6bWUjQ99toOsJMnee9OzHvfb9Xc4ck3WDXh5/QGL+eAvAF5A/IG5A3IG+QNyBuIqbW8ures6g7Qe7NlPSfees4sVs20Ob3Byzkgb0DegLwBeQPyBnkD8gZiai2v3qe577eq2g+Xoj1tVbvlnN6AvEHegLwBeQPyBuQNyBvkDcTUWvZOgGXgRNTEaap7E289b2Kt+o6c3uDlHJA3IG9A3oC8AXmDvAF5Aw19EzdmpeVNjml5R2TVJFbcLur0BuQNyBuQN8gbkDcgb0DegLyB/OupNcDpDcgbkDcgb5A3IG9A3oC8AXkD8gbkDfIG5A3IG5A3IG9A3iBvQN5AU38AW3Unpg+CBHwAAAAASUVORK5CYII=';
 
-const APP_VER = 'v9.73';
+const APP_VER = 'v9.74';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -4489,7 +4491,7 @@ const LS_KEY = LS_KEY_BASE;   // 仅用于旧代码/注释，真实读写请用 
 const SUMMARY_STATE_KEY = 'flow_summary_state_v3';
 // 流水表默认铺多少行空行。像 Excel 一样随手往下填，不用先点「新增」。
 const FLOW_BLANK_ROWS = 30;
-const FLOW_BATCH = 300;        // 每次渲染/追加的流水行数（上万条时首屏只画 300 行，点底部提示再追加）
+const FLOW_BATCH = 100;        // 每次渲染/追加的流水行数（手机上一行 6 个 input，100 行以内切页不卡）
 let flowShown = FLOW_BATCH;    // 当前已渲染多少行
 // 可编辑的列顺序，粘贴时按这个映射
 const FLOW_FIELDS = ['date', 'from', 'to', 'amount', 'note'];
@@ -4609,6 +4611,8 @@ function save() {
     _undoStack.push(_lastSaved);
     if (_undoStack.length > UNDO_MAX) _undoStack.shift();
   }
+  // 数据一改，各页缓存立即作废（页面 DOM 复用靠它判断）
+  if (json !== _lastSaved) _dataVersion++;
   _lastSaved = json;
   scheduleDiskWrite();
 }
@@ -7020,19 +7024,54 @@ function _scrollKeyOf(tab, el, idx) {
 
 let _lastRenderedTab = null;   // 上一次真正画出来的页面（用来决定滚动位置存到哪个 key）
 
+let _flowCache = null;    // 流水页 DOM 缓存（切页复用它，避免每次重建几百行）
+let _renderVersion = -1;  // 上次重建时对应的数据版本
+let _renderFlowShown = -1; // 上次重建时渲染了多少行
+
 function render() {
   const main = document.getElementById('main');
   const footer = document.getElementById('footer');
   // 每次渲染重新聚合一次统计（数据/区间可能已经变了）
   _statsMemo.key = null;
+
+  // ⓪ 流水页 DOM 复用：切走时把整页节点收进 DocumentFragment，切回来直接挂回去。
+  //    流水页是 pure 的（只依赖 state.transactions + flowShown），所以能安全复用；
+  //    其它页依赖区间/月份/筛选等 UI 状态，仍然每次重建，避免显示过期内容。
+  //    只在「真的换页」时复用：同一页重渲染（编辑、加载更多、改列宽）必须重建。
+  //    缓存里记的是「渲染那一刻」的数据版本，不是当前版本 —— 否则会把过期 DOM 当成新的。
+  const switching = !!_lastRenderedTab && _lastRenderedTab !== currentTab;
+  if (switching && _lastRenderedTab === 'flow' && main.childNodes.length) {
+    const frag = document.createDocumentFragment();
+    const wrapScroll = [];
+    main.querySelectorAll('.grid-wrap').forEach(w => wrapScroll.push([w.scrollTop, w.scrollLeft]));
+    while (main.firstChild) frag.appendChild(main.firstChild);
+    _flowCache = { ver: _renderVersion, shown: _renderFlowShown, frag,
+      top: main.scrollTop, left: main.scrollLeft, footer: footer.innerHTML, wrapScroll };
+  }
+  if (switching && currentTab === 'flow' && _flowCache && _flowCache.frag.childNodes.length
+      && _flowCache.ver === _dataVersion && _flowCache.shown === flowShown) {
+    main.replaceChildren(_flowCache.frag);
+    footer.innerHTML = _flowCache.footer || '<span id="footer-text"></span>';
+    main.scrollTop = _flowCache.top || 0;
+    main.scrollLeft = _flowCache.left || 0;
+    main.querySelectorAll('.grid-wrap').forEach((w, i) => {
+      const s = _flowCache.wrapScroll[i];
+      if (s) { w.scrollTop = s[0]; w.scrollLeft = s[1]; }
+    });
+    document.querySelectorAll('.tabbar button').forEach(b => b.classList.toggle('active', b.dataset.tab === currentTab));
+    observeFlowMore();
+    _lastRenderedTab = currentTab;
+    return;
+  }
+
   // ① 保存「上一次渲染的那一页」的滚动位置。
   // 关键：保存要用 _lastRenderedTab，不能用 currentTab —— 切页签时 currentTab
   // 在 render() 之前就已经变成新页面了，用它会把这些位置错记到新页面名下。
-  const saveTab = _lastRenderedTab;
-  if (saveTab) {
-    _scrollMemo[saveTab + ':main'] = { top: main.scrollTop, left: main.scrollLeft };
+  const saveTab2 = _lastRenderedTab;
+  if (saveTab2) {
+    _scrollMemo[saveTab2 + ':main'] = { top: main.scrollTop, left: main.scrollLeft };
     main.querySelectorAll('.grid-wrap').forEach((el, idx) => {
-      _scrollMemo[_scrollKeyOf(saveTab, el, idx)] = { top: el.scrollTop, left: el.scrollLeft };
+      _scrollMemo[_scrollKeyOf(saveTab2, el, idx)] = { top: el.scrollTop, left: el.scrollLeft };
     });
   }
   // ② 本次要还原的位置，取「当前页面」自己的记录（首次进入就是 0）
@@ -7063,6 +7102,8 @@ function render() {
       if (sv) { el.scrollTop = sv.top; el.scrollLeft = sv.left; }
     });
   } catch (e) {}
+  _renderVersion = _dataVersion;
+  _renderFlowShown = flowShown;
   _lastRenderedTab = currentTab;
 }
 
@@ -7146,7 +7187,7 @@ function renderFlow(main, footer) {
     if (tr) attachFixedCheckbox(tr);
   });
 
-  // 还有没渲染的，底部放一行提示（点一下追加）
+  // 还有没渲染的，底部放一行提示：点一下追加，滚到它附近也会自动追加（手机上不用反复点）
   if (txs.length > flowShown) {
     const more = document.createElement('tr');
     more.className = 'flow-more';
@@ -7168,6 +7209,24 @@ function renderFlow(main, footer) {
   bindFlowEvents(tbody);
   updateFlowFooter(footer);
   syncFlowTitleWidth();
+  observeFlowMore();
+}
+
+// 「还有 N 笔没显示」那一行滚到视野附近就自动追加，手机上不用反复点。
+let _flowMoreObs = null;
+function observeFlowMore() {
+  const more = document.querySelector('#flow-table tr.flow-more');
+  if (_flowMoreObs) { _flowMoreObs.disconnect(); _flowMoreObs = null; }
+  if (!more) return;
+  try {
+    _flowMoreObs = new IntersectionObserver(entries => {
+      if (!entries.some(e => e.isIntersecting)) return;
+      if (_flowMoreObs) { _flowMoreObs.disconnect(); _flowMoreObs = null; }
+      flowShown = Math.min(state.transactions.length, flowShown + FLOW_BATCH);
+      render();
+    }, { rootMargin: '300px' });
+    _flowMoreObs.observe(more);
+  } catch (e) { /* 老浏览器没有 IntersectionObserver：保留点击加载 */ }
 }
 
 // 「流水记录」的居中范围 = 表格的实际宽度（到备注列右缘为止）。
