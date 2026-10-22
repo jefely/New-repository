@@ -4434,7 +4434,7 @@ async function encryptWithSession(text) {
 // 网站二维码（内嵌 base64，离线可显示），扫码打开 https://jefely.github.io/New-repository/
 const QR_DATA_URL = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAUoAAAFKCAIAAAD0S4FSAAAFCUlEQVR42u3dS3IUMRBF0VcE+9+y2QETIfKjc+YGd7VvqAYZqe/n5yfARr88ApA3IG9A3oC8AXkD8gZ5A/IG5A3IG5A3IG+QNyBvQN6AvAF5A/KGl/0++eHv+5Y9jr9vnjv5vD3/5Xub9nr+v/v+Jp3e4OUckDcgb0DegLwBeQPyBnkDeWpqLdembe7pOdV071nt+xZOPtFrf5NOb/ByDsgbkDcgb0DegLxB3oC8gTw1tZaiSZ2Jk0n3NrFVPcmTn636vPv+Jp3e4OUckDcgb0DegLwBeYO8AXkDMbUW94du2eI2cQ7P6Q3IG5A3IG9A3oC8Qd6AvAF5AzG1Nsi9Oa2qGzPNpTm9AXkD8gbkDcgbkDfIG5A3IG8gj0yt9bzHs+eutZP/t+qWz33fr9MbkDcgb0DegLxB3oC8AXkD8gbSfGpt37ate7vH/Gz+yxzeaxvgnN4gb0DegLwBeQPyBuQN8gbkDTT07dsvNXGmrWrWque3f+9JOr0BeQPyBuQNyBuQN8gbkDcgbyCjd63ZiZUGe+nu3Vta9S303MTW835Ypzd4OQfkDcgbkDcgb0DegLxB3kCemlq7N8djB9j0ezxTNNM2cRry3l+O0xu8nAPyBuQNyBuQNyBvkDcgbyDLbgidOAM0cU6ranbwtcnCqp91egPyBuQN8gbkDcgbkDcgb0DeELvWsne2rOd+uJ4zTz3vh616GhM/r9MbvJwD8gbkDcgbkDcgb5A3IG8gT02tnUzb3JtMujfTNnHyrGqLW9Wz2vcdOb3Byzkgb0DegLwBeQPyBuQN8gZiai29p4smburqOePVczNZ1ed1egPyBuQNyBvkDcgbkDcgb0DeQEZPraXlBNi+XVwZeIvra1OJTm9A3iBvQN6AvAF5A/IG5A3yBmJqLb3nw3rOD1VNU937vFUzbVX70ibOLDq9wcs5IG9A3oC8AXkD8gZ5A/IGGvp6zuJMvKux52ayqttFe86W7XuSTm/wcg7IG5A3IG9A3oC8AXmDvIE8NbVWtU/r3oRQ1bTcaxvReu482/f37PQGL+eAvAF5A/IG5A3IG+QNyBvIshtCM3BfWtUEWNZNcU18VlUzbVX/stMbvJwD8gbkDcgbkDcgb5A3IG8gT02t5bHpohTNllU9jbScw6uahzt5znatAfIG5A3yBuQNyBuQNyBvQN4QN4SWTwhNvNfy3u/sW9jN1Bogb0DeIG9A3oC8AXkD8gbkDTG1xpo7QHvuh/NbOb0BeQPyBnkD8gbkDcgbkDcgb4gbQjNniisDt16d7B6ruuVz4u2iE39npzcgb0DeIG9A3oC8AXkD8gbkDTG1lt4TYDFp136LW9W3XzV32HPSzukNXs4BeQPyBuQNyBuQN8gbkDeQp6bWUjQ99toOsJMnee9OzHvfb9Xc4ck3WDXh5/QGL+eAvAF5A/IG5A3IG+QNyBuIqbW8ures6g7Qe7NlPSfees4sVs20Ob3Byzkgb0DegLwBeQPyBnkD8gZiai2v3qe577eq2g+Xoj1tVbvlnN6AvEHegLwBeQPyBuQNyBvkDcTUWvZOgGXgRNTEaap7E289b2Kt+o6c3uDlHJA3IG9A3oC8AXmDvAF5Aw19EzdmpeVNjml5R2TVJFbcLur0BuQNyBuQN8gbkDcgb0DegLyB/OupNcDpDcgbkDcgb5A3IG9A3oC8AXkD8gbkDfIG5A3IG5A3IG9A3iBvQN5AU38AW3Unpg+CBHwAAAAASUVORK5CYII=';
 
-const APP_VER = 'v9.83';
+const APP_VER = 'v9.84';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -4491,7 +4491,7 @@ const LS_KEY = LS_KEY_BASE;   // 仅用于旧代码/注释，真实读写请用 
 const SUMMARY_STATE_KEY = 'flow_summary_state_v3';
 // 流水表默认铺多少行空行。像 Excel 一样随手往下填，不用先点「新增」。
 const FLOW_BLANK_ROWS = 30;
-const FLOW_BATCH = 100;        // 每次渲染/追加的流水行数（手机上一行 6 个 input，100 行以内切页不卡）
+const FLOW_BATCH = 200;        // 每次渲染/追加的流水行数（默认一批 200 条；下方不足 100 条时再补一批）
 let flowShown = FLOW_BATCH;    // 当前已渲染多少行
 // 可编辑的列顺序，粘贴时按这个映射
 const FLOW_FIELDS = ['date', 'from', 'to', 'amount', 'note'];
@@ -7923,6 +7923,7 @@ function renderFlow(main, footer) {
   updateFlowFooter(footer);
   syncFlowTitleWidth();
   observeFlowMore();
+  bindFlowScrollBuffer();
   ensureFlowBuffer();
 }
 
@@ -7961,18 +7962,35 @@ function appendFlowRows(n) {
   return added;
 }
 
-// 「视口下方始终富余一屏」：不够一屏就继续追加，直到够了为止。
-// 用 more 行的位置量剩余空间，比 rootMargin 的粗估更贴近用户的感受。
+// 「视口下方始终富余 100 条记录」：不足 100 条就继续追加，直到够了为止。
+// 用 more 行到视口底边的像素距离换算成行数，比 rootMargin 的粗估更贴近手感。
+const FLOW_BUFFER_ROWS = 100;
 let _flowChains = 0;
 function ensureFlowBuffer() {
-  if (_flowChains > 4) return;                 // 极端情况下别狂刷
+  if (_flowChains > 8) return;                 // 极端情况下别狂刷
   const more = document.querySelector('#flow-table tr.flow-more');
   if (!more) return;
-  const need = Math.round((window.innerHeight || 800) * 1.05);
-  if (more.getBoundingClientRect().top > need) return;   // 还有富余，不动
+  const row = document.querySelector('#flow-table tbody tr[data-id]');
+  const rowH = (row && row.getBoundingClientRect().height) || 30;
+  const viewH = window.innerHeight || 800;
+  const rowsBelow = Math.max(0, (more.getBoundingClientRect().top - viewH) / rowH);
+  if (rowsBelow >= FLOW_BUFFER_ROWS) return;   // 下方已富余 100 条以上，别动
   _flowChains++;
   appendFlowRows(FLOW_BATCH);
   setTimeout(() => { _flowChains--; ensureFlowBuffer(); }, 16);
+}
+
+// 滚动驱动：滚一下就看一眼富余够不够 100 条（80ms 节流），比 IntersectionObserver 准
+let _flowScrollTimer = null;
+function bindFlowScrollBuffer() {
+  const table = document.getElementById('flow-table');
+  const wrap = table && table.closest('.grid-wrap');
+  if (!wrap || wrap.dataset.bufBound === '1') return;
+  wrap.dataset.bufBound = '1';
+  wrap.addEventListener('scroll', () => {
+    if (_flowScrollTimer) return;
+    _flowScrollTimer = setTimeout(() => { _flowScrollTimer = null; ensureFlowBuffer(); }, 80);
+  }, { passive: true });
 }
 
 // 「还有 N 笔没显示」那一行滚到视野附近就自动追加，手机上不用反复点。
@@ -7998,7 +8016,7 @@ function observeFlowMore() {
         ensureFlowBuffer();
         observeFlowMore();
       }, 24));
-    }, { rootMargin: Math.round((window.innerHeight || 800) * 0.6) + 'px 0px' });
+    }, { rootMargin: Math.round((window.innerHeight || 800) * 1.2) + 'px 0px' });
     _flowMoreObs.observe(more);
   } catch (e) { /* 老浏览器没有 IntersectionObserver：保留点击加载 */ }
 }
