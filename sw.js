@@ -1,10 +1,10 @@
-﻿/* 流水账 · Service Worker
+/* 紫老记账 · Service Worker
    策略：网络优先（在线时永远拿最新版本），失败再回退缓存 —— 断网也能打开。
    改了 index.html 只需重新上传，用户下次联网打开就会自动更新。 */
-const CACHE = 'ledger-v171';
+const CACHE = 'ledger-v172';
 const ASSETS = ['./', './index.html', './manifest.json',
-  './icon-192-v3.png', './icon-512-v3.png',
-  './icon-maskable-192-v3.png', './icon-maskable-512-v3.png'];
+  './zilao-192.png', './zilao-512.png',
+  './zilao-maskable-192.png', './zilao-maskable-512.png'];
 
 self.addEventListener('install', e => {
   e.waitUntil(

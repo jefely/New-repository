@@ -2,7 +2,7 @@
 
 个人复式流水账本。纯单文件前端应用，零依赖、零后端，数据完全存在浏览器本地并加密。
 
-> 当前版本：**v9.65**
+> 当前版本：**v9.66**
 
 ## 在线使用
 
@@ -143,8 +143,11 @@ https://jefely.github.io/New-repository/
 | `index.html` | 应用本体（单文件，含全部 CSS / JS） |
 | `manifest.json` | PWA 清单：应用名、图标、主题色 |
 | `sw.js` | Service Worker，离线缓存 |
-| `icon-192-v3.png` / `icon-512-v3.png` | 普通图标 |
-| `icon-maskable-192-v3.png` / `icon-maskable-512-v3.png` | Android 自适应图标（满底色，裁切后不留白边） |
+| `zilao-192.png` / `zilao-512.png` | 普通图标 |
+| `zilao-maskable-192.png` / `zilao-maskable-512.png` | Android 自适应图标（满底色，裁切后不留白边） |
+
+> 图标只有这四个文件，不再保留历史版本（v2 / v3 之类）。
+> 要换图标就覆盖同名文件，同时把 `sw.js` 的 `CACHE` +1。
 
 ## 更新版本
 
