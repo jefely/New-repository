@@ -1,7 +1,7 @@
 ﻿/* NT账本 · Service Worker
    策略：网络优先（在线时永远拿最新版本），失败再回退缓存 —— 断网也能打开。
    改了 index.html 只需重新上传，用户下次联网打开就会自动更新。 */
-const CACHE = 'ledger-v182';
+const CACHE = 'ledger-v183';
 const ASSETS = ['./', './index.html', './manifest.json',
   './nt-192.png', './nt-512.png',
   './nt-maskable-192.png', './nt-maskable-512.png',
