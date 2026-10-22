@@ -4434,7 +4434,7 @@ async function encryptWithSession(text) {
 // 网站二维码（内嵌 base64，离线可显示），扫码打开 https://jefely.github.io/New-repository/
 const QR_DATA_URL = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAUoAAAFKCAIAAAD0S4FSAAAFCUlEQVR42u3dS3IUMRBF0VcE+9+y2QETIfKjc+YGd7VvqAYZqe/n5yfARr88ApA3IG9A3oC8AXkD8gZ5A/IG5A3IG5A3IG+QNyBvQN6AvAF5A/KGl/0++eHv+5Y9jr9vnjv5vD3/5Xub9nr+v/v+Jp3e4OUckDcgb0DegLwBeQPyBnkDeWpqLdembe7pOdV071nt+xZOPtFrf5NOb/ByDsgbkDcgb0DegLxB3oC8gTw1tZaiSZ2Jk0n3NrFVPcmTn636vPv+Jp3e4OUckDcgb0DegLwBeYO8AXkDMbUW94du2eI2cQ7P6Q3IG5A3IG9A3oC8Qd6AvAF5AzG1Nsi9Oa2qGzPNpTm9AXkD8gbkDcgbkDfIG5A3IG8gj0yt9bzHs+eutZP/t+qWz33fr9MbkDcgb0DegLxB3oC8AXkD8gbSfGpt37ate7vH/Gz+yxzeaxvgnN4gb0DegLwBeQPyBuQN8gbkDTT07dsvNXGmrWrWque3f+9JOr0BeQPyBuQNyBuQN8gbkDcgbyCjd63ZiZUGe+nu3Vta9S303MTW835Ypzd4OQfkDcgbkDcgb0DegLxB3kCemlq7N8djB9j0ezxTNNM2cRry3l+O0xu8nAPyBuQNyBuQNyBvkDcgbyDLbgidOAM0cU6ranbwtcnCqp91egPyBuQN8gbkDcgbkDcgb0DeELvWsne2rOd+uJ4zTz3vh616GhM/r9MbvJwD8gbkDcgbkDcgb5A3IG8gT02tnUzb3JtMujfTNnHyrGqLW9Wz2vcdOb3Byzkgb0DegLwBeQPyBuQN8gZiai29p4smburqOePVczNZ1ed1egPyBuQNyBvkDcgbkDcgb0DeQEZPraXlBNi+XVwZeIvra1OJTm9A3iBvQN6AvAF5A/IG5A3yBmJqLb3nw3rOD1VNU937vFUzbVX70ibOLDq9wcs5IG9A3oC8AXkD8gZ5A/IGGvp6zuJMvKux52ayqttFe86W7XuSTm/wcg7IG5A3IG9A3oC8AXmDvIE8NbVWtU/r3oRQ1bTcaxvReu482/f37PQGL+eAvAF5A/IG5A3IG+QNyBvIshtCM3BfWtUEWNZNcU18VlUzbVX/stMbvJwD8gbkDcgbkDcgb5A3IG8gT02t5bHpohTNllU9jbScw6uahzt5znatAfIG5A3yBuQNyBuQNyBvQN4QN4SWTwhNvNfy3u/sW9jN1Bogb0DeIG9A3oC8AXkD8gbkDTG1xpo7QHvuh/NbOb0BeQPyBnkD8gbkDcgbkDcgb4gbQjNniisDt16d7B6ruuVz4u2iE39npzcgb0DeIG9A3oC8AXkD8gbkDTG1lt4TYDFp136LW9W3XzV32HPSzukNXs4BeQPyBuQNyBuQN8gbkDeQp6bWUjQ99toOsJMnee9OzHvfb9Xc4ck3WDXh5/QGL+eAvAF5A/IG5A3IG+QNyBuIqbW8ures6g7Qe7NlPSfees4sVs20Ob3Byzkgb0DegLwBeQPyBnkD8gZiai2v3qe577eq2g+Xoj1tVbvlnN6AvEHegLwBeQPyBuQNyBvkDcTUWvZOgGXgRNTEaap7E289b2Kt+o6c3uDlHJA3IG9A3oC8AXmDvAF5Aw19EzdmpeVNjml5R2TVJFbcLur0BuQNyBuQN8gbkDcgb0DegLyB/OupNcDpDcgbkDcgb5A3IG9A3oC8AXkD8gbkDfIG5A3IG5A3IG9A3iBvQN5AU38AW3Unpg+CBHwAAAAASUVORK5CYII=';
 
-const APP_VER = 'v9.74';
+const APP_VER = 'v9.75';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -5963,6 +5963,462 @@ function fixedFromSheet(rows) {
   return out;
 }
 
+/* ============================================================
+   账单导入（支付宝 / 微信支付 / 招商银行）
+   ------------------------------------------------------------
+   这三家导出的都是「单边」记录（我付了 XX），而本程序一笔要两端账户，
+   所以解析完还要做两件事：
+     ① 我的账户 ← 支付方式 / 招行账单直接选卡
+     ② 对方账户 ← 交易对方或摘要，先查规则表，查不到让人工确认
+   判重优先用交易单号（billId），没有单号再退回「日期·账户·金额·备注」指纹。
+   ============================================================ */
+const BILL_PRESETS = [
+  {
+    id: 'alipay', name: '支付宝',
+    cols: {
+      date: ['交易时间', '交易创建时间', '付款时间'],
+      dir: ['收/支', '收支'],
+      amount: ['金额'],
+      party: ['交易对方', '对方'],
+      item: ['商品说明', '商品名称', '商品'],
+      method: ['收/付款方式', '付款方式', '支付方式'],
+      tradeNo: ['交易订单号', '交易号'],
+      note: ['备注']
+    }
+  },
+  {
+    id: 'wechat', name: '微信支付',
+    cols: {
+      date: ['交易时间', '时间'],
+      dir: ['收/支', '收支'],
+      amount: ['金额(元)', '金额（元）', '金额'],
+      party: ['交易对方', '对方'],
+      item: ['商品'],
+      method: ['支付方式', '付款方式'],
+      tradeNo: ['交易单号'],
+      note: ['备注']
+    }
+  },
+  {
+    id: 'cmb', name: '招商银行',
+    cols: {
+      date: ['交易日期', '记账日期', '日期'],
+      dir: ['借贷标志', '收支', '交易方向'],
+      amount: ['交易金额', '发生额', '金额'],
+      party: ['交易摘要', '摘要', '对方户名', '对手信息'],
+      item: ['交易备注', '用途', '备注'],
+      method: [],
+      tradeNo: ['流水号', '交易流水号', '参考号']
+    }
+  }
+];
+
+// 简单 CSV 切分（支持双引号包裹、引号内逗号、"" 转义）
+function splitCsvLine(line) {
+  const out = [];
+  let cur = '', q = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (q) {
+      if (ch === '"') {
+        if (line[i + 1] === '"') { cur += '"'; i++; }
+        else q = false;
+      } else cur += ch;
+    } else if (ch === '"') q = true;
+    else if (ch === ',' || ch === '\t') { out.push(cur); cur = ''; }
+    else cur += ch;
+  }
+  out.push(cur);
+  return out.map(s => s.trim());
+}
+
+// 从文本里认出表头行：在预置的列名关键词里命中最多的一行
+function findBillHeader(lines, preset) {
+  let best = { idx: -1, score: 0, map: null };
+  const limit = Math.min(lines.length, 60);
+  for (let i = 0; i < limit; i++) {
+    const cells = splitCsvLine(lines[i]);
+    if (cells.length < 3) continue;
+    const map = {};
+    let score = 0;
+    for (const key of ['date', 'dir', 'amount', 'party', 'item', 'method', 'tradeNo', 'note']) {
+      const kws = (preset.cols[key] || []);
+      for (let ci = 0; ci < cells.length; ci++) {
+        if (map[key] != null) break;
+        const cell = cells[ci];
+        if (!cell) continue;
+        if (kws.some(kw => cell.includes(kw))) { map[key] = ci; score++; }
+      }
+    }
+    if (map.date != null && map.amount != null) score += 2;   // 有日期和金额最像表头
+    if (score > best.score) best = { idx: i, score, map };
+  }
+  return best;
+}
+
+// 解析金额：去掉 ¥/￥/逗号/空格，保留符号
+function parseBillAmount(v) {
+  let s = String(v == null ? '' : v).trim();
+  if (!s) return null;
+  s = s.replace(/[¥￥,，\s]/g, '');
+  const neg = /^-/.test(s) || /^\(.*\)$/.test(s);
+  s = s.replace(/[()]/g, '');
+  const n = Number(s.replace(/[^\d.]/g, ''));
+  if (!Number.isFinite(n)) return null;
+  return neg ? -n : n;
+}
+
+// 解析账单日期：接受 2026-10-03 / 2026/10/03 / 20261003 / 带时间
+function parseBillDate(v) {
+  const s = String(v || '').trim();
+  if (!s) return null;
+  const m = s.match(/(\d{4})[-/年.]?(\d{1,2})[-/月.]?(\d{1,2})/);
+  if (m) {
+    const y = m[1], mo = String(m[2]).padStart(2, '0'), d = String(m[3]).padStart(2, '0');
+    if (+mo >= 1 && +mo <= 12 && +d >= 1 && +d <= 31) return y + '-' + mo + '-' + d;
+  }
+  const t = parseDateInput(s);
+  return t && /^\d{4}-\d{2}-\d{2}$/.test(t) ? t : null;
+}
+
+function parseBillText(text, preset) {
+  const lines = String(text || '').split(/\r?\n/).filter(l => l.trim());
+  const head = findBillHeader(lines, preset);
+  if (head.idx < 0 || !head.map) throw new Error('认不出这张账单的列名（可能不是 ' + preset.name + ' 的导出文件）');
+  const m = head.map;
+  const rows = [];
+  for (let i = head.idx + 1; i < lines.length; i++) {
+    const c = splitCsvLine(lines[i]);
+    if (c.length < 2) continue;
+    const date = parseBillDate(c[m.date]);
+    if (!date) continue;                       // 表尾合计行、空行都跳过
+    let amt = parseBillAmount(c[m.amount]);
+    if (amt == null || amt === 0) continue;
+    const dirRaw = m.dir != null ? String(c[m.dir] || '') : '';
+    let dir = '';
+    if (/支/.test(dirRaw)) dir = 'out';
+    else if (/收/.test(dirRaw)) dir = 'in';
+    else if (/借/.test(dirRaw)) dir = 'out';
+    else if (/贷/.test(dirRaw)) dir = 'in';
+    else if (/不计|其他|其它/.test(dirRaw)) continue;
+    if (!dir) dir = amt < 0 ? 'out' : 'in';     // 没有收/支列时看符号
+    amt = Math.abs(amt);
+    rows.push({
+      date, amount: String(amt), dir,
+      party: m.party != null ? String(c[m.party] || '').trim() : '',
+      item: m.item != null ? String(c[m.item] || '').trim() : '',
+      method: m.method != null ? String(c[m.method] || '').trim() : '',
+      tradeNo: m.tradeNo != null ? String(c[m.tradeNo] || '').trim() : '',
+      note: m.note != null ? String(c[m.note] || '').trim() : ''
+    });
+  }
+  return { preset: preset.name, headerAt: head.idx, score: head.score, rows };
+}
+
+// 账户匹配：简码 → 全名 → 数字尾号 → 名字包含（取最长）
+function matchAccountText(text) {
+  const t = String(text || '').trim();
+  if (!t) return null;
+  const up = t.toUpperCase();
+  let hit = state.accounts.find(a => (a.code || '').trim().toUpperCase() === up);
+  if (hit) return hit;
+  hit = state.accounts.find(a => String(a.name || '').trim() === t);
+  if (hit) return hit;
+  const nums = t.match(/\d{3,}/g);
+  if (nums) {
+    for (const n of nums) {
+      hit = state.accounts.find(a => String(a.name || '').includes(n) || String(a.code || '').includes(n));
+      if (hit) return hit;
+    }
+  }
+  const cands = state.accounts.filter(a => {
+    const nm = String(a.name || '').trim();
+    if (!nm || nm.length < 2) return false;
+    return t.includes(nm) || nm.includes(t);
+  });
+  if (cands.length) return cands.sort((x, y) => String(y.name).length - String(x.name).length)[0];
+  return null;
+}
+
+// 支付方式的常见叫法 → 账户名（账单里写「零钱」，账本里叫「微信钱包」）
+const PAY_ALIAS_MAP = [
+  ['零钱通', ['零钱通', '微信钱包']],
+  ['零钱', ['微信钱包', '零钱']],
+  ['余额宝', ['余额宝', '支付宝余额']],
+  ['余额', ['支付宝余额', '余额']],
+  ['花呗', ['花呗', '支付宝花呗']],
+  ['借呗', ['借呗', '支付宝借呗']],
+  ['白条', ['白条', '京东白条']],
+  ['信用卡', ['信用卡']]
+];
+
+// 银行全名 → 账本里常用的简称（招商银行储蓄卡(7912) → 招行储）
+const BANK_ALIASES = [
+  ['招商银行','招行'], ['工商银行','工行'], ['建设银行','建行'], ['农业银行','农行'],
+  ['交通银行','交行'], ['中国银行','中行'], ['中信银行','中信'], ['广发银行','广发'],
+  ['浦发银行','浦发'], ['民生银行','民生'], ['兴业银行','兴业'], ['光大银行','光大'],
+  ['平安银行','平安'], ['邮政储蓄','邮储'], ['邮储银行','邮储'], ['华夏银行','华夏']
+];
+
+function matchPayAccount(text) {
+  const direct = matchAccountText(text);
+  if (direct) return direct;
+  const t = String(text || '');
+  for (const [full, short] of BANK_ALIASES) {
+    if (!t.includes(full)) continue;
+    const acc = state.accounts.find(a => String(a.name || '').includes(short));
+    if (acc) return acc;
+  }
+  for (const [kw, names] of PAY_ALIAS_MAP) {
+    if (!t.includes(kw)) continue;
+    for (const nm of names) {
+      const acc = state.accounts.find(a => String(a.name || '').trim() === nm);
+      if (acc) return acc;
+    }
+  }
+  return null;
+}
+
+// 商户 → 账户的规则表（记住一次，下次自动）
+function applyBillRules(text) {
+  const t = String(text || '');
+  if (!t) return null;
+  for (const r of (state.importRules || [])) {
+    if (!r || !r.kw) continue;
+    if (t.includes(r.kw)) {
+      const acc = matchAccountText(r.code) || state.accounts.find(a => a.name === r.name);
+      if (acc) return acc;
+    }
+  }
+  return null;
+}
+
+function openImportHub() {
+  const mask = document.createElement('div');
+  mask.className = 'confirm-mask';
+  mask.innerHTML = `
+    <div class="sync-box" style="max-width:min(94vw,420px)">
+      <div class="sync-title">导入</div>
+      <div class="sync-block" style="gap:8px">
+        <button type="button" class="sync-btn-main" id="ih-bill">账单导入（支付宝 / 微信 / 招行）</button>
+        <div class="sync-hint small" style="margin:0">
+          只<b>追加</b>新记录，导入前逐笔预览，重复的自动跳过。日常用这个。
+        </div>
+        <button type="button" class="ghost" id="ih-xlsx" style="height:30px">整本 Excel（覆盖重建）</button>
+        <div class="sync-hint small" style="margin:0">
+          只用于恢复本程序导出的备份：会<b>先清空</b>本账本再重建。
+        </div>
+      </div>
+      <div class="sync-actions"><button type="button" data-act="close">关闭</button></div>
+    </div>`;
+  document.body.appendChild(mask);
+  const close = () => mask.remove();
+  bindMaskClose(mask, close);
+  mask.querySelector('#ih-bill').onclick = () => { close(); openBillImportDialog(); };
+  mask.querySelector('#ih-xlsx').onclick = () => { close(); openImportXlsxDialog(); };
+}
+
+// 账单里认不出来的账户先落到「待分类」，导入后在流水表里改
+function ensurePendingAccount() {
+  let acc = state.accounts.find(a => String(a.name || '').trim() === '待分类');
+  if (!acc) {
+    acc = { id: uid(), cat: '资产类', sub: '待分类', code: 'DCL', name: '待分类', opening: 0 };
+    state.accounts.push(acc);
+  }
+  return acc;
+}
+
+function openBillImportDialog() {
+  const mask = document.createElement('div');
+  mask.className = 'confirm-mask';
+  mask.innerHTML = `
+    <div class="sync-box" style="max-width:min(96vw,780px)">
+      <div class="sync-title">账单导入</div>
+      <div class="sync-hint small" style="text-align:left;margin-top:0">
+        选支付宝 / 微信支付 / 招商银行导出的 <b>.csv</b>（也可以选 .xlsx，读第一张表）。
+        导入前会逐笔预览：<b>我的账户</b>按支付方式自动匹配，<b>对方账户</b>按你记住的规则匹配，认不出的行留给你挑。
+      </div>
+      <div class="sync-block" style="gap:8px">
+        <button type="button" id="bi-pick" style="width:100%">选择账单文件</button>
+        <input type="file" id="bi-file" accept=".csv,.txt,.xlsx" style="display:none">
+        <div id="bi-src" class="sync-hint small" style="margin:0"></div>
+      </div>
+      <div id="bi-prev" style="display:none">
+        <div class="sync-range" style="margin:8px 0 6px">
+          <label>招行账单的卡<select id="bi-myacc"></select></label>
+          <label><input type="checkbox" id="bi-remember" checked> 记住商户 → 账户</label>
+        </div>
+        <div id="bi-stats" class="sync-hint small" style="margin:0 0 6px"></div>
+        <div id="bi-list" style="max-height:38vh;overflow:auto;border:1px solid var(--border);border-radius:6px"></div>
+        <div class="sync-actions" style="margin-top:8px">
+          <button type="button" id="bi-go">导入选中的</button>
+          <button type="button" class="ghost" id="bi-all">全选已匹配</button>
+          <button type="button" class="ghost" data-act="close">关闭</button>
+        </div>
+      </div>
+      <div class="sync-actions" id="bi-actions-only">
+        <button type="button" class="ghost" data-act="close">关闭</button>
+      </div>
+    </div>`;
+  document.body.appendChild(mask);
+  const close = () => mask.remove();
+  bindMaskClose(mask, close);
+
+  const fileInp = mask.querySelector('#bi-file');
+  const srcEl = mask.querySelector('#bi-src');
+  const prev = mask.querySelector('#bi-prev');
+  const listEl = mask.querySelector('#bi-list');
+  const statsEl = mask.querySelector('#bi-stats');
+  const myAccSel = mask.querySelector('#bi-myacc');
+  const remember = mask.querySelector('#bi-remember');
+  let rows = [];            // 预览行
+  let presetId = '';
+
+  // 下拉：所有账户（招行账单指出这是哪张卡的流水）
+  myAccSel.innerHTML = state.accounts.map(a =>
+    `<option value="${esc(a.id)}">${esc((a.code ? a.code + ' · ' : '') + (a.name || ''))}</option>`).join('');
+
+  const accOption = (sel) => state.accounts.map(a =>
+    `<option value="${esc(a.id)}"${sel === a.id ? ' selected' : ''}>${esc((a.code ? a.code + ' · ' : '') + (a.name || ''))}</option>`).join('');
+
+  const render = () => {
+    const okCount = rows.filter(r => r.checked).length;
+    const unmatched = rows.filter(r => !r.otherId || !r.myId).length;
+    statsEl.textContent = `共 ${rows.length} 笔 · 将导入 ${okCount} 笔`
+      + (unmatched ? ` · 其中 ${unmatched} 笔缺账户，会先落到「待分类」，导入后在流水表里改` : '')
+      + (presetId === 'cmb' ? ' · 招行账单请在上面选对卡' : '');
+    listEl.innerHTML = `<table class="grid" style="font-size:11px;width:100%">
+      <thead><tr><th style="width:26px"></th><th>日期</th><th>我的账户</th><th>对方账户</th><th>金额</th><th>线索（会写进备注）</th></tr></thead>
+      <tbody>${rows.map((r, i) => `
+        <tr data-row="${i}" style="${r.otherId && r.myId ? '' : 'background:#fff7ed'}">
+          <td style="text-align:center"><input type="checkbox" data-chk="${i}"${r.checked ? ' checked' : ''}></td>
+          <td style="white-space:nowrap">${esc(r.date)}</td>
+          <td>${esc(r.myName || '待分类')}</td>
+          <td><select data-other="${i}" style="max-width:130px">
+            <option value="">(待分类)</option>
+            ${accOption(r.otherId)}
+          </select></td>
+          <td style="text-align:right;white-space:nowrap">${r.dir === 'out' ? '-' : '+'}${fmtMoney(r.amount)}</td>
+          <td style="max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(r.clue || '')}">${esc(r.clue || '')}</td>
+        </tr>`).join('')}</tbody></table>`;
+  };
+
+  listEl.addEventListener('change', e => {
+    const chk = e.target.closest('input[data-chk]');
+    if (chk) { rows[+chk.dataset.chk].checked = chk.checked; render(); return; }
+    const sel = e.target.closest('select[data-other]');
+    if (sel) {
+      const i = +sel.dataset.other;
+      const acc = state.accounts.find(a => a.id === sel.value);
+      rows[i].otherId = acc ? acc.id : '';
+      rows[i].otherName = acc ? acc.name : '';
+      rows[i].checked = !!acc;
+      render();
+    }
+  });
+
+  fileInp.onchange = async () => {
+    const f = fileInp.files && fileInp.files[0];
+    if (!f) return;
+    srcEl.textContent = '正在读取 ' + f.name + '…';
+    try {
+      let text;
+      if (/\.xlsx$/i.test(f.name)) {
+        const { sheets } = await readXlsx(await f.arrayBuffer());
+        if (!sheets.length) throw new Error('这个 xlsx 里没有可读的工作表');
+        text = sheets[0].rows.map(r => r.map(c => (c == null ? '' : String(c))).join(',')).join('\n');
+      } else {
+        const buf = await f.arrayBuffer();
+        // 支付宝/招行可能是 GBK：先按 UTF-8 解，出现替换字符再换 GBK
+        text = new TextDecoder('utf-8').decode(buf);
+        if (text.includes('\uFFFD')) {
+          try { text = new TextDecoder('gbk').decode(buf); } catch (e) {}
+        }
+      }
+      let best = null;
+      for (const p of BILL_PRESETS) {
+        try {
+          const r = parseBillText(text, p);
+          if (r.rows.length && (!best || r.score > best.score || (r.score === best.score && r.rows.length > best.rows.length))) { best = r; presetId = p.id; }
+        } catch (e) {}
+      }
+      if (!best) throw new Error('认不出这张账单的格式（表头里找不到「交易时间 / 金额 / 交易对方」这类列）');
+      // 我的账户按支付方式匹配；对方账户只认「规则表 / 完全同名」，
+      // 认不出来就留空 —— 导入后用「待分类」占位，再在流水表里改，
+      // 所以每笔都要把线索（对方/商品/支付方式）写进备注。
+      rows = best.rows.map(r => {
+        const my = matchPayAccount(r.method) || (presetId === 'cmb' ? state.accounts.find(a => a.id === myAccSel.value) : null);
+        const other = applyBillRules(r.party) || applyBillRules(r.item)
+          || state.accounts.find(a => String(a.name || '').trim() === r.party)
+          || state.accounts.find(a => String(a.name || '').trim() === r.item)
+          || null;
+        const bits = [r.party, r.item, r.method].map(x => String(x || '').trim()).filter(Boolean);
+        let clue = bits.join('｜').slice(0, 80);
+        if (r.note) clue += (clue ? '（' + r.note + '）' : r.note);
+        return {
+          ...r, clue,
+          myId: my ? my.id : '', myName: my ? my.name : '',
+          otherId: other ? other.id : '', otherName: other ? other.name : '',
+          checked: true
+        };
+      });
+      srcEl.textContent = `已识别：${best.preset} 格式 · 表头在第 ${best.headerAt + 1} 行 · ${rows.length} 笔`
+        + '（未匹配的行导入后会落到「待分类」，在流水表里改就行）';
+      prev.style.display = 'block';
+      mask.querySelector('#bi-actions-only').style.display = 'none';
+      render();
+    } catch (err) {
+      srcEl.textContent = '读取失败：' + (err && err.message ? err.message : err);
+    }
+  };
+
+  mask.querySelector('#bi-all').onclick = () => {
+    rows.forEach(r => { r.checked = true; });
+    render();
+  };
+
+  mask.querySelector('#bi-go').onclick = () => {
+    const picked = rows.filter(r => r.checked);
+    if (!picked.length) { toast('没有勾选任何行', { type: 'error' }); return; }
+    const pending = ensurePendingAccount();
+    const seenBill = new Set(state.transactions.map(t => t.billId).filter(Boolean));
+    const sigs = new Set(state.transactions.map(txFingerprint));
+    let added = 0, dup = 0, toPending = 0;
+    const rules = state.importRules || (state.importRules = []);
+    for (const r of picked) {
+      const myId = r.myId || pending.id;
+      const otherId = r.otherId || pending.id;
+      if (!r.myId || !r.otherId) toPending++;
+      if (r.tradeNo && seenBill.has(r.tradeNo)) { dup++; continue; }
+      const from = r.dir === 'out' ? myId : otherId;
+      const to = r.dir === 'out' ? otherId : myId;
+      const rec = {
+        id: uid(), seq: 0, date: r.date,
+        from: (state.accounts.find(a => a.id === from) || {}).name || '',
+        to: (state.accounts.find(a => a.id === to) || {}).name || '',
+        fromId: from, toId: to,
+        // 备注写关键线索：对方｜商品｜支付方式（后面手动改账户时靠它认）
+        amount: r.amount, note: r.clue || r.note || r.item || '', billId: r.tradeNo || ''
+      };
+      const fp = txFingerprint(rec);
+      if (sigs.has(fp)) { dup++; continue; }
+      sigs.add(fp);
+      if (r.tradeNo) seenBill.add(r.tradeNo);
+      state.transactions.push(rec);
+      added++;
+      // 记住「商户 → 对方账户」
+      if (remember.checked && r.party && r.otherId) {
+        const kw = r.party.slice(0, 12);
+        if (!rules.some(x => x.kw === kw)) rules.push({ kw, code: r.otherName });
+      }
+    }
+    sortTxByDate();
+    reseq(); save(); close(); render();
+    toast('已导入 ' + added + ' 笔' + (dup ? ' · 跳过重复 ' + dup + ' 笔' : '')
+      + (toPending ? ' · ' + toPending + ' 笔未匹配，已落到「待分类」' : ''), { duration: 6000 });
+  };
+}
+
 function openImportXlsxDialog() {
   const mask = document.createElement('div');
   mask.className = 'confirm-mask';
@@ -7150,7 +7606,7 @@ function renderFlow(main, footer) {
   const colsBtn = document.getElementById('f-cols');
   if (colsBtn) colsBtn.onclick = () => openColWidthsDialog();
   const impBtn = document.getElementById('f-import');
-  if (impBtn) impBtn.onclick = () => openImportXlsxDialog();
+  if (impBtn) impBtn.onclick = () => openImportHub();
 
   // 3. 表格主体
   const wrap = document.createElement('div');
