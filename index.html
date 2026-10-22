@@ -3978,8 +3978,41 @@ table#summary-table.sum-cols-folded td.col-code {
   visibility: hidden !important;
   pointer-events: none !important;
 }
-/* 收起状态给名称列一个「可以向右拖」的提示 */
-table#summary-table.sum-cols-folded thead th.col-name { cursor: col-resize; }
+/* 账户名称列标题左边的小三角：收起时尖朝右（点它展开）、展开时尖朝左（点它收起）。
+   纯黑 / 纯白，不跟表头的灰字。账户名称列右缘的拖拽手柄只负责调列宽。 */
+.sum-fold-toggle {
+  position: absolute;
+  left: 3px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 18px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: #000000 !important;   /* 398 行的 button{color:#0f172a!important} 会压过来 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 3;
+}
+.sum-fold-toggle::before {
+  content: '';
+  display: block;
+  width: 0;
+  height: 0;
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+  border-right: 7px solid currentColor;     /* 尖朝左 = 已展开 */
+}
+table#summary-table.sum-cols-folded .sum-fold-toggle::before {
+  border-right: none;
+  border-left: 7px solid currentColor;      /* 尖朝右 = 已收起 */
+}
+.sum-fold-toggle:active { transform: translateY(-50%) scale(0.9); }
+[data-theme="dark"] .sum-fold-toggle { color: #ffffff !important; }
+[data-theme="dark"] table#summary-table.sum-cols-folded .sum-fold-toggle::before { border-left-color: #ffffff; }
 
 /* ④ 分期表：固定表格布局 + 完整 colgroup，拖动一列只改那一列。
       之前 table-layout:auto，拖任何一列浏览器都会重排其余列，
@@ -4229,7 +4262,7 @@ async function encryptWithSession(text) {
 // 网站二维码（内嵌 base64，离线可显示），扫码打开 https://jefely.github.io/New-repository/
 const QR_DATA_URL = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAUoAAAFKCAIAAAD0S4FSAAAFCUlEQVR42u3dS3IUMRBF0VcE+9+y2QETIfKjc+YGd7VvqAYZqe/n5yfARr88ApA3IG9A3oC8AXkD8gZ5A/IG5A3IG5A3IG+QNyBvQN6AvAF5A/KGl/0++eHv+5Y9jr9vnjv5vD3/5Xub9nr+v/v+Jp3e4OUckDcgb0DegLwBeQPyBnkDeWpqLdembe7pOdV071nt+xZOPtFrf5NOb/ByDsgbkDcgb0DegLxB3oC8gTw1tZaiSZ2Jk0n3NrFVPcmTn636vPv+Jp3e4OUckDcgb0DegLwBeYO8AXkDMbUW94du2eI2cQ7P6Q3IG5A3IG9A3oC8Qd6AvAF5AzG1Nsi9Oa2qGzPNpTm9AXkD8gbkDcgbkDfIG5A3IG8gj0yt9bzHs+eutZP/t+qWz33fr9MbkDcgb0DegLxB3oC8AXkD8gbSfGpt37ate7vH/Gz+yxzeaxvgnN4gb0DegLwBeQPyBuQN8gbkDTT07dsvNXGmrWrWque3f+9JOr0BeQPyBuQNyBuQN8gbkDcgbyCjd63ZiZUGe+nu3Vta9S303MTW835Ypzd4OQfkDcgbkDcgb0DegLxB3kCemlq7N8djB9j0ezxTNNM2cRry3l+O0xu8nAPyBuQNyBuQNyBvkDcgbyDLbgidOAM0cU6ranbwtcnCqp91egPyBuQN8gbkDcgbkDcgb0DeELvWsne2rOd+uJ4zTz3vh616GhM/r9MbvJwD8gbkDcgbkDcgb5A3IG8gT02tnUzb3JtMujfTNnHyrGqLW9Wz2vcdOb3Byzkgb0DegLwBeQPyBuQN8gZiai29p4smburqOePVczNZ1ed1egPyBuQNyBvkDcgbkDcgb0DeQEZPraXlBNi+XVwZeIvra1OJTm9A3iBvQN6AvAF5A/IG5A3yBmJqLb3nw3rOD1VNU937vFUzbVX70ibOLDq9wcs5IG9A3oC8AXkD8gZ5A/IGGvp6zuJMvKux52ayqttFe86W7XuSTm/wcg7IG5A3IG9A3oC8AXmDvIE8NbVWtU/r3oRQ1bTcaxvReu482/f37PQGL+eAvAF5A/IG5A3IG+QNyBvIshtCM3BfWtUEWNZNcU18VlUzbVX/stMbvJwD8gbkDcgbkDcgb5A3IG8gT02t5bHpohTNllU9jbScw6uahzt5znatAfIG5A3yBuQNyBuQNyBvQN4QN4SWTwhNvNfy3u/sW9jN1Bogb0DeIG9A3oC8AXkD8gbkDTG1xpo7QHvuh/NbOb0BeQPyBnkD8gbkDcgbkDcgb4gbQjNniisDt16d7B6ruuVz4u2iE39npzcgb0DeIG9A3oC8AXkD8gbkDTG1lt4TYDFp136LW9W3XzV32HPSzukNXs4BeQPyBuQNyBuQN8gbkDeQp6bWUjQ99toOsJMnee9OzHvfb9Xc4ck3WDXh5/QGL+eAvAF5A/IG5A3IG+QNyBuIqbW8ures6g7Qe7NlPSfees4sVs20Ob3Byzkgb0DegLwBeQPyBnkD8gZiai2v3qe577eq2g+Xoj1tVbvlnN6AvEHegLwBeQPyBuQNyBvkDcTUWvZOgGXgRNTEaap7E289b2Kt+o6c3uDlHJA3IG9A3oC8AXmDvAF5Aw19EzdmpeVNjml5R2TVJFbcLur0BuQNyBuQN8gbkDcgb0DegLyB/OupNcDpDcgbkDcgb5A3IG9A3oC8AXkD8gbkDfIG5A3IG5A3IG9A3iBvQN5AU38AW3Unpg+CBHwAAAAASUVORK5CYII=';
 
-const APP_VER = 'v9.54';
+const APP_VER = 'v9.56';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -7034,16 +7067,18 @@ function bindFlowEvents(tbody) {
       if (dateInp) dateInp.value = toYYMMDD(t.date);
       const amtInp = tr.querySelector('input[data-field="amount"]');
       if (amtInp) amtInp.value = fmtMoneyOrBlank(t.amount);
-      // 行转正后补上删除按钮（挂在备注格右端，不占列）
-      const noteTd = tr.querySelector('td.col-note');
-      attachFixedCheckbox(tr);
-      if (noteTd && !noteTd.querySelector('.row-del')) {
-        const btn = document.createElement('button');
-        btn.type = 'button'; btn.className = 'row-del'; btn.textContent = '×';
-        btn.title = '删除这笔流水';
-        btn.addEventListener('click', () => deleteFlowTx(t.id));
-        noteTd.appendChild(btn);
+      // 空行本来就带一个隐藏的删除按钮 + 占位勾选框（见 makeFlowRow）。
+      // 转正时把那个按钮显示出来并绑上事件；以前这里又往「备注」格塞了一个，
+      // 于是新记的一行会在备注单元格里面多出一个 ×，和上面的行对不齐。
+      const delBtn = tr.querySelector('td.col-del .row-del');
+      if (delBtn) {
+        delBtn.style.removeProperty('visibility');
+        delBtn.tabIndex = 0;
+        delBtn.onclick = () => deleteFlowTx(t.id);
       }
+      const ph = tr.querySelector('td.col-del input.fixed-chk');
+      if (ph) ph.remove();          // 占位勾选框换成 attachFixedCheckbox 建的真勾选框
+      attachFixedCheckbox(tr);
       // 这一行转正成记录后，末尾补一行空行，保持「记录 + 100 行空行」
       tbody.appendChild(makeFlowRow(blankFlowRow(), 0, true));
       renumberFlowRows(tbody);
@@ -7489,7 +7524,7 @@ function renderSummary(main, footer) {
       <th class="col-cat">类型</th>
       <th class="col-sub">分类</th>
       <th class="col-code">简码</th>
-      <th class="col-name">账户名称</th>
+      <th class="col-name"><button type="button" class="sum-fold-toggle" aria-label="展开或收起类型 / 分类 / 简码"></button>账户名称</th>
       <th class="col-bal">当前结余</th>
       <th class="col-out">转出</th>
       <th class="col-in">转入</th>
@@ -7582,6 +7617,16 @@ function renderSummary(main, footer) {
   });
 
   initColResize(table, 'summary');
+  // 账户名称列标题左边的小三角：点一下展开/收起类型、分类、简码三列
+  const foldBtn = table.querySelector('.sum-fold-toggle');
+  if (foldBtn) {
+    foldBtn.onclick = ev => {
+      ev.preventDefault(); ev.stopPropagation();
+      setSummaryFold(!summaryFold);
+      // 收起/展开会改表格总宽，工具栏右端对齐要跟着走
+      try { syncGridRight(); } catch (e) {}
+    };
+  }
   // 汇总页的可编辑单元格（类型/分类/简码/名称/期初/账单日/还款日）全靠这个绑定，
   // 之前漏了调用 → 手打的内容不进 state、切页就回滚、页脚永远空。
   bindSummaryEvents(tbody);
@@ -7591,9 +7636,9 @@ function renderSummary(main, footer) {
 }
 
 /* ---------- 账户汇总：类型 / 分类 / 简码 默认收起 ----------
-   打开汇总页时左侧只留「序号 + 账户名称」；把账户名称列右缘的手柄向右拖，
-   三列会按顺序一列一列挤出来；拖「当前结余」及之后的列不受影响。
-   双击账户名称列手柄可在一键收起/展开之间切换。收起状态会记住。 */
+   打开汇总页时左侧只留「序号 + 账户名称」；点账户名称列标题左边那个小三角形
+   按钮展开/收起（收起时尖朝右、展开时尖朝左）。收起状态会记住。
+   账户名称列右缘的拖拽手柄只负责调列宽，不再兼做展开。 */
 const SUMMARY_FOLD_KEY = 'flow_summary_fold_v1';
 const SUMMARY_FOLDW_KEY = 'flow_summary_foldw_v1';
 let summaryFold = (() => {
@@ -7628,6 +7673,9 @@ function applySummaryFold() {
   // applyWidths 会把 0 写进 colWidths；这里恢复目标宽度，0 只存在于当前渲染里
   colWidths.summary = keep;
   table.classList.toggle('sum-cols-folded', summaryFold);
+  // 三角形按钮的方向由 .sum-cols-folded 控制，这里只同步提示文字
+  const btn = table.querySelector('.sum-fold-toggle');
+  if (btn) btn.title = summaryFold ? '展开类型 / 分类 / 简码' : '收起类型 / 分类 / 简码';
   applySummarySticky();
 }
 
@@ -10180,33 +10228,11 @@ function initColResize(table, key) {
       // 流水/汇总：只动被拖的那一列，表格总宽跟着变（可与窗口宽度不一致）。
       const partner = idx < n - 1 ? idx + 1 : idx - 1;
       const pairSum = base[idx] + base[partner];
-      // 汇总页收起状态下，名称列的手柄先用来「挤出」类型/分类/简码三列
-      const foldGrip = key === 'summary' && th.classList.contains('col-name') && summaryFold;
       let moved = false;
       grip.classList.add('dragging');
       try { grip.setPointerCapture(e.pointerId); } catch (err) {}
 
       const onMove = me => {
-        if (foldGrip) {
-          // 向右拖的位移按顺序分给三列：先类型、再分类、最后简码。
-          // 拖「当前结余」及之后列的手柄走不到这里，所以不会被误触发展开。
-          let rest = Math.max(0, me.clientX - startX);
-          const next = base.slice();
-          for (let i = 0; i < 3; i++) {
-            const take = Math.min(summaryFoldW[i], rest);
-            next[SUMMARY_FOLD_COLS[i]] = Math.round(take);
-            rest -= take;
-          }
-          moved = true;
-          _pendingWidths = next;
-          if (!_widthRaf) {
-            _widthRaf = requestAnimationFrame(() => {
-              _widthRaf = 0;
-              if (_pendingWidths) { paintWidths(key, _pendingWidths); _pendingWidths = null; }
-            });
-          }
-          return;
-        }
         const delta = me.clientX - startX;
         const next = base.slice();
         if (isQuery) {
@@ -10246,17 +10272,15 @@ function initColResize(table, key) {
         grip.removeEventListener('pointercancel', onUp);
         grip.classList.remove('dragging');
         if (moved) {
-          if (foldGrip) {
-            // 三列没全拉出来就回弹收起，避免停在半截宽度上
-            const cur = widthsOf(table);
-            const full = SUMMARY_FOLD_COLS.every((ci, i) => cur[ci] >= summaryFoldW[i] - 2);
-            setSummaryFold(!full);
-            saveColWidths();
-            try { applySummarySticky(); } catch (e) {}
-          } else {
-            saveColWidths(); syncFlowTitleWidth(); syncGridRight();
-            try { applySummarySticky(); } catch (e) {}
+          // 收起状态下拖任何一列，前三列的 0 宽都会被 paintWidths 写进 colWidths；
+          // 保存前换回真实宽度，别把 0 存进 localStorage（展开时要用它还原）
+          if (key === 'summary' && summaryFold) {
+            const arr = (colWidths.summary || []).slice();
+            SUMMARY_FOLD_COLS.forEach((ci, i) => { arr[ci] = summaryFoldW[i]; });
+            colWidths.summary = arr;
           }
+          saveColWidths(); syncFlowTitleWidth(); syncGridRight();
+          try { applySummarySticky(); } catch (e) {}
         }
       };
       grip.addEventListener('pointermove', onMove);
@@ -10267,11 +10291,6 @@ function initColResize(table, key) {
     grip.addEventListener('dblclick', e => {
       e.preventDefault();
       e.stopPropagation();
-      // 汇总页名称列手柄：双击 = 收起 / 展开三列（比拖回去省事）
-      if (key === 'summary' && th.classList.contains('col-name')) {
-        setSummaryFold(!summaryFold);
-        return;
-      }
       const base = widthsOf(table);
       const n = base.length;
       const next = base.slice();
