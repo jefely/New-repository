@@ -4434,7 +4434,7 @@ async function encryptWithSession(text) {
 // 网站二维码（内嵌 base64，离线可显示），扫码打开 https://jefely.github.io/New-repository/
 const QR_DATA_URL = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAUoAAAFKCAIAAAD0S4FSAAAFCUlEQVR42u3dS3IUMRBF0VcE+9+y2QETIfKjc+YGd7VvqAYZqe/n5yfARr88ApA3IG9A3oC8AXkD8gZ5A/IG5A3IG5A3IG+QNyBvQN6AvAF5A/KGl/0++eHv+5Y9jr9vnjv5vD3/5Xub9nr+v/v+Jp3e4OUckDcgb0DegLwBeQPyBnkDeWpqLdembe7pOdV071nt+xZOPtFrf5NOb/ByDsgbkDcgb0DegLxB3oC8gTw1tZaiSZ2Jk0n3NrFVPcmTn636vPv+Jp3e4OUckDcgb0DegLwBeYO8AXkDMbUW94du2eI2cQ7P6Q3IG5A3IG9A3oC8Qd6AvAF5AzG1Nsi9Oa2qGzPNpTm9AXkD8gbkDcgbkDfIG5A3IG8gj0yt9bzHs+eutZP/t+qWz33fr9MbkDcgb0DegLxB3oC8AXkD8gbSfGpt37ate7vH/Gz+yxzeaxvgnN4gb0DegLwBeQPyBuQN8gbkDTT07dsvNXGmrWrWque3f+9JOr0BeQPyBuQNyBuQN8gbkDcgbyCjd63ZiZUGe+nu3Vta9S303MTW835Ypzd4OQfkDcgbkDcgb0DegLxB3kCemlq7N8djB9j0ezxTNNM2cRry3l+O0xu8nAPyBuQNyBuQNyBvkDcgbyDLbgidOAM0cU6ranbwtcnCqp91egPyBuQN8gbkDcgbkDcgb0DeELvWsne2rOd+uJ4zTz3vh616GhM/r9MbvJwD8gbkDcgbkDcgb5A3IG8gT02tnUzb3JtMujfTNnHyrGqLW9Wz2vcdOb3Byzkgb0DegLwBeQPyBuQN8gZiai29p4smburqOePVczNZ1ed1egPyBuQNyBvkDcgbkDcgb0DeQEZPraXlBNi+XVwZeIvra1OJTm9A3iBvQN6AvAF5A/IG5A3yBmJqLb3nw3rOD1VNU937vFUzbVX70ibOLDq9wcs5IG9A3oC8AXkD8gZ5A/IGGvp6zuJMvKux52ayqttFe86W7XuSTm/wcg7IG5A3IG9A3oC8AXmDvIE8NbVWtU/r3oRQ1bTcaxvReu482/f37PQGL+eAvAF5A/IG5A3IG+QNyBvIshtCM3BfWtUEWNZNcU18VlUzbVX/stMbvJwD8gbkDcgbkDcgb5A3IG8gT02t5bHpohTNllU9jbScw6uahzt5znatAfIG5A3yBuQNyBuQNyBvQN4QN4SWTwhNvNfy3u/sW9jN1Bogb0DeIG9A3oC8AXkD8gbkDTG1xpo7QHvuh/NbOb0BeQPyBnkD8gbkDcgbkDcgb4gbQjNniisDt16d7B6ruuVz4u2iE39npzcgb0DeIG9A3oC8AXkD8gbkDTG1lt4TYDFp136LW9W3XzV32HPSzukNXs4BeQPyBuQNyBuQN8gbkDeQp6bWUjQ99toOsJMnee9OzHvfb9Xc4ck3WDXh5/QGL+eAvAF5A/IG5A3IG+QNyBuIqbW8ures6g7Qe7NlPSfees4sVs20Ob3Byzkgb0DegLwBeQPyBnkD8gZiai2v3qe577eq2g+Xoj1tVbvlnN6AvEHegLwBeQPyBuQNyBvkDcTUWvZOgGXgRNTEaap7E289b2Kt+o6c3uDlHJA3IG9A3oC8AXmDvAF5Aw19EzdmpeVNjml5R2TVJFbcLur0BuQNyBuQN8gbkDcgb0DegLyB/OupNcDpDcgbkDcgb5A3IG9A3oC8AXkD8gbkDfIG5A3IG5A3IG9A3iBvQN5AU38AW3Unpg+CBHwAAAAASUVORK5CYII=';
 
-const APP_VER = 'v9.77';
+const APP_VER = 'v9.78';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -5978,6 +5978,7 @@ const BILL_PRESETS = [
   {
     id: 'alipay', name: '支付宝',
     cols: {
+      category: ['交易分类'],
       date: ['交易时间', '交易创建时间', '付款时间'],
       dir: ['收/支', '收支'],
       amount: ['金额'],
@@ -5991,6 +5992,7 @@ const BILL_PRESETS = [
   {
     id: 'wechat', name: '微信支付',
     cols: {
+      category: ['交易类型'],
       date: ['交易时间', '时间'],
       dir: ['收/支', '收支'],
       amount: ['金额(元)', '金额（元）', '金额'],
@@ -6005,6 +6007,7 @@ const BILL_PRESETS = [
     id: 'cmb', name: '招商银行',
     cols: {
       date: ['交易日期', '记账日期', '日期'],
+      time: ['交易时间'],
       dir: ['借贷标志', '收支', '交易方向'],
       amount: ['交易金额', '发生额', '金额'],
       party: ['交易摘要', '摘要', '对方户名', '对手信息'],
@@ -6043,7 +6046,7 @@ function findBillHeader(lines, preset) {
     if (cells.length < 3) continue;
     const map = {};
     let score = 0;
-    for (const key of ['date', 'dir', 'amount', 'party', 'item', 'method', 'tradeNo', 'note']) {
+    for (const key of ['category', 'date', 'dir', 'amount', 'party', 'item', 'method', 'tradeNo', 'note']) {
       const kws = (preset.cols[key] || []);
       for (let ci = 0; ci < cells.length; ci++) {
         if (map[key] != null) break;
@@ -6097,16 +6100,23 @@ function parseBillText(text, preset) {
     let amt = parseBillAmount(c[m.amount]);
     if (amt == null || amt === 0) continue;
     const dirRaw = m.dir != null ? String(c[m.dir] || '') : '';
+    // 先排除「不计收支」：它含有「支」字，如果先判支/收会被当成支出（支付宝退款、还款都在这类）
+    if (/不计|其他|其它/.test(dirRaw)) continue;
     let dir = '';
     if (/支/.test(dirRaw)) dir = 'out';
     else if (/收/.test(dirRaw)) dir = 'in';
     else if (/借/.test(dirRaw)) dir = 'out';
     else if (/贷/.test(dirRaw)) dir = 'in';
-    else if (/不计|其他|其它/.test(dirRaw)) continue;
     if (!dir) dir = amt < 0 ? 'out' : 'in';     // 没有收/支列时看符号
     amt = Math.abs(amt);
+    // 同一天里要按发生时间排（账单本身是最新在前，直接导入会把当天顺序弄反）。
+    // 有的银行把时间单独一列（招行），有的塞在交易时间字段里（支付宝/微信）
+    const timeSrc = m.time != null ? String(c[m.time] || '') : String(c[m.date] || '');
+    const tm = timeSrc.match(/(\d{1,2}):(\d{2})/);
+    const time = tm ? String(tm[1]).padStart(2, '0') + ':' + tm[2] : '';
     rows.push({
-      date, amount: String(amt), dir,
+      date, time, amount: String(amt), dir,
+      cat: m.category != null ? String(c[m.category] || '').trim() : '',
       party: m.party != null ? String(c[m.party] || '').trim() : '',
       item: m.item != null ? String(c[m.item] || '').trim() : '',
       method: m.method != null ? String(c[m.method] || '').trim() : '',
@@ -6179,6 +6189,79 @@ function matchPayAccount(text) {
     }
   }
   return null;
+}
+
+// 商户名 → 常见支出账户的行业词表。
+// 顺序即优先级：越具体的放上面（地铁 vs 交通、馒头 vs 餐饮）。
+const MERCHANT_HINTS = [
+  [/地铁|轻轨|轨道交通/, ['地铁', '交通', '公交']],
+  [/铁路|12306|高铁|火车票/, ['火车', '铁路', '交通']],
+  [/公交|巴士/, ['公交', '交通']],
+  [/打车|滴滴|出租|哈啰|单车|骑行/, ['打车', '交通', '单车']],
+  [/加油|停车|高速|油费/, ['加油', '停车', '交通']],
+  [/馒头|包子|早点|早餐|豆浆|油条|稀饭/, ['早点', '早餐', '餐饮']],
+  [/面馆|面店|面条|拉面|粉店|米粉/, ['面', '餐饮', '早点']],
+  [/糕点|面包|蛋糕|烘焙|西点|嘉华/, ['糕点', '面包', '餐饮']],
+  [/餐饮|小吃|饭店|餐厅|火锅|烧烤|快餐|外卖|食堂/, ['餐饮', '快餐']],
+  [/超市|便利店|百货|生鲜|菜市场|农贸/, ['超市', '日用', '购物']],
+  [/零食|水果|奶茶|咖啡|饮品/, ['零食', '水果', '奶茶', '日用']],
+  [/药|医院|诊所|体检|口腔/, ['医疗', '药']],
+  [/话费|流量|电信|移动|联通|宽带/, ['话费', '通讯']],
+  [/保险/, ['保险']],
+  [/网盘|会员|软件|订阅|深度求索|AI/, ['会员', '软件', '订阅']],
+  [/电费|水费|燃气|物业|取暖/, ['水电', '物业', '生活']],
+  [/电影|影院|娱乐|旅游|酒店|景区/, ['娱乐', '旅游']],
+  [/快递|邮费|物流/, ['快递', '物流']],
+  [/还款|分期|信用卡|花呗|借呗/, ['还款', '信用卡']]
+];
+
+// 账单自带的「交易分类」→ 账户名关键词（支付宝/微信都给这一列，命中率比商户名高）
+const CATEGORY_HINTS = [
+  [/交通/, ['地铁', '交通', '公交', '打车']],
+  [/餐饮|美食/, ['早点', '餐饮', '快餐']],
+  [/日用|百货/, ['超市', '日用', '购物']],
+  [/保险/, ['保险']],
+  [/文化|休闲|娱乐/, ['娱乐', '电影']],
+  [/信用|借还|还款/, ['还款', '信用卡']],
+  [/充值|缴费/, ['话费', '水电', '缴费']],
+  [/投资|理财/, ['理财', '投资']],
+  [/医疗|健康/, ['医疗', '药']],
+  [/美容|美发/, ['美发', '理发']],
+  [/酒店|旅游/, ['旅游', '酒店']],
+  [/转账|红包/, ['转账', '红包']],
+  [/商户消费/, ['餐饮', '日用']]
+];
+
+// 商户 / 商品说明 / 交易分类 → 账户：
+// 先看记住的规则 → 商户行业词表 → 最后才用账单分类（分类太粗，
+// 而且「张三 + 分类=交通」这种会把个人转账误配到「地铁」，所以商户名很短时不用分类）
+function matchMerchantAccount(text, extra, catText) {
+  const t = String(text || '') + ' ' + String(extra || '');
+  const cat = String(catText || '');
+  if (!t.trim() && !cat.trim()) return null;
+  const byRule = applyBillRules(t);
+  if (byRule) return byRule;
+  for (const [re, names] of MERCHANT_HINTS) {
+    if (!re.test(t)) continue;
+    for (const nm of names) {
+      const acc = state.accounts.find(a => String(a.name || '').includes(nm));
+      if (acc) return acc;
+    }
+  }
+  if (String(text || '').trim().length > 3) {
+    for (const [re, names] of CATEGORY_HINTS) {
+      if (!re.test(cat)) continue;
+      for (const nm of names) {
+        const acc = state.accounts.find(a => String(a.name || '').includes(nm));
+        if (acc) return acc;
+      }
+    }
+  }
+  const hit = state.accounts.find(a => {
+    const nm = String(a.name || '').trim();
+    return nm.length >= 2 && t.includes(nm);
+  });
+  return hit || null;
 }
 
 // 商户 → 账户的规则表（记住一次，下次自动）
@@ -6290,22 +6373,27 @@ function openBillImportDialog() {
   const renderPreview = () => {
     const okCount = rows.filter(r => r.checked).length;
     const unmatched = rows.filter(r => !r.otherId || !r.myId).length;
+    const suspect = rows.filter(r => r.suspect && r.checked).length;
+    const merged = rows.filter(r => r.mergeId && r.checked).length;
     statsEl.textContent = `共 ${rows.length} 笔 · 将导入 ${okCount} 笔`
-      + (unmatched ? ` · 其中 ${unmatched} 笔有一侧认不出，会留空` : '')
+      + (merged ? ` · 其中 ${merged} 笔会合并到已有的半截记录（转账的另一半）` : '')
+      + (unmatched ? ` · ${unmatched} 笔有一侧认不出，会留空` : '')
+      + (suspect ? ` · ${suspect} 笔疑似已有（默认没勾，确认要重复记就手动勾上）` : '')
       + (presetId === 'cmb' ? ' · 招行账单请在上面选对卡' : '');
     listEl.innerHTML = `<table class="grid" style="font-size:11px;width:100%">
-      <thead><tr><th style="width:26px"></th><th>日期</th><th>我的账户</th><th>对方账户</th><th>金额</th><th>线索（会写进备注）</th></tr></thead>
+      <thead><tr><th style="width:26px"></th><th>日期</th><th>时间</th><th>我的账户</th><th>对方账户</th><th>金额</th><th>线索（会写进备注）</th></tr></thead>
       <tbody>${rows.map((r, i) => `
-        <tr data-row="${i}" style="${r.otherId && r.myId ? '' : 'background:#fff7ed'}">
+        <tr data-row="${i}" style="${r.mergeId ? 'background:#ecfdf5' : (r.suspect ? 'background:#fef3c7' : (r.otherId && r.myId ? '' : 'background:#fff7ed'))}">
           <td style="text-align:center"><input type="checkbox" data-chk="${i}"${r.checked ? ' checked' : ''}></td>
           <td style="white-space:nowrap">${esc(r.date)}</td>
+          <td style="white-space:nowrap;color:var(--text-muted)">${esc(r.time || '')}</td>
           <td>${esc(r.myName || '留空')}</td>
           <td><select data-other="${i}" style="max-width:130px">
             <option value="">(待分类)</option>
             ${accOption(r.otherId)}
           </select></td>
           <td style="text-align:right;white-space:nowrap">${r.dir === 'out' ? '-' : '+'}${fmtMoney(r.amount)}</td>
-          <td style="max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(r.clue || '')}">${esc(r.clue || '')}</td>
+          <td style="max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(r.clue || '')}">${r.suspect ? '⚠ ' : ''}${esc(r.clue || '')}</td>
         </tr>`).join('')}</tbody></table>`;
   };
 
@@ -6319,6 +6407,16 @@ function openBillImportDialog() {
       rows[i].otherId = acc ? acc.id : '';
       rows[i].otherName = acc ? acc.name : '';
       rows[i].checked = !!acc;
+      // 同一个商户的其它行一起设上（「昆明地铁」选一次，「昆明地铁」全归位）
+      let same = 0;
+      if (acc && rows[i].party) {
+        rows.forEach((r2, j) => {
+          if (j === i || !r2.party || r2.party !== rows[i].party) return;
+          if (r2.otherId === acc.id) return;
+          r2.otherId = acc.id; r2.otherName = acc.name; r2.checked = true; same++;
+        });
+      }
+      if (same) toast('同一个商户的另外 ' + same + ' 笔也设成了「' + acc.name + '」', { duration: 4000 });
       renderPreview();
     }
   });
@@ -6332,7 +6430,37 @@ function openBillImportDialog() {
       if (/\.xlsx$/i.test(f.name)) {
         const { sheets } = await readXlsx(await f.arrayBuffer());
         if (!sheets.length) throw new Error('这个 xlsx 里没有可读的工作表');
-        text = sheets[0].rows.map(r => r.map(c => (c == null ? '' : String(c))).join(',')).join('\n');
+        // 单元格内容可能含逗号/换行，转成 CSV 文本前按 CSV 规则加引号，否则列会串位
+        const qCell = c => {
+          const s = c == null ? '' : String(c);
+          return /[",\r\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+        };
+        const grid = sheets[0].rows;
+        // 微信导出的「交易时间」是 Excel 日期序列号（46290.44…），直接转字符串会变成 4629-07-29。
+        // 先用文本化的行找出表头、定位日期列，再把那一列的序列号还原成日期。
+        const asLines = () => grid.map(r => r.map(qCell).join(','));
+        let dateCol = -1, headRow = -1;
+        for (const p of BILL_PRESETS) {
+          const h = findBillHeader(asLines(), p);
+          if (h.idx >= 0 && h.map && h.map.date != null) { dateCol = h.map.date; headRow = h.idx; break; }
+        }
+        const serialToDate = v => {
+          const ms = Math.round((v - 25569) * 86400000);       // 25569 = 1970-01-01 的 Excel 序列号
+          const d = new Date(ms);
+          if (isNaN(d.getTime())) return '';
+          const p2 = n => String(n).padStart(2, '0');
+          return d.getUTCFullYear() + '-' + p2(d.getUTCMonth() + 1) + '-' + p2(d.getUTCDate())
+            + ' ' + p2(d.getUTCHours()) + ':' + p2(d.getUTCMinutes()) + ':' + p2(d.getUTCSeconds());
+        };
+        if (dateCol >= 0) {
+          for (let i = headRow + 1; i < grid.length; i++) {
+            const v = grid[i] && grid[i][dateCol];
+            const num = typeof v === 'number' ? v
+              : (/^\d{5}(\.\d+)?$/.test(String(v == null ? '' : v)) ? Number(v) : NaN);
+            if (Number.isFinite(num) && num > 20000 && num < 80000) grid[i][dateCol] = serialToDate(num);
+          }
+        }
+        text = asLines().join('\n');
       } else {
         const buf = await f.arrayBuffer();
         // 支付宝/招行可能是 GBK：先按 UTF-8 解，出现替换字符再换 GBK
@@ -6349,27 +6477,76 @@ function openBillImportDialog() {
         } catch (e) {}
       }
       if (!best) throw new Error('认不出这张账单的格式（表头里找不到「交易时间 / 金额 / 交易对方」这类列）');
-      // 我的账户按支付方式匹配；对方账户只认「规则表 / 完全同名」，
-      // 认不出来就留空 —— 导入后用「待分类」占位，再在流水表里改，
-      // 所以每笔都要把线索（对方/商品/支付方式）写进备注。
+      // 我的账户按支付方式匹配；对方账户走「记住的规则 → 账单分类 → 行业词表 → 账户名包含」，
+      // 都认不出就留空，导入后在流水表里点一下补上（备注里有线索）。
+      // 两种与已有数据的关系要分开处理：
+      //   ① 疑似同一笔（同日期 + 同金额 + 同转出）→ 标黄、默认不勾
+      //   ② 已有半截记录的「另一半」（例：先导支付宝看到「支付宝 → 空」，再导微信看到
+      //      「空 → 微信」，合起来才是完整一笔）→ 合并到那一条，不再新增
+      const existing = state.transactions.map(t => ({
+        id: t.id, date: String(t.date || ''), amount: Number(t.amount) || 0,
+        from: String(t.from || ''), to: String(t.to || '')
+      }));
       rows = best.rows.map(r => {
-        const my = matchPayAccount(r.method) || (presetId === 'cmb' ? state.accounts.find(a => a.id === myAccSel.value) : null);
-        const other = applyBillRules(r.party) || applyBillRules(r.item)
-          || state.accounts.find(a => String(a.name || '').trim() === r.party)
-          || state.accounts.find(a => String(a.name || '').trim() === r.item)
-          || null;
+        let my = matchPayAccount(r.method) || (presetId === 'cmb' ? state.accounts.find(a => a.id === myAccSel.value) : null);
+        let other = matchMerchantAccount(r.party, r.item, r.cat);
+        let dirNow = r.dir;
+        // 微信「零钱提现」：钱从零钱到银行卡，账单里的支付方式填的是到账那张卡
+        if (/提现/.test(r.cat || '')) {
+          const wallet = state.accounts.find(a => /微信|零钱/.test(a.name)) || my;
+          const bank = matchPayAccount(r.method) || matchMerchantAccount(r.party, r.item, '');
+          if (wallet && bank && wallet.id !== bank.id) { my = wallet; other = bank; dirNow = 'out'; }
+        }
         const bits = [r.party, r.item, r.method].map(x => String(x || '').trim()).filter(Boolean);
-        let clue = bits.join('｜').slice(0, 80);
+        let clue = bits.join('｜');
         if (r.note) clue += (clue ? '（' + r.note + '）' : r.note);
+        if (r.time) clue = r.time + ' ' + clue;          // 时间放最前：同一天排序、事后辨认都靠它
+        clue = clue.slice(0, 120);
+        const myNameNow = my ? my.name : '';
+        const otherNameNow = other ? other.name : '';
+        const fromName = dirNow === 'out' ? myNameNow : otherNameNow;
+        const toName = dirNow === 'out' ? otherNameNow : myNameNow;
+        // ② 找已有的「半截记录」：同日期同金额，缺的那一边正好是本条有值的那一边
+        const mins = t => {
+          const m = String(t || '').match(/^(\d{1,2}):(\d{2})/);
+          return m ? (+m[1]) * 60 + (+m[2]) : null;
+        };
+        const rMin = mins(r.time);
+        let mergeId = '';
+        if (fromName && toName && fromName !== toName) {
+          const half = existing.find(x => {
+            if (x.date !== r.date) return false;
+            if (Math.abs(x.amount - Number(r.amount)) >= 0.005) return false;
+            const blankFrom = !x.from, blankTo = !x.to;
+            if (!blankFrom && !blankTo) return false;
+            if (!blankFrom && x.from !== fromName) return false;
+            if (!blankTo && x.to !== toName) return false;
+            const xMin = mins(x.note);
+            if (rMin != null && xMin != null && Math.abs(rMin - xMin) > 30) return false;
+            return true;
+          });
+          if (half) mergeId = half.id;
+        }
+        // ① 疑似已有：同一笔消费可能同时出现在「支付宝账单」和「银行卡流水」里
+        //    （支付宝自己也在提示里写了：快捷支付会同时产生银行交易，别重复记账）。
+        //    有时间就要求 15 分钟内，没有时间才按「同日 + 同额 + 同转出」提示。
+        const suspect = !mergeId && existing.some(x => {
+          if (x.date !== r.date) return false;
+          if (Math.abs(x.amount - Number(r.amount)) >= 0.005) return false;
+          if (fromName && x.from && x.from !== fromName) return false;
+          const xMin = mins(x.note);
+          if (rMin != null && xMin != null) return Math.abs(rMin - xMin) <= 15;
+          return true;
+        });
         return {
-          ...r, clue,
-          myId: my ? my.id : '', myName: my ? my.name : '',
-          otherId: other ? other.id : '', otherName: other ? other.name : '',
-          checked: true
+          ...r, clue, suspect, mergeId, dir: dirNow,
+          myId: my ? my.id : '', myName: myNameNow,
+          otherId: other ? other.id : '', otherName: otherNameNow,
+          checked: !suspect
         };
       });
       srcEl.textContent = `已识别：${best.preset} 格式 · 表头在第 ${best.headerAt + 1} 行 · ${rows.length} 笔`
-        + '（认不出的那一侧会留空，导入后在流水表里点一下补上，备注里有线索）';
+        + '（认不出的那一侧会留空；疑似已有的已标黄且默认不勾）';
       prev.style.display = 'block';
       mask.querySelector('#bi-actions-only').style.display = 'none';
       renderPreview();
@@ -6384,7 +6561,9 @@ function openBillImportDialog() {
   };
 
   mask.querySelector('#bi-go').onclick = () => {
-    const picked = rows.filter(r => r.checked);
+    // 按「日期 + 发生时间」升序导入：账单本身是最新在前，直接灌进去会把当天顺序弄反
+    const picked = rows.filter(r => r.checked)
+      .sort((a, b) => String(a.date + ' ' + (a.time || '')).localeCompare(String(b.date + ' ' + (b.time || ''))));
     if (!picked.length) { toast('没有勾选任何行', { type: 'error' }); return; }
     const seenBill = new Set(state.transactions.map(t => t.billId).filter(Boolean));
     const sigs = new Set(state.transactions.map(txFingerprint));
