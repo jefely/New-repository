@@ -4224,7 +4224,7 @@ async function encryptWithSession(text) {
 // 网站二维码（内嵌 base64，离线可显示），扫码打开 https://jefely.github.io/New-repository/
 const QR_DATA_URL = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAUoAAAFKCAIAAAD0S4FSAAAFCUlEQVR42u3dS3IUMRBF0VcE+9+y2QETIfKjc+YGd7VvqAYZqe/n5yfARr88ApA3IG9A3oC8AXkD8gZ5A/IG5A3IG5A3IG+QNyBvQN6AvAF5A/KGl/0++eHv+5Y9jr9vnjv5vD3/5Xub9nr+v/v+Jp3e4OUckDcgb0DegLwBeQPyBnkDeWpqLdembe7pOdV071nt+xZOPtFrf5NOb/ByDsgbkDcgb0DegLxB3oC8gTw1tZaiSZ2Jk0n3NrFVPcmTn636vPv+Jp3e4OUckDcgb0DegLwBeYO8AXkDMbUW94du2eI2cQ7P6Q3IG5A3IG9A3oC8Qd6AvAF5AzG1Nsi9Oa2qGzPNpTm9AXkD8gbkDcgbkDfIG5A3IG8gj0yt9bzHs+eutZP/t+qWz33fr9MbkDcgb0DegLxB3oC8AXkD8gbSfGpt37ate7vH/Gz+yxzeaxvgnN4gb0DegLwBeQPyBuQN8gbkDTT07dsvNXGmrWrWque3f+9JOr0BeQPyBuQNyBuQN8gbkDcgbyCjd63ZiZUGe+nu3Vta9S303MTW835Ypzd4OQfkDcgbkDcgb0DegLxB3kCemlq7N8djB9j0ezxTNNM2cRry3l+O0xu8nAPyBuQNyBuQNyBvkDcgbyDLbgidOAM0cU6ranbwtcnCqp91egPyBuQN8gbkDcgbkDcgb0DeELvWsne2rOd+uJ4zTz3vh616GhM/r9MbvJwD8gbkDcgbkDcgb5A3IG8gT02tnUzb3JtMujfTNnHyrGqLW9Wz2vcdOb3Byzkgb0DegLwBeQPyBuQN8gZiai29p4smburqOePVczNZ1ed1egPyBuQNyBvkDcgbkDcgb0DeQEZPraXlBNi+XVwZeIvra1OJTm9A3iBvQN6AvAF5A/IG5A3yBmJqLb3nw3rOD1VNU937vFUzbVX70ibOLDq9wcs5IG9A3oC8AXkD8gZ5A/IGGvp6zuJMvKux52ayqttFe86W7XuSTm/wcg7IG5A3IG9A3oC8AXmDvIE8NbVWtU/r3oRQ1bTcaxvReu482/f37PQGL+eAvAF5A/IG5A3IG+QNyBvIshtCM3BfWtUEWNZNcU18VlUzbVX/stMbvJwD8gbkDcgbkDcgb5A3IG8gT02t5bHpohTNllU9jbScw6uahzt5znatAfIG5A3yBuQNyBuQNyBvQN4QN4SWTwhNvNfy3u/sW9jN1Bogb0DeIG9A3oC8AXkD8gbkDTG1xpo7QHvuh/NbOb0BeQPyBnkD8gbkDcgbkDcgb4gbQjNniisDt16d7B6ruuVz4u2iE39npzcgb0DeIG9A3oC8AXkD8gbkDTG1lt4TYDFp136LW9W3XzV32HPSzukNXs4BeQPyBuQNyBuQN8gbkDeQp6bWUjQ99toOsJMnee9OzHvfb9Xc4ck3WDXh5/QGL+eAvAF5A/IG5A3IG+QNyBuIqbW8ures6g7Qe7NlPSfees4sVs20Ob3Byzkgb0DegLwBeQPyBnkD8gZiai2v3qe577eq2g+Xoj1tVbvlnN6AvEHegLwBeQPyBuQNyBvkDcTUWvZOgGXgRNTEaap7E289b2Kt+o6c3uDlHJA3IG9A3oC8AXmDvAF5Aw19EzdmpeVNjml5R2TVJFbcLur0BuQNyBuQN8gbkDcgb0DegLyB/OupNcDpDcgbkDcgb5A3IG9A3oC8AXkD8gbkDfIG5A3IG5A3IG9A3iBvQN5AU38AW3Unpg+CBHwAAAAASUVORK5CYII=';
 
-const APP_VER = 'v9.52';
+const APP_VER = 'v9.53';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -5593,6 +5593,136 @@ function accountsFromSheet(rows) {
   return out;
 }
 
+// 月份表头单元格 → YYMM（6 位）。导出写的是 2026-10；
+// 也兼容 26年10月、2610、Excel 日期序列号（46296）。
+function ymFromCell(raw) {
+  const s = String(raw == null ? '' : raw).trim();
+  if (!s) return null;
+  let m = s.match(/^(\d{4})[-/年.](\d{1,2})/);
+  if (m) {
+    const y = Number(m[1]), mo = Number(m[2]);
+    return (mo >= 1 && mo <= 12) ? y * 100 + mo : null;
+  }
+  m = s.match(/^(\d{2})年(\d{1,2})月?$/);
+  if (m) {
+    const y = 2000 + Number(m[1]), mo = Number(m[2]);
+    return (mo >= 1 && mo <= 12) ? y * 100 + mo : null;
+  }
+  // Excel 日期序列号（5 位，2050 年以前）
+  if (/^\d{5}(\.\d+)?$/.test(s)) {
+    const iso = excelSerialToISO(s);
+    if (iso) { const p = iso.split('-'); return Number(p[0]) * 100 + Number(p[1]); }
+  }
+  return ymParse(s) || null;
+}
+
+// 从「分期」sheet 读回分期。
+// 表结构（本程序导出的）：标题 / 说明 / 表头 / 每个账户两行（上本金、下利息）。
+// 表头靠文字识别：A 列「账户名称」、B 列「分期金额」、C/D 账单日/还款日，
+// 第 5 列起是月份列（文本 2026-10）。
+function installmentsFromSheet(rows) {
+  const out = [];
+  if (!Array.isArray(rows) || !rows.length) return out;
+
+  let headIdx = -1, col = null;
+  for (let i = 0; i < rows.length; i++) {
+    const r = rows[i] || [];
+    const idx = { months: [] };
+    for (let c = 0; c < r.length; c++) {
+      const t = String(r[c] == null ? '' : r[c]).trim();
+      if (!t) continue;
+      if (t === '账户名称') idx.name = c;
+      else if (t === '分期金额') idx.principal = c;
+      else if (t === '账单日') idx.billDay = c;
+      else if (t === '还款日') idx.repayDay = c;
+      else {
+        const ym = ymFromCell(t);
+        if (ym) idx.months.push({ c, ym });
+      }
+    }
+    if (idx.name != null && idx.months.length) { headIdx = i; col = idx; break; }
+  }
+  if (headIdx < 0) return out;
+
+  const cell = (r, c) => (c == null ? '' : String((r && r[c]) == null ? '' : r[c]).trim());
+  const money = v => {
+    const n = parseFloat(String(v == null ? '' : v).replace(/[¥￥,，\s]/g, ''));
+    return isNaN(n) ? '' : String(n);
+  };
+
+  for (let i = headIdx + 1; i < rows.length; i++) {
+    const r = rows[i] || [];
+    const name = cell(r, col.name);
+    if (!name) continue;                       // 利息行 / 空行 / 说明行
+    const nextRow = rows[i + 1] || [];
+    const cells = {};
+    for (const mc of col.months) {
+      const p = money(r[mc.c]);
+      const ii = money(nextRow[mc.c]);
+      if (p === '' && ii === '') continue;
+      cells[mc.ym] = { p, i: ii };
+    }
+    out.push({
+      id: uid(),
+      name,
+      principal: cell(r, col.principal),
+      billDay: normDay(cell(r, col.billDay)),
+      repayDay: normDay(cell(r, col.repayDay)),
+      cells
+    });
+    // 下一行是利息行（A 列空）就跳过它，避免被当成一个空分期
+    if (!cell(nextRow, col.name)) i++;
+  }
+  return out;
+}
+
+// 从「固定」sheet 读回固定收支。
+// 表头：序 / 频率 / 日期 / 转出账户 / 转入账户 / 金额 / 备注；日期写作「28 号」。
+function fixedFromSheet(rows) {
+  const out = [];
+  if (!Array.isArray(rows) || !rows.length) return out;
+
+  let headIdx = -1, col = null;
+  for (let i = 0; i < rows.length; i++) {
+    const r = rows[i] || [];
+    const idx = {};
+    for (let c = 0; c < r.length; c++) {
+      const t = String(r[c] == null ? '' : r[c]).trim();
+      if (!t) continue;
+      if (t === '频率') idx.freq = c;
+      else if (t === '日期') idx.day = c;
+      else if (t === '转出账户') idx.from = c;
+      else if (t === '转入账户') idx.to = c;
+      else if (t === '金额') idx.amount = c;
+      else if (t === '备注') idx.note = c;
+    }
+    if (idx.freq != null && idx.from != null && idx.to != null) { headIdx = i; col = idx; break; }
+  }
+  if (headIdx < 0) return out;
+
+  const cell = (r, c) => (c == null ? '' : String((r && r[c]) == null ? '' : r[c]).trim());
+  for (let i = headIdx + 1; i < rows.length; i++) {
+    const r = rows[i] || [];
+    const from = cell(r, col.from), to = cell(r, col.to);
+    if (!from && !to) continue;
+    const freq = /每天|每日|day/i.test(cell(r, col.freq)) ? 'day' : 'month';
+    const dayRaw = cell(r, col.day);
+    const day = freq === 'day' ? 1 : (parseInt(dayRaw.replace(/[^\d]/g, ''), 10) || 1);
+    const amt = parseFloat(cell(r, col.amount).replace(/[¥￥,，\s]/g, ''));
+    out.push({
+      id: uid(),
+      freq,
+      day,
+      from, to,
+      amount: isNaN(amt) ? '' : String(amt),
+      note: cell(r, col.note),
+      sourceTxId: '',
+      lastMonth: ''
+    });
+  }
+  return out;
+}
+
 function openImportXlsxDialog() {
   const mask = document.createElement('div');
   mask.className = 'confirm-mask';
@@ -5601,8 +5731,8 @@ function openImportXlsxDialog() {
       <div class="sync-title">导入 Excel</div>
       <div class="sync-hint" style="text-align:left;line-height:1.7">
         选一个本程序「导出」生成的 <b>.xlsx</b>。<br>
-        会读取里面的「流水」工作表（表头行下面开始：序号、日期、转出、转入、金额、备注）。<br>
-        <span style="color:#dc2626;font-weight:700">导入会<b>先清空本账本</b>，再用文件里的内容重建。流水和账户都按文件来，不做任何合并。不可撤销。</span>
+        会读「流水 / 汇总 / 分期 / 固定」四张表：流水和账户整表重建，<b>分期（连每个月的金额格子）</b>和固定收支也一起恢复。<br>
+        <span style="color:#dc2626;font-weight:700">导入会<b>先清空本账本</b>，再用文件里的内容重建，不做任何合并。不可撤销。</span>
       </div>
       <div class="sync-block" style="gap:8px">
         <button type="button" id="xi-pick" style="width:100%">选择 .xlsx 文件</button>
@@ -5624,6 +5754,10 @@ function openImportXlsxDialog() {
   const goBtn = mask.querySelector('#xi-go');
   let pending = [];
   let pendingAccs = [];
+  let pendingInsts = [];
+  let pendingFixed = [];
+  let hasInstSheet = false;
+  let hasFixSheet = false;
 
   mask.querySelector('#xi-pick').onclick = () => fileInp.click();
   fileInp.onchange = async () => {
@@ -5641,11 +5775,21 @@ function openImportXlsxDialog() {
       const flows = flowsFromSheet(flowSheet.rows);
       const sumSheet = sheets.find(s => /汇总/.test(s.name));
       const accs = sumSheet ? accountsFromSheet(sumSheet.rows) : [];
+      // 分期 / 固定：以前完全没读，「导入 Excel」把这两张表整段丢掉，
+      // 导出的分期在导入后消失 —— 现在按表头文字识别后一起恢复。
+      const instSheet = sheets.find(s => /分期/.test(s.name));
+      const insts = instSheet ? installmentsFromSheet(instSheet.rows) : [];
+      const fixSheet = sheets.find(s => /固定/.test(s.name));
+      const fixes = fixSheet ? fixedFromSheet(fixSheet.rows) : [];
       pending = flows;
       pendingAccs = accs;
-      if (!flows.length && !accs.length) {
-        info.innerHTML = '找到工作表：' + esc(names) + '<br>但「流水」和「汇总」都没读到数据。'
-          + '<br>确认表头那一行有「日期 / 转出」「账户名称 / 期初」这些字样。';
+      pendingInsts = insts;
+      pendingFixed = fixes;
+      hasInstSheet = !!instSheet;
+      hasFixSheet = !!fixSheet;
+      if (!flows.length && !accs.length && !insts.length) {
+        info.innerHTML = '找到工作表：' + esc(names) + '<br>但「流水」「汇总」「分期」都没读到数据。'
+          + '<br>确认表头那一行有「日期 / 转出」「账户名称 / 期初」「分期金额」这些字样。';
         return;
       }
       const bad = flows.filter(x => !x.from && !x.to).length;
@@ -5654,8 +5798,15 @@ function openImportXlsxDialog() {
         + (bad ? '（其中 ' + bad + ' 笔两边账户都空）' : '')
         + (flows.length ? '' : '<br><span style="color:#b45309">「流水」表里没有数据行</span>')
         + (accs.length ? '<br>从「汇总」读到 <b>' + accs.length + '</b> 个账户（含期初、账单日、还款日）' : '<br><span style="color:#b45309">这个文件没有「汇总」表，账户表会保持不动</span>')
+        + (instSheet
+            ? (insts.length
+                ? '<br>从「分期」读到 <b>' + insts.length + '</b> 个分期（月份格子会一起恢复）'
+                : '<br><span style="color:#b45309">「分期」表里没有数据行</span>')
+            : '<br><span style="color:#b45309">这个文件没有「分期」表，分期会保持不动</span>')
+        + (fixSheet && fixes.length ? '<br>从「固定」读到 <b>' + fixes.length + '</b> 条固定收支' : '')
         + '<br><span style="color:#dc2626">点下方按钮后：先清空现有的 <b>' + state.transactions.length
         + '</b> 笔流水' + (accs.length ? ' 和 <b>' + state.accounts.length + '</b> 个账户' : '')
+        + (insts.length ? ' 和 <b>' + (state.installments || []).length + '</b> 个分期' : '')
         + '，再导入这份文件。</span>';
       listEl.style.display = 'block';
       listEl.innerHTML = '<table class="audit-table"><tbody>' + flows.slice(0, 12).map(x =>
@@ -5670,15 +5821,18 @@ function openImportXlsxDialog() {
   };
 
   goBtn.onclick = () => {
-    if (!pending.length && !pendingAccs.length) return;
+    if (!pending.length && !pendingAccs.length && !pendingInsts.length) return;
     const beforeTx = state.transactions.length;
     const beforeAcc = state.accounts.length;
+    const beforeInst = (state.installments || []).length;
     // 必须先有汇总表才能重建账户 —— 没有汇总表就只换流水，账户保持原样
     const hasAcc = pendingAccs.length > 0;
-    const msg = hasAcc
+    const msg = (hasAcc
       ? '用文件里的 ' + pending.length + ' 笔流水 + ' + pendingAccs.length + ' 个账户覆盖本账本？\n\n'
         + '现有 ' + beforeTx + ' 笔流水、' + beforeAcc + ' 个账户会被清空并替换。\n这一步不可撤销。'
-      : '文件里没有「汇总」表，只能用 ' + pending.length + ' 笔流水替换现有 ' + beforeTx + ' 笔。\n\n账户表保持不动。这一步不可撤销。';
+      : '文件里没有「汇总」表，只能用 ' + pending.length + ' 笔流水替换现有 ' + beforeTx + ' 笔。\n\n账户表保持不动。这一步不可撤销。')
+      + (hasInstSheet ? '\n\n「分期」表里的 ' + pendingInsts.length + ' 个分期会替换现有的 ' + beforeInst + ' 个。' : '')
+      + (hasFixSheet ? '\n\n「固定」表里的 ' + pendingFixed.length + ' 条会替换现有的 ' + (state.fixed || []).length + ' 条。' : '');
     if (!confirm(msg)) return;
 
     // ① 先清空流水，整表替换
@@ -5704,10 +5858,28 @@ function openImportXlsxDialog() {
       accMsg = ' · 账户 ' + beforeAcc + ' 个 → ' + state.accounts.length + ' 个';
     }
 
-    // ③ 分期 / 固定：只保留仍存在于流水里的关联，其余原样保留
+    // ③ 分期：文件里有「分期」表就整表替换，并把起止月扩到覆盖所有格子
+    //    （以前这里什么都没做，导出的分期导入后整段消失）
+    let instMsg = '';
+    if (hasInstSheet) {
+      state.installments = pendingInsts;
+      const months = [];
+      state.installments.forEach(x => months.push(...Object.keys(x.cells || {})));
+      fitInstallRange(months, installState);
+      instMsg = ' · 分期 ' + beforeInst + ' 个 → ' + state.installments.length + ' 个';
+    }
+
+    // ④ 固定收支：文件里有「固定」表就整表替换
+    let fixMsg = '';
+    if (hasFixSheet) {
+      const beforeFix = (state.fixed || []).length;
+      state.fixed = pendingFixed;
+      fixMsg = ' · 固定 ' + beforeFix + ' 条 → ' + state.fixed.length + ' 条';
+    }
+
     reseq(); save(); close(); render();
-    toast('已清空并导入：流水 ' + state.transactions.length + ' 笔' + accMsg, { duration: 6000 });
-  };;
+    toast('已清空并导入：流水 ' + state.transactions.length + ' 笔' + accMsg + instMsg + fixMsg, { duration: 6000 });
+  };
 }
 
 // 账本管理面板（嵌在「添加」对话框顶部）
