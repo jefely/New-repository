@@ -3988,8 +3988,15 @@ table#summary-table.sum-cols-folded td.col-code {
   width: 18px;
   height: 22px;
   padding: 0;
-  border: none;
-  background: transparent;
+  /* 不要按钮底色、不要边框（深色主题下会被 [data-theme=dark] button 的底色和边框盖出来） */
+  background: transparent !important;
+  background-color: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
   cursor: pointer;
   color: #000000 !important;   /* 398 行的 button{color:#0f172a!important} 会压过来 */
   display: flex;
@@ -4011,8 +4018,41 @@ table#summary-table.sum-cols-folded .sum-fold-toggle::before {
   border-left: 7px solid currentColor;      /* 尖朝右 = 已收起 */
 }
 .sum-fold-toggle:active { transform: translateY(-50%) scale(0.9); }
-[data-theme="dark"] .sum-fold-toggle { color: #ffffff !important; }
+[data-theme="dark"] .sum-fold-toggle {
+  color: #ffffff !important;
+  /* 354 行的 [data-theme=dark] button 有 !important 的深底和边框，这里要压掉 */
+  background: transparent !important;
+  background-color: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
 [data-theme="dark"] table#summary-table.sum-cols-folded .sum-fold-toggle::before { border-left-color: #ffffff; }
+
+/* ⑥ 列宽手柄：命中区收在本列内，平时完全透明，只在悬停/拖动时露一条 1px 竖线。
+   以前手柄 right:-16px / width:32px，有 16px 盖在右边那一格上 —— 看起来像一层
+   1.5mm 的遮罩把紧挨着的文字挡住，其实那一小条也确实点不到。 */
+.col-resizer {
+  right: 0 !important;
+  width: 12px !important;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+.col-resizer::after {
+  left: 5px !important;
+  width: 1px !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+.col-resizer:hover::after,
+.col-resizer.dragging::after {
+  background: var(--primary) !important;
+}
+@media (max-width: 767px) {
+  .col-resizer { width: 14px !important; }
+  .col-resizer::after { left: 6px !important; }
+}
 
 /* ④ 分期表：固定表格布局 + 完整 colgroup，拖动一列只改那一列。
       之前 table-layout:auto，拖任何一列浏览器都会重排其余列，
@@ -4262,7 +4302,7 @@ async function encryptWithSession(text) {
 // 网站二维码（内嵌 base64，离线可显示），扫码打开 https://jefely.github.io/New-repository/
 const QR_DATA_URL = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAUoAAAFKCAIAAAD0S4FSAAAFCUlEQVR42u3dS3IUMRBF0VcE+9+y2QETIfKjc+YGd7VvqAYZqe/n5yfARr88ApA3IG9A3oC8AXkD8gZ5A/IG5A3IG5A3IG+QNyBvQN6AvAF5A/KGl/0++eHv+5Y9jr9vnjv5vD3/5Xub9nr+v/v+Jp3e4OUckDcgb0DegLwBeQPyBnkDeWpqLdembe7pOdV071nt+xZOPtFrf5NOb/ByDsgbkDcgb0DegLxB3oC8gTw1tZaiSZ2Jk0n3NrFVPcmTn636vPv+Jp3e4OUckDcgb0DegLwBeYO8AXkDMbUW94du2eI2cQ7P6Q3IG5A3IG9A3oC8Qd6AvAF5AzG1Nsi9Oa2qGzPNpTm9AXkD8gbkDcgbkDfIG5A3IG8gj0yt9bzHs+eutZP/t+qWz33fr9MbkDcgb0DegLxB3oC8AXkD8gbSfGpt37ate7vH/Gz+yxzeaxvgnN4gb0DegLwBeQPyBuQN8gbkDTT07dsvNXGmrWrWque3f+9JOr0BeQPyBuQNyBuQN8gbkDcgbyCjd63ZiZUGe+nu3Vta9S303MTW835Ypzd4OQfkDcgbkDcgb0DegLxB3kCemlq7N8djB9j0ezxTNNM2cRry3l+O0xu8nAPyBuQNyBuQNyBvkDcgbyDLbgidOAM0cU6ranbwtcnCqp91egPyBuQN8gbkDcgbkDcgb0DeELvWsne2rOd+uJ4zTz3vh616GhM/r9MbvJwD8gbkDcgbkDcgb5A3IG8gT02tnUzb3JtMujfTNnHyrGqLW9Wz2vcdOb3Byzkgb0DegLwBeQPyBuQN8gZiai29p4smburqOePVczNZ1ed1egPyBuQNyBvkDcgbkDcgb0DeQEZPraXlBNi+XVwZeIvra1OJTm9A3iBvQN6AvAF5A/IG5A3yBmJqLb3nw3rOD1VNU937vFUzbVX70ibOLDq9wcs5IG9A3oC8AXkD8gZ5A/IGGvp6zuJMvKux52ayqttFe86W7XuSTm/wcg7IG5A3IG9A3oC8AXmDvIE8NbVWtU/r3oRQ1bTcaxvReu482/f37PQGL+eAvAF5A/IG5A3IG+QNyBvIshtCM3BfWtUEWNZNcU18VlUzbVX/stMbvJwD8gbkDcgbkDcgb5A3IG8gT02t5bHpohTNllU9jbScw6uahzt5znatAfIG5A3yBuQNyBuQNyBvQN4QN4SWTwhNvNfy3u/sW9jN1Bogb0DeIG9A3oC8AXkD8gbkDTG1xpo7QHvuh/NbOb0BeQPyBnkD8gbkDcgbkDcgb4gbQjNniisDt16d7B6ruuVz4u2iE39npzcgb0DeIG9A3oC8AXkD8gbkDTG1lt4TYDFp136LW9W3XzV32HPSzukNXs4BeQPyBuQNyBuQN8gbkDeQp6bWUjQ99toOsJMnee9OzHvfb9Xc4ck3WDXh5/QGL+eAvAF5A/IG5A3IG+QNyBuIqbW8ures6g7Qe7NlPSfees4sVs20Ob3Byzkgb0DegLwBeQPyBnkD8gZiai2v3qe577eq2g+Xoj1tVbvlnN6AvEHegLwBeQPyBuQNyBvkDcTUWvZOgGXgRNTEaap7E289b2Kt+o6c3uDlHJA3IG9A3oC8AXmDvAF5Aw19EzdmpeVNjml5R2TVJFbcLur0BuQNyBuQN8gbkDcgb0DegLyB/OupNcDpDcgbkDcgb5A3IG9A3oC8AXkD8gbkDfIG5A3IG5A3IG9A3iBvQN5AU38AW3Unpg+CBHwAAAAASUVORK5CYII=';
 
-const APP_VER = 'v9.56';
+const APP_VER = 'v9.58';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -7640,38 +7680,41 @@ function renderSummary(main, footer) {
    按钮展开/收起（收起时尖朝右、展开时尖朝左）。收起状态会记住。
    账户名称列右缘的拖拽手柄只负责调列宽，不再兼做展开。 */
 const SUMMARY_FOLD_KEY = 'flow_summary_fold_v1';
-const SUMMARY_FOLDW_KEY = 'flow_summary_foldw_v1';
 let summaryFold = (() => {
   try { const v = localStorage.getItem(SUMMARY_FOLD_KEY); return v === null ? true : v === '1'; } catch (e) { return true; }
 })();
-let summaryFoldW = (() => {
-  try {
-    const a = JSON.parse(localStorage.getItem(SUMMARY_FOLDW_KEY) || 'null');
-    if (Array.isArray(a) && a.length === 3 && a.every(n => Number(n) > 0)) return a.map(n => Math.round(Number(n)));
-  } catch (e) {}
-  return [76, 59, 73];   // 与 DEFAULT_COL_WIDTHS.summary 的前三列一致
-})();
+// 展开状态下三列的真实宽度快照（折叠时 colWidths 里会临时出现 0）
+let summaryRealW = null;
 
 // 汇总表 colgroup 里 type/sub/code 三列的位置：0 是序号列，1=类型 2=分类 3=简码
 const SUMMARY_FOLD_COLS = [1, 2, 3];
 
-// 目标宽度（不含折叠）：三列用记下来的宽度，其余用当前列宽
-function summaryTargetWidths() {
+// 真实宽度只认 colWidths.summary。以前这里用一份单独记的 summaryFoldW 覆盖前三列，
+// 于是「把三列调窄 → 折叠 → 再展开」宽度又弹回 76/59/73，怎么调都存不住。
+// 若前三列被写成 0（老版本折叠时落盘的脏值），用快照 / 默认值补回来。
+function summaryBaseWidths() {
   const base = (Array.isArray(colWidths.summary) && colWidths.summary.length === 14)
     ? colWidths.summary.slice() : DEFAULT_COL_WIDTHS.summary.slice();
-  SUMMARY_FOLD_COLS.forEach((ci, i) => { base[ci] = summaryFoldW[i]; });
+  const broken = SUMMARY_FOLD_COLS.some(ci => !base[ci]);
+  if (broken) {
+    const fb = summaryRealW || DEFAULT_COL_WIDTHS.summary;
+    SUMMARY_FOLD_COLS.forEach(ci => {
+      if (!base[ci]) base[ci] = fb[ci] || DEFAULT_COL_WIDTHS.summary[ci];
+    });
+  }
   return base;
 }
 
 function applySummaryFold() {
   const table = document.getElementById('summary-table');
   if (!table) return;
-  const keep = summaryTargetWidths();
-  const w = keep.slice();
-  if (summaryFold) SUMMARY_FOLD_COLS.forEach(ci => { w[ci] = 0; });
-  applyWidths(table, 'summary', w);
-  // applyWidths 会把 0 写进 colWidths；这里恢复目标宽度，0 只存在于当前渲染里
-  colWidths.summary = keep;
+  const real = summaryBaseWidths();
+  summaryRealW = real.slice();              // 记下真实宽度，折叠只改「视图」
+  const view = real.slice();
+  if (summaryFold) SUMMARY_FOLD_COLS.forEach(ci => { view[ci] = 0; });
+  applyWidths(table, 'summary', view);
+  // 落盘的永远是真实宽度（applyWidths 会用传进去的 view 覆盖 colWidths）
+  colWidths.summary = real;
   table.classList.toggle('sum-cols-folded', summaryFold);
   // 三角形按钮的方向由 .sum-cols-folded 控制，这里只同步提示文字
   const btn = table.querySelector('.sum-fold-toggle');
@@ -7682,7 +7725,6 @@ function applySummaryFold() {
 function setSummaryFold(on) {
   summaryFold = !!on;
   try { localStorage.setItem(SUMMARY_FOLD_KEY, summaryFold ? '1' : '0'); } catch (e) {}
-  try { localStorage.setItem(SUMMARY_FOLDW_KEY, JSON.stringify(summaryFoldW)); } catch (e) {}
   applySummaryFold();
 }
 
@@ -9902,6 +9944,28 @@ function openSyncDialog() {
         </div>
       </div>
 
+      <div class="sync-or">— 二维码合并（另一台手机用相机扫） —</div>
+
+      <div class="sync-hint" style="text-align:left;line-height:1.7">
+        把<b>最近的流水</b>装进一个二维码：从最新的一笔往前放，装到快满为止，
+        并告诉你截止到哪一天。<br>
+        另一台手机用<b>系统相机</b>扫这个码 → 打开网页 → 自动问你要不要合并；
+        重复的记录会当场跳过，只加真正缺的。
+      </div>
+
+      <div class="sync-block">
+        <button type="button" class="ghost" id="sync-qr-make">生成合并二维码</button>
+      </div>
+
+      <div id="sync-qr-box" style="display:none;margin-top:10px">
+        <canvas id="sync-qr-canvas" style="display:block;margin:0 auto;max-width:100%;height:auto;image-rendering:pixelated;border:1px solid var(--border);border-radius:6px;background:#fff"></canvas>
+        <div id="sync-qr-info" class="sync-hint" style="margin:8px 0 0;text-align:center;font-size:12px"></div>
+        <textarea id="sync-qr-text" readonly spellcheck="false" style="width:100%;height:54px;margin-top:6px;font-size:10px;font-family:ui-monospace,Consolas,monospace;padding:6px;box-sizing:border-box;border:1px solid var(--border);border-radius:6px;background:var(--bg-main);color:var(--text-muted)"></textarea>
+        <div class="sync-hint" style="margin:4px 0 0;font-size:11px">
+          二维码里是明文，别给外人扫；扫不动时可以把上面这段发到另一台设备。
+        </div>
+      </div>
+
       <div class="sync-actions"><button type="button" data-act="close">关闭</button></div>
     </div>`;
   document.body.appendChild(mask);
@@ -9928,6 +9992,33 @@ function openSyncDialog() {
       setTimeout(() => URL.revokeObjectURL(url), 2000);
       toast('已存为 ' + name + '（' + Math.round(blob.size / 1024) + ' KB）', { duration: 5000 });
     } catch (e) { toast('导出失败：' + e.message, { type: 'error' }); }
+  };
+
+  // 生成合并二维码
+  const qrMake = mask.querySelector('#sync-qr-make');
+  if (qrMake) qrMake.onclick = async () => {
+    qrMake.disabled = true;
+    qrMake.textContent = '正在生成…';
+    try {
+      const best = await packRecentForQR();
+      if (!best || !best.count) { toast('还没有流水可以放进二维码', { type: 'error' }); return; }
+      const qr = qrEncode(best.url);
+      if (qr.error) { toast('记录太多，二维码装不下，请改用同步文件', { type: 'error', duration: 6000 }); return; }
+      const box = mask.querySelector('#sync-qr-box');
+      box.style.display = 'block';
+      drawQRCanvas(mask.querySelector('#sync-qr-canvas'), qr, 4);
+      try { box.scrollIntoView({ block: 'center' }); } catch (e) {}
+      let info = '包含 ' + best.count + ' 笔（最早 ' + (best.until || '—') + '）· 二维码 '
+        + qr.size + '×' + qr.size + ' · ' + best.len + ' 字符';
+      if (best.count < state.transactions.length) info += ' · 更早的记录请用同步文件';
+      mask.querySelector('#sync-qr-info').textContent = info;
+      mask.querySelector('#sync-qr-text').value = best.url;
+    } catch (e) {
+      toast('生成失败：' + e.message, { type: 'error', duration: 6000 });
+    } finally {
+      qrMake.disabled = false;
+      qrMake.textContent = '重新生成二维码';
+    }
   };
 
   // 从文件导入：覆盖 或 合并
@@ -10275,9 +10366,7 @@ function initColResize(table, key) {
           // 收起状态下拖任何一列，前三列的 0 宽都会被 paintWidths 写进 colWidths；
           // 保存前换回真实宽度，别把 0 存进 localStorage（展开时要用它还原）
           if (key === 'summary' && summaryFold) {
-            const arr = (colWidths.summary || []).slice();
-            SUMMARY_FOLD_COLS.forEach((ci, i) => { arr[ci] = summaryFoldW[i]; });
-            colWidths.summary = arr;
+            colWidths.summary = summaryBaseWidths();
           }
           saveColWidths(); syncFlowTitleWidth(); syncGridRight();
           try { applySummarySticky(); } catch (e) {}
@@ -10427,6 +10516,419 @@ function afterUnlock() {
     if (months.length) fitInstallRange(months, installState);
   } catch (e) {}
   render();
+  // 如果这个页面是扫码打开的（URL 带 #m=），自动问一次要不要合并
+  try { mergeFromHash(); } catch (e) {}
+}
+
+/* ============================================================
+   二维码编码器（字节模式 / 纠错 L / 版本 1–40 / 自动掩码）
+   ------------------------------------------------------------
+   只做「文本 → 0/1 矩阵」这一件事，不依赖库、不发网络请求。
+   账本数据不能出设备，所以也没法用在线二维码服务。
+   ============================================================ */
+const QR_GF_EXP = new Uint8Array(512);
+const QR_GF_LOG = new Uint8Array(256);
+(function initQRGF() {
+  let x = 1;
+  for (let i = 0; i < 255; i++) {
+    QR_GF_EXP[i] = x; QR_GF_LOG[x] = i;
+    x <<= 1;
+    if (x & 0x100) x ^= 0x11d;
+  }
+  for (let i = 255; i < 512; i++) QR_GF_EXP[i] = QR_GF_EXP[i - 255];
+})();
+function qrGmul(a, b) {
+  if (!a || !b) return 0;
+  return QR_GF_EXP[QR_GF_LOG[a] + QR_GF_LOG[b]];
+}
+// 纠错块表（L 级）：[每块纠错码字, 块数1, 数据码字1, 块数2, 数据码字2]
+const QR_RS_L = [
+  [7, 1, 19, 0, 0], [10, 1, 34, 0, 0], [15, 1, 55, 0, 0], [20, 1, 80, 0, 0],
+  [26, 1, 108, 0, 0], [18, 2, 68, 0, 0], [20, 2, 78, 0, 0], [24, 2, 97, 0, 0],
+  [30, 2, 116, 0, 0], [18, 2, 68, 2, 69], [20, 4, 81, 0, 0], [24, 2, 92, 2, 93],
+  [26, 4, 107, 0, 0], [30, 3, 115, 1, 116], [22, 5, 87, 1, 88], [24, 5, 98, 1, 99],
+  [28, 1, 107, 5, 108], [30, 5, 120, 1, 121], [28, 3, 113, 4, 114], [28, 3, 107, 5, 108],
+  [28, 4, 116, 4, 117], [28, 2, 111, 7, 112], [30, 4, 121, 5, 122], [30, 6, 117, 4, 118],
+  [26, 8, 106, 4, 107], [28, 10, 114, 2, 115], [30, 8, 122, 4, 123], [30, 3, 117, 10, 118],
+  [30, 7, 116, 7, 117], [30, 5, 115, 10, 116], [30, 13, 115, 3, 116], [30, 17, 115, 0, 0],
+  [30, 17, 115, 1, 116], [30, 13, 115, 6, 116], [30, 12, 121, 7, 122], [30, 6, 121, 14, 122],
+  [30, 17, 122, 4, 123], [30, 4, 122, 18, 123], [30, 20, 117, 4, 118], [30, 19, 118, 6, 119]
+];
+function qrDataCodewords(ver) {
+  const r = QR_RS_L[ver - 1];
+  return r[1] * r[2] + r[3] * r[4];
+}
+function qrLengthBits(ver) { return ver < 10 ? 8 : 16; }
+function qrCapacityBytes(ver) {
+  return Math.floor((qrDataCodewords(ver) * 8 - 4 - qrLengthBits(ver)) / 8);
+}
+function qrPickVersion(nbytes) {
+  for (let v = 1; v <= 40; v++) if (nbytes <= qrCapacityBytes(v)) return v;
+  return -1;
+}
+function qrGenPoly(deg) {
+  let g = [1];
+  for (let i = 0; i < deg; i++) {
+    const next = new Array(g.length + 1).fill(0);
+    for (let j = 0; j < g.length; j++) {
+      next[j] ^= g[j];
+      next[j + 1] ^= qrGmul(g[j], QR_GF_EXP[i]);
+    }
+    g = next;
+  }
+  return g;
+}
+function qrRsEncode(data, ecLen) {
+  const gen = qrGenPoly(ecLen);
+  const res = new Array(ecLen).fill(0);
+  for (const d of data) {
+    const factor = d ^ res[0];
+    res.shift(); res.push(0);
+    if (factor) for (let i = 0; i < ecLen; i++) res[i] ^= qrGmul(gen[i + 1], factor);
+  }
+  return res;
+}
+function qrBuildData(bytes, ver) {
+  const bits = [];
+  const push = (val, len) => { for (let i = len - 1; i >= 0; i--) bits.push((val >> i) & 1); };
+  push(4, 4);                                   // 0100 = 字节模式
+  push(bytes.length, qrLengthBits(ver));
+  for (const b of bytes) push(b, 8);
+  const total = qrDataCodewords(ver);
+  for (let i = 0; i < 4 && bits.length < total * 8; i++) bits.push(0);
+  while (bits.length % 8) bits.push(0);
+  const cw = [];
+  for (let i = 0; i < bits.length; i += 8) {
+    let v = 0;
+    for (let j = 0; j < 8; j++) v = (v << 1) | (bits[i + j] || 0);
+    cw.push(v);
+  }
+  let pad = 0xEC;
+  while (cw.length < total) { cw.push(pad); pad = pad === 0xEC ? 0x11 : 0xEC; }
+  return cw;
+}
+function qrInterleave(dataCw, ver) {
+  const [ec, n1, d1, n2, d2] = QR_RS_L[ver - 1];
+  const blocks = [];
+  let idx = 0;
+  for (let i = 0; i < n1; i++) { blocks.push({ d: dataCw.slice(idx, idx + d1) }); idx += d1; }
+  for (let i = 0; i < n2; i++) { blocks.push({ d: dataCw.slice(idx, idx + d2) }); idx += d2; }
+  for (const b of blocks) b.e = qrRsEncode(b.d, ec);
+  const out = [];
+  const maxD = Math.max(...blocks.map(b => b.d.length));
+  for (let i = 0; i < maxD; i++) for (const b of blocks) if (i < b.d.length) out.push(b.d[i]);
+  for (let i = 0; i < ec; i++) for (const b of blocks) out.push(b.e[i]);
+  return out;
+}
+function qrAlignPositions(ver) {
+  if (ver === 1) return [];
+  const size = ver * 4 + 17;
+  const posCount = Math.floor(ver / 7) + 2;
+  const intervals = posCount - 1;
+  // 间距必须是偶数、从 size-7 往回排：v16 是 6/26/50/74，不是 6/30/52/74
+  const intervalSize = Math.ceil((size - 13) / (intervals * 2)) * 2;
+  const out = [6];
+  for (let i = 1; i < posCount - 1; i++) out.push(size - 7 - intervalSize * (posCount - 1 - i));
+  out.push(size - 7);
+  return out;
+}
+const QR_MASKS = [
+  (r, c) => (r + c) % 2 === 0,
+  (r, c) => r % 2 === 0,
+  (r, c) => c % 3 === 0,
+  (r, c) => (r + c) % 3 === 0,
+  (r, c) => (Math.floor(r / 2) + Math.floor(c / 3)) % 2 === 0,
+  (r, c) => (r * c) % 2 + (r * c) % 3 === 0,
+  (r, c) => ((r * c) % 2 + (r * c) % 3) % 2 === 0,
+  (r, c) => ((r * c) % 3 + (r + c) % 2) % 2 === 0
+];
+function qrFormatBits(mask) {
+  const d = (1 << 3) | mask;                    // L 级两位是 01
+  let rem = d;
+  for (let i = 0; i < 10; i++) rem = (rem << 1) ^ ((rem >> 9) * 0x537);
+  return ((d << 10) | rem) ^ 0x5412;
+}
+function qrVersionBits(ver) {
+  let rem = ver;
+  for (let i = 0; i < 12; i++) rem = (rem << 1) ^ ((rem >> 11) * 0x1F25);
+  return (ver << 12) | rem;
+}
+function qrBuildMatrix(codewords, ver) {
+  const size = ver * 4 + 17;
+  const m = new Uint8Array(size * size);
+  const fixed = new Uint8Array(size * size);
+  const set = (r, c, dark) => {
+    if (r < 0 || r >= size || c < 0 || c >= size) return;
+    m[r * size + c] = dark ? 1 : 0;
+    fixed[r * size + c] = 1;
+  };
+  const placeFinder = (row, col) => {
+    for (let r = -1; r <= 7; r++) {
+      for (let c = -1; c <= 7; c++) {
+        const rr = row + r, cc = col + c;
+        if (rr < 0 || rr >= size || cc < 0 || cc >= size) continue;
+        const on = (r >= 0 && r <= 6 && (c === 0 || c === 6))
+          || (c >= 0 && c <= 6 && (r === 0 || r === 6))
+          || (r >= 2 && r <= 4 && c >= 2 && c <= 4);
+        set(rr, cc, on);
+      }
+    }
+  };
+  placeFinder(0, 0); placeFinder(size - 7, 0); placeFinder(0, size - 7);
+  for (let i = 8; i < size - 8; i++) { set(6, i, i % 2 === 0); set(i, 6, i % 2 === 0); }
+  const pos = qrAlignPositions(ver);
+  for (const r of pos) {
+    for (const c of pos) {
+      if ((r === 6 && c === 6) || (r === 6 && c === size - 7) || (r === size - 7 && c === 6)) continue;
+      for (let dr = -2; dr <= 2; dr++)
+        for (let dc = -2; dc <= 2; dc++) set(r + dr, c + dc, Math.max(Math.abs(dr), Math.abs(dc)) !== 1);
+    }
+  }
+  // 格式信息 15 位 × 2 组（避开 timing 的 (8,6)/(6,8)）
+  for (let i = 0; i < 9; i++) {
+    if (i !== 6) set(8, i, false);
+    if (i !== 6) set(i, 8, false);
+  }
+  for (let i = 0; i < 8; i++) set(8, size - 1 - i, false);
+  for (let i = 0; i < 7; i++) set(size - 1 - i, 8, false);
+  // dark module：固定在 (size-8, 8)，漏了它数据位会整体错一位
+  set(size - 8, 8, true);
+  if (ver >= 7) {
+    for (let i = 0; i < 18; i++) {
+      set(Math.floor(i / 3), size - 11 + (i % 3), false);
+      set(size - 11 + (i % 3), Math.floor(i / 3), false);
+    }
+  }
+  let bitIdx = 0, row = size - 1, inc = -1;
+  for (let col = size - 1; col > 0; col -= 2) {
+    if (col === 6) col--;
+    for (;;) {
+      for (let c = 0; c < 2; c++) {
+        const cc = col - c;
+        const at = row * size + cc;
+        if (fixed[at]) continue;
+        let dark = false;
+        if (bitIdx < codewords.length * 8) dark = ((codewords[bitIdx >> 3] >> (7 - (bitIdx & 7))) & 1) === 1;
+        bitIdx++;
+        m[at] = dark ? 1 : 0;
+      }
+      row += inc;
+      if (row < 0 || row >= size) { row -= inc; inc = -inc; break; }
+    }
+  }
+  return { m, fixed, size };
+}
+function qrApplyMask(m, fixed, size, mask) {
+  const fn = QR_MASKS[mask];
+  const out = m.slice();
+  for (let r = 0; r < size; r++) {
+    for (let c = 0; c < size; c++) {
+      const i = r * size + c;
+      if (!fixed[i] && fn(r, c)) out[i] ^= 1;
+    }
+  }
+  return out;
+}
+function qrWriteFormat(m, size, mask, ver) {
+  const bits = qrFormatBits(mask);
+  for (let i = 0; i < 15; i++) {
+    const dark = ((bits >> i) & 1) === 1;
+    const set = (r, c) => { m[r * size + c] = dark ? 1 : 0; };
+    if (i < 6) set(i, 8);
+    else if (i < 8) set(i + 1, 8);
+    else set(size - 15 + i, 8);
+    if (i < 8) set(8, size - 1 - i);
+    else if (i < 9) set(8, 15 - i);
+    else set(8, 15 - i - 1);
+  }
+  if (ver >= 7) {
+    const vb = qrVersionBits(ver);
+    for (let i = 0; i < 18; i++) {
+      const v = ((vb >> i) & 1) === 1 ? 1 : 0;
+      m[Math.floor(i / 3) * size + (size - 11 + (i % 3))] = v;
+      m[(size - 11 + (i % 3)) * size + Math.floor(i / 3)] = v;
+    }
+  }
+}
+function qrPenalty(m, size) {
+  let score = 0;
+  const lines = [];
+  for (let r = 0; r < size; r++) lines.push(Array.from(m.subarray(r * size, (r + 1) * size)));
+  for (let c = 0; c < size; c++) {
+    const col = new Array(size);
+    for (let r = 0; r < size; r++) col[r] = m[r * size + c];
+    lines.push(col);
+  }
+  for (const line of lines) {
+    let run = 1;
+    for (let i = 1; i < size; i++) {
+      if (line[i] === line[i - 1]) run++;
+      else { if (run >= 5) score += 3 + (run - 5); run = 1; }
+    }
+    if (run >= 5) score += 3 + (run - 5);
+  }
+  for (let r = 0; r < size - 1; r++) {
+    for (let c = 0; c < size - 1; c++) {
+      const v = m[r * size + c];
+      if (v === m[r * size + c + 1] && v === m[(r + 1) * size + c] && v === m[(r + 1) * size + c + 1]) score += 3;
+    }
+  }
+  const pat = [1, 0, 1, 1, 1, 0, 1];
+  for (const line of lines) {
+    for (let i = 0; i <= size - 7; i++) {
+      let ok = true;
+      for (let k = 0; k < 7; k++) if (line[i + k] !== pat[k]) { ok = false; break; }
+      if (!ok) continue;
+      const before = line.slice(Math.max(0, i - 4), i);
+      const after = line.slice(i + 7, Math.min(size, i + 11));
+      if ((before.length === 4 && before.every(v => v === 0))
+        || (after.length === 4 && after.every(v => v === 0))) score += 40;
+    }
+  }
+  let dark = 0;
+  for (let i = 0; i < m.length; i++) dark += m[i];
+  score += Math.floor(Math.abs(dark * 100 / (size * size) - 50) / 5) * 10;
+  return score;
+}
+function qrEncode(text) {
+  const bytes = new TextEncoder().encode(String(text));
+  const ver = qrPickVersion(bytes.length);
+  if (ver < 1) return { error: '内容太长，二维码装不下' };
+  const cw = qrInterleave(qrBuildData(bytes, ver), ver);
+  const built = qrBuildMatrix(cw, ver);
+  let best = null;
+  for (let mask = 0; mask < 8; mask++) {
+    const mm = qrApplyMask(built.m, built.fixed, built.size, mask);
+    qrWriteFormat(mm, built.size, mask, ver);
+    const p = qrPenalty(mm, built.size);
+    if (!best || p < best.p) best = { p, m: mm, mask };
+  }
+  const rows = [];
+  for (let r = 0; r < built.size; r++) rows.push(Array.from(best.m.subarray(r * built.size, (r + 1) * built.size)));
+  return { version: ver, mask: best.mask, size: built.size, rows };
+}
+
+/* ============================================================
+   二维码合并
+   ------------------------------------------------------------
+   生成端：从最新的流水往回放，装到二维码快满为止，提示截止到哪天；
+   接收端：系统相机扫 → 打开网页 → 自动按「真正没有的记录」合并。
+   · 二维码里是 gzip+base64 的明文（不经过任何服务器，但别给外人扫）
+   · 合并端会再按 id / 指纹判一次重，重复的不会加第二遍
+   ============================================================ */
+const SYNC_QR_BASE = 'https://jefely.github.io/New-repository/';
+// 二维码 L 级上限 2953 字节；URL 全量塞进去，留 500 字节余量给扫码容错
+const SYNC_QR_MAX_URL = 2400;
+
+function mergePayloadOf(txs) {
+  const names = new Set();
+  txs.forEach(t => { if (t.from) names.add(t.from); if (t.to) names.add(t.to); });
+  const acc = state.accounts
+    .filter(a => names.has(a.name))
+    .map(a => [a.name, a.cat || '', a.sub || '', a.code || '']);
+  const dates = txs.map(t => String(t.date || '')).filter(Boolean).sort();
+  return {
+    v: 1,
+    at: new Date().toISOString(),
+    until: dates.length ? dates[0] : '',
+    tx: txs.map(t => [
+      String(t.date || ''), t.from || '', t.to || '',
+      (t.amount === '' || t.amount == null) ? '' : t.amount,
+      t.note || '', t.id || ''
+    ]),
+    acc
+  };
+}
+
+// 从最近的流水往回放，直到 URL 快满；返回实际装进二维码的那批
+async function packRecentForQR() {
+  const all = state.transactions
+    .slice()
+    .sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
+  let best = null;
+  for (let i = 0; i < all.length; i++) {
+    const txs = all.slice(0, i + 1);
+    const payload = JSON.stringify(mergePayloadOf(txs));
+    const gz = await syncEncodeText(payload);          // 'LZ1:...'
+    const url = SYNC_QR_BASE + '#m=' + gz.slice(4);
+    if (url.length > SYNC_QR_MAX_URL) break;
+    best = { count: txs.length, url, len: url.length, until: mergePayloadOf(txs).until };
+  }
+  return best;
+}
+
+function drawQRCanvas(canvas, qr, modulePx) {
+  const quiet = 4;
+  const dim = qr.size + quiet * 2;
+  // 每个模块固定 4px：手机扫二维码时 2px/模块太小，容易识别不了。
+  // 大版本（记录很多）会把画布撑大，靠 CSS 的 max-width 缩到屏幕内。
+  const scale = Math.max(2, Math.round(modulePx || 4));
+  canvas.width = dim * scale;
+  canvas.height = dim * scale;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = '#000000';
+  for (let r = 0; r < qr.size; r++) {
+    const row = qr.rows[r];
+    for (let c = 0; c < qr.size; c++) {
+      if (row[c]) ctx.fillRect((c + quiet) * scale, (r + quiet) * scale, scale, scale);
+    }
+  }
+}
+
+// 只统计真正会新增的条数（与 mergeSyncPayload 同一套判重规则）
+function countMergeTx(raw) {
+  const ids = new Set(state.transactions.map(t => t.id).filter(Boolean));
+  const sigs = new Set(state.transactions.map(txFingerprint));
+  let add = 0, dup = 0;
+  for (const t of (raw.tx || [])) {
+    const id = t[5];
+    if (id && ids.has(id)) { dup++; continue; }
+    if (sigs.has(txFingerprint({ date: t[0], from: t[1], to: t[2], amount: t[3], note: t[4] }))) { dup++; continue; }
+    add++;
+  }
+  return { add, dup };
+}
+
+async function mergeFromPayload(payload) {
+  const json = await syncDecodeText('LZ1:' + payload);
+  const raw = JSON.parse(json);
+  if (!raw || !Array.isArray(raw.tx)) throw new Error('这段二维码里没有流水');
+  const data = {
+    accounts: (raw.acc || []).map(a => ({ id: uid(), name: a[0], cat: a[1], sub: a[2], code: a[3] })),
+    transactions: raw.tx.map(t => ({
+      id: t[5] || uid(), seq: 0, date: t[0], from: t[1], to: t[2],
+      amount: t[3] === '' ? '' : t[3], note: t[4]
+    })),
+    installments: [],
+    fixed: []
+  };
+  const { add, dup } = countMergeTx(raw);
+  if (!add) {
+    toast('二维码里的 ' + raw.tx.length + ' 笔本机都已经有了，不需要合并', { duration: 6000 });
+    return;
+  }
+  askConfirm(
+    '另一台设备发来 ' + raw.tx.length + ' 笔记录（截止 ' + (raw.until || '—') + '）。\n\n'
+    + '本机已有 ' + dup + ' 笔相同，实际将新增 ' + add + ' 笔。\n'
+    + '合并只添加，不会删除本机任何数据。',
+    () => {
+      mergeSyncPayload(data);
+      reseq(); save(); render();
+      toast('已合并：新增 ' + add + ' 笔流水', { duration: 6000 });
+    },
+    () => {}
+  );
+}
+
+// 页面带着 #m=… 打开（系统相机扫码）时自动提示合并
+function mergeFromHash() {
+  const m = String(location.hash || '').match(/^#m=(.+)$/);
+  if (!m) return;
+  try { history.replaceState(null, '', location.pathname + location.search); }
+  catch (e) { try { location.hash = ''; } catch (e2) {} }
+  mergeFromPayload(m[1]).catch(e => toast('二维码数据读取失败：' + e.message, { type: 'error', duration: 6000 }));
 }
 
 /* ============================================================
