@@ -3819,7 +3819,10 @@ table.grid thead th { overflow: visible !important; }
 
 /* ③ 暗色主题下行悬停没有任何反馈（亮色有）。97 行的 tr:hover 没有 !important，
    被暗色斑马纹的 !important 压掉。补一条同权重但带 !important 的。 */
-[data-theme="dark"] table.grid tbody tr:not(.cat-row):hover > td { background: #202030 !important; }
+[data-theme="dark"] table.grid tbody tr:not(.cat-row):hover > td { background: #22223a !important; }
+/* 冻结列（序号 / 账户名称）自带背景，必须同一颜色，否则悬停时两截颜色 */
+[data-theme="dark"] table.grid tbody tr:not(.cat-row):hover > td.col-seq,
+[data-theme="dark"] table.grid tbody tr:not(.cat-row):hover > td.col-name { background: #22223a !important; }
 
 /* ④ 触屏上工具栏按钮偏小（28px 高），提到 34px 便于点击 */
 @media (pointer: coarse) {
@@ -3903,6 +3906,127 @@ table#summary-table tbody tr:nth-child(even):hover > td.col-seq {
   max-width: 56px !important;
   min-width: 0 !important;
 }
+
+/* ============================================================
+   v9.52（2026-10-23）：用户反馈批量修正
+   ============================================================ */
+
+/* ① 深色主题里输入框一聚焦就被 417 行的 `input:focus{color:#0f172a}` 压成黑字，
+      黑底黑字，编辑布局参数时完全看不见。补一条同权重、排在后头的 dark 规则。 */
+[data-theme="dark"] input:focus,
+[data-theme="dark"] select:focus,
+[data-theme="dark"] textarea:focus {
+  color: #ffffff !important;
+  caret-color: #ffffff;
+}
+#cw-json { caret-color: var(--text-main); }
+
+/* ② 功能标签栏 / 12 个月份格子：900px 封顶，窗口更窄时再等比缩。
+      之前是每个按钮写死 92px（7 个共 644px），宽屏上不会跟着窗口走。 */
+.tabbar {
+  width: 100% !important;
+  max-width: 900px !important;
+  margin: 0 auto !important;
+  align-self: center !important;
+}
+.tabbar button {
+  flex: 1 1 0 !important;
+  width: auto !important;
+  max-width: none !important;
+}
+.toolbar.bar1 > .month-row,
+.toolbar.plan-bar > .month-row {
+  flex: 1 1 auto !important;
+  max-width: 900px !important;
+}
+/* 月份格子：分类 / 汇总两页都是 12 个一排，统一 900px 封顶（每格 75px） */
+.toolbar.bar2 > .month-row,
+.toolbar.plan-bar2 > .month-row {
+  flex: 1 1 auto !important;
+  max-width: 900px !important;
+}
+/* 容器被别的规则改成了 flex，12 个按钮又各自写死 31px（flex:0 0 31px），
+   所以 900 宽的行里只有 405 宽的内容。这里强制回 grid 均分。 */
+.toolbar > .month-row.plan-months {
+  display: grid !important;
+  grid-template-columns: repeat(12, minmax(0, 1fr)) !important;
+}
+.toolbar > .month-row.plan-months .m-btn {
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  flex: 1 1 0 !important;
+}
+
+/* ③ 账户汇总：类型 / 分类 / 简码三列默认收起（宽度由 JS 写 colgroup = 0）。
+      收起时内边距、边框一并去掉，单元格里的输入框不可见、不可点。 */
+table#summary-table.sum-cols-folded th.col-cat,
+table#summary-table.sum-cols-folded td.col-cat,
+table#summary-table.sum-cols-folded th.col-sub,
+table#summary-table.sum-cols-folded td.col-sub,
+table#summary-table.sum-cols-folded th.col-code,
+table#summary-table.sum-cols-folded td.col-code {
+  padding: 0 !important;
+  border-left: none !important;
+  border-right: none !important;
+  overflow: hidden !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+/* 收起状态给名称列一个「可以向右拖」的提示 */
+table#summary-table.sum-cols-folded thead th.col-name { cursor: col-resize; }
+
+/* ④ 分期表：固定表格布局 + 完整 colgroup，拖动一列只改那一列。
+      之前 table-layout:auto，拖任何一列浏览器都会重排其余列，
+      表现就是「不同列的手柄位移越拖越不一样」。 */
+table#install-table {
+  table-layout: fixed !important;
+  width: max-content !important;
+  min-width: 0 !important;
+  max-width: none !important;
+}
+table#install-table col.col-month { width: var(--inst-mw, 62px); }
+
+/* ⑤ 布局参数按页面生效：字号 / 行高 / 表头字号各页独立。
+      以前只有一个全局 --layout-fs，改「账户汇总」的字号会把每一页一起改。 */
+table#flow-table tbody tr,
+table#flow-table tbody td { height: var(--lh-flow, var(--layout-row-h)) !important; }
+table#flow-table tbody td { font-size: var(--fs-flow, var(--layout-fs)) !important; }
+table#flow-table tbody td input { font-size: var(--fs-flow, var(--layout-fs)) !important; }
+table#flow-table thead th { font-size: var(--fh-flow, var(--layout-fs-h)) !important; }
+
+table#summary-table tbody tr,
+table#summary-table tbody td { height: var(--lh-summary, var(--layout-row-h)) !important; }
+table#summary-table tbody td { font-size: var(--fs-summary, var(--layout-fs)) !important; }
+table#summary-table tbody td input { font-size: var(--fs-summary, var(--layout-fs)) !important; }
+table#summary-table thead th { font-size: var(--fh-summary, var(--layout-fs-h)) !important; }
+
+table#cat-table tbody tr,
+table#cat-table tbody td { height: var(--lh-cat, var(--layout-row-h)) !important; }
+table#cat-table tbody td,
+table#cat-table tbody td input { font-size: var(--fs-cat, var(--layout-fs)) !important; }
+table#cat-table thead th { font-size: var(--fh-cat, var(--layout-fs-h)) !important; }
+
+table.query-table tbody tr,
+table.query-table tbody td { height: var(--lh-query, var(--layout-row-h)) !important; }
+table.query-table tbody td { font-size: var(--fs-query, var(--layout-fs)) !important; }
+table.query-table thead th { font-size: var(--fh-query, var(--layout-fs-h)) !important; }
+
+table#install-table tbody tr,
+table#install-table tbody td { height: var(--lh-install, var(--layout-row-h)) !important; }
+table#install-table tbody td { font-size: var(--fs-install, var(--layout-fs)) !important; }
+table#install-table tbody td input { font-size: var(--fs-install, var(--layout-fs)) !important; }
+table#install-table thead th { font-size: var(--fh-install, var(--layout-fs-h)) !important; }
+
+table#fixed-table tbody tr,
+table#fixed-table tbody td { height: var(--lh-fixed, var(--layout-row-h)) !important; }
+table#fixed-table tbody td { font-size: var(--fs-fixed, var(--layout-fs)) !important; }
+table#fixed-table tbody td input,
+table#fixed-table tbody td select { font-size: var(--fs-fixed, var(--layout-fs)) !important; }
+table#fixed-table thead th { font-size: var(--fh-fixed, var(--layout-fs-h)) !important; }
+
+/* 标签栏字号也跟着布局参数走 */
+.tabbar button { font-size: var(--fs-tab, 15px) !important; }
 </style>
 </head>
 <body>
@@ -4100,7 +4224,7 @@ async function encryptWithSession(text) {
 // 网站二维码（内嵌 base64，离线可显示），扫码打开 https://jefely.github.io/New-repository/
 const QR_DATA_URL = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAUoAAAFKCAIAAAD0S4FSAAAFCUlEQVR42u3dS3IUMRBF0VcE+9+y2QETIfKjc+YGd7VvqAYZqe/n5yfARr88ApA3IG9A3oC8AXkD8gZ5A/IG5A3IG5A3IG+QNyBvQN6AvAF5A/KGl/0++eHv+5Y9jr9vnjv5vD3/5Xub9nr+v/v+Jp3e4OUckDcgb0DegLwBeQPyBnkDeWpqLdembe7pOdV071nt+xZOPtFrf5NOb/ByDsgbkDcgb0DegLxB3oC8gTw1tZaiSZ2Jk0n3NrFVPcmTn636vPv+Jp3e4OUckDcgb0DegLwBeYO8AXkDMbUW94du2eI2cQ7P6Q3IG5A3IG9A3oC8Qd6AvAF5AzG1Nsi9Oa2qGzPNpTm9AXkD8gbkDcgbkDfIG5A3IG8gj0yt9bzHs+eutZP/t+qWz33fr9MbkDcgb0DegLxB3oC8AXkD8gbSfGpt37ate7vH/Gz+yxzeaxvgnN4gb0DegLwBeQPyBuQN8gbkDTT07dsvNXGmrWrWque3f+9JOr0BeQPyBuQNyBuQN8gbkDcgbyCjd63ZiZUGe+nu3Vta9S303MTW835Ypzd4OQfkDcgbkDcgb0DegLxB3kCemlq7N8djB9j0ezxTNNM2cRry3l+O0xu8nAPyBuQNyBuQNyBvkDcgbyDLbgidOAM0cU6ranbwtcnCqp91egPyBuQN8gbkDcgbkDcgb0DeELvWsne2rOd+uJ4zTz3vh616GhM/r9MbvJwD8gbkDcgbkDcgb5A3IG8gT02tnUzb3JtMujfTNnHyrGqLW9Wz2vcdOb3Byzkgb0DegLwBeQPyBuQN8gZiai29p4smburqOePVczNZ1ed1egPyBuQNyBvkDcgbkDcgb0DeQEZPraXlBNi+XVwZeIvra1OJTm9A3iBvQN6AvAF5A/IG5A3yBmJqLb3nw3rOD1VNU937vFUzbVX70ibOLDq9wcs5IG9A3oC8AXkD8gZ5A/IGGvp6zuJMvKux52ayqttFe86W7XuSTm/wcg7IG5A3IG9A3oC8AXmDvIE8NbVWtU/r3oRQ1bTcaxvReu482/f37PQGL+eAvAF5A/IG5A3IG+QNyBvIshtCM3BfWtUEWNZNcU18VlUzbVX/stMbvJwD8gbkDcgbkDcgb5A3IG8gT02t5bHpohTNllU9jbScw6uahzt5znatAfIG5A3yBuQNyBuQNyBvQN4QN4SWTwhNvNfy3u/sW9jN1Bogb0DeIG9A3oC8AXkD8gbkDTG1xpo7QHvuh/NbOb0BeQPyBnkD8gbkDcgbkDcgb4gbQjNniisDt16d7B6ruuVz4u2iE39npzcgb0DeIG9A3oC8AXkD8gbkDTG1lt4TYDFp136LW9W3XzV32HPSzukNXs4BeQPyBuQNyBuQN8gbkDeQp6bWUjQ99toOsJMnee9OzHvfb9Xc4ck3WDXh5/QGL+eAvAF5A/IG5A3IG+QNyBuIqbW8ures6g7Qe7NlPSfees4sVs20Ob3Byzkgb0DegLwBeQPyBnkD8gZiai2v3qe577eq2g+Xoj1tVbvlnN6AvEHegLwBeQPyBuQNyBvkDcTUWvZOgGXgRNTEaap7E289b2Kt+o6c3uDlHJA3IG9A3oC8AXmDvAF5Aw19EzdmpeVNjml5R2TVJFbcLur0BuQNyBuQN8gbkDcgb0DegLyB/OupNcDpDcgbkDcgb5A3IG9A3oC8AXkD8gbkDfIG5A3IG5A3IG9A3iBvQN5AU38AW3Unpg+CBHwAAAAASUVORK5CYII=';
 
-const APP_VER = 'v9.51';
+const APP_VER = 'v9.52';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -5096,43 +5220,30 @@ function buildLayoutText() {
   const mw = (() => { try { return parseInt(localStorage.getItem('flow_inst_mw_v1'), 10) || 62; } catch (e) { return 62; } })();
   const arr = (a) => '[' + (a || []).join(', ') + ']';
   const L = layoutCfg;
+  const rowHOf = k => L.pageRowH[k] || L.rowH;
+  const fontOf = k => L.pageFont[k] || L.fontSize;
+  const headFontOf = k => L.pageHeadFont[k] || L.headerFontSize;
+  const headH = L.headerRowH || 34;
   const lines = [];
   lines.push('布局');
   lines.push('');
   lines.push('功能标签（流水/分类/汇总/查询/分期/固定）');
-  lines.push('行高：40px，字号：' + L.fontSize + 'px');
+  // 以前这里写死 40px：导出 → 改 → 应用 永远回到 40，看起来就是「改不动」
+  lines.push('行高：' + (L.tabH || 40) + 'px，字号：' + L.fontSize + 'px');
   lines.push('');
-  lines.push('流水记录');
-  lines.push('列宽：' + arr(colWidths.flow));
-  lines.push('表头行高：34px，字号：' + L.headerFontSize + 'px');
-  lines.push('数据行高：' + L.rowH + 'px，字号：' + L.fontSize + 'px');
-  lines.push('');
-  lines.push('账户汇总');
-  lines.push('列宽：' + arr(colWidths.summary));
-  lines.push('表头行高：34px，字号：' + L.headerFontSize + 'px');
-  lines.push('数据行高：' + L.rowH + 'px，字号：' + L.fontSize + 'px');
-  lines.push('');
-  lines.push('分类统计');
-  lines.push('列宽：' + arr(colWidths.cat));
-  lines.push('表头行高：34px，字号：' + L.headerFontSize + 'px');
-  lines.push('数据行高：' + L.rowH + 'px，字号：' + ((L.tableFont && L.tableFont.cat) || L.fontSize) + 'px');
-  lines.push('');
-  lines.push('查询');
-  lines.push('列宽：' + arr(colWidths.query));
-  lines.push('表头行高：34px，字号：' + L.headerFontSize + 'px');
-  lines.push('数据行高：' + L.rowH + 'px，字号：' + L.fontSize + 'px');
-  lines.push('');
-  lines.push('分期');
-  lines.push('列宽（前三列）：' + arr(colWidths.installFixed));
-  lines.push('每月金额列宽：' + mw + 'px');
-  lines.push('表头行高：34px，字号：' + L.headerFontSize + 'px');
-  lines.push('数据行高：' + L.rowH + 'px，字号：' + L.fontSize + 'px');
-  lines.push('');
-  lines.push('固定收支');
-  lines.push('列宽：' + arr(colWidths.fixed));
-  lines.push('表头行高：34px，字号：' + L.headerFontSize + 'px');
-  lines.push('数据行高：' + L.rowH + 'px，字号：' + L.fontSize + 'px');
-  return lines.join('\n');
+  for (const k of LAYOUT_PAGES) {
+    lines.push(LAYOUT_PAGE_NAMES[k]);
+    if (k === 'install') {
+      lines.push('列宽（前三列）：' + arr(colWidths.installFixed));
+      lines.push('每月金额列宽：' + mw + 'px');
+    } else {
+      lines.push('列宽：' + arr(colWidths[k]));
+    }
+    lines.push('表头行高：' + headH + 'px，字号：' + headFontOf(k) + 'px');
+    lines.push('数据行高：' + rowHOf(k) + 'px，字号：' + fontOf(k) + 'px');
+    lines.push('');
+  }
+  return lines.join('\n').trim();
 }
 
 /* ============================================================
@@ -5913,7 +6024,7 @@ function openColWidthsDialog() {
   mask.querySelector('#cw-reset').onclick = () => {
     colWidths = JSON.parse(JSON.stringify(DEFAULT_COL_WIDTHS));
     saveColWidths();
-    layoutCfg = Object.assign({}, DEFAULT_LAYOUT);
+    layoutCfg = JSON.parse(JSON.stringify(DEFAULT_LAYOUT));
     saveLayout(); applyLayout();
     try { localStorage.removeItem('flow_inst_mw_v1'); } catch (e) {}
     close(); render(); toast('已恢复默认布局');
@@ -5950,16 +6061,18 @@ function openColWidthsDialog() {
           saveColWidths();
         }
         let nL = 0;
-        // 各页面行高/字号：取出现过的值，写回 layoutCfg
-        for (const key of Object.keys(LAYOUT_SECTION_KEYS)) {
-          const k = LAYOUT_SECTION_KEYS[key];
-          if (p.rowH[k] != null) { layoutCfg.rowH = p.rowH[k]; nL++; }
-          if (p.fontSize[k] != null) { layoutCfg.fontSize = p.fontSize[k]; nL++; }
-          if (p.headerFontSize[k] != null) { layoutCfg.headerFontSize = p.headerFontSize[k]; nL++; }
+        // 各页面行高/字号：按页面各自写回。以前无论写哪一段都落到同一个全局字段，
+        // 循环结束时被「固定收支」那段覆盖 —— 改「账户汇总」的字号必然无效。
+        for (const k of LAYOUT_PAGES) {
+          if (p.rowH[k] != null) { layoutCfg.pageRowH[k] = clampRowH(p.rowH[k]); nL++; }
+          if (p.fontSize[k] != null) { layoutCfg.pageFont[k] = clampFont(p.fontSize[k]); nL++; }
+          if (p.headerFontSize[k] != null) { layoutCfg.pageHeadFont[k] = clampFont(p.headerFontSize[k]); nL++; }
         }
-        // 表头行高 / 标签栏高度：以前解析了却没写回，所以「改了没反应」
-        if (p.headerRowH != null) { layoutCfg.headerRowH = p.headerRowH; nL++; }
-        if (p.tabH != null) { layoutCfg.tabH = p.tabH; nL++; }
+        // 「功能标签」那段：行高是标签栏高度，字号是全局正文字号
+        if (p.tabH != null) { layoutCfg.tabH = clampRowH(p.tabH); nL++; }
+        if (p.tabFontSize != null) { layoutCfg.fontSize = clampFont(p.tabFontSize); nL++; }
+        // 表头行高各页统一，取文本里第一处
+        if (p.headerRowH != null) { layoutCfg.headerRowH = clampRowH(p.headerRowH); nL++; }
         if (nL) { saveLayout(); applyLayout(); }
         if (p.installMonthWidth) {
           try { localStorage.setItem('flow_inst_mw_v1', String(p.installMonthWidth)); } catch (e) {}
@@ -7295,9 +7408,57 @@ function renderSummary(main, footer) {
   // 汇总页的可编辑单元格（类型/分类/简码/名称/期初/账单日/还款日）全靠这个绑定，
   // 之前漏了调用 → 手打的内容不进 state、切页就回滚、页脚永远空。
   bindSummaryEvents(tbody);
-  applySummarySticky();
+  applySummaryFold();
   updateSummaryFooter(footer, range);
   syncSummaryDelBorder();
+}
+
+/* ---------- 账户汇总：类型 / 分类 / 简码 默认收起 ----------
+   打开汇总页时左侧只留「序号 + 账户名称」；把账户名称列右缘的手柄向右拖，
+   三列会按顺序一列一列挤出来；拖「当前结余」及之后的列不受影响。
+   双击账户名称列手柄可在一键收起/展开之间切换。收起状态会记住。 */
+const SUMMARY_FOLD_KEY = 'flow_summary_fold_v1';
+const SUMMARY_FOLDW_KEY = 'flow_summary_foldw_v1';
+let summaryFold = (() => {
+  try { const v = localStorage.getItem(SUMMARY_FOLD_KEY); return v === null ? true : v === '1'; } catch (e) { return true; }
+})();
+let summaryFoldW = (() => {
+  try {
+    const a = JSON.parse(localStorage.getItem(SUMMARY_FOLDW_KEY) || 'null');
+    if (Array.isArray(a) && a.length === 3 && a.every(n => Number(n) > 0)) return a.map(n => Math.round(Number(n)));
+  } catch (e) {}
+  return [76, 59, 73];   // 与 DEFAULT_COL_WIDTHS.summary 的前三列一致
+})();
+
+// 汇总表 colgroup 里 type/sub/code 三列的位置：0 是序号列，1=类型 2=分类 3=简码
+const SUMMARY_FOLD_COLS = [1, 2, 3];
+
+// 目标宽度（不含折叠）：三列用记下来的宽度，其余用当前列宽
+function summaryTargetWidths() {
+  const base = (Array.isArray(colWidths.summary) && colWidths.summary.length === 14)
+    ? colWidths.summary.slice() : DEFAULT_COL_WIDTHS.summary.slice();
+  SUMMARY_FOLD_COLS.forEach((ci, i) => { base[ci] = summaryFoldW[i]; });
+  return base;
+}
+
+function applySummaryFold() {
+  const table = document.getElementById('summary-table');
+  if (!table) return;
+  const keep = summaryTargetWidths();
+  const w = keep.slice();
+  if (summaryFold) SUMMARY_FOLD_COLS.forEach(ci => { w[ci] = 0; });
+  applyWidths(table, 'summary', w);
+  // applyWidths 会把 0 写进 colWidths；这里恢复目标宽度，0 只存在于当前渲染里
+  colWidths.summary = keep;
+  table.classList.toggle('sum-cols-folded', summaryFold);
+  applySummarySticky();
+}
+
+function setSummaryFold(on) {
+  summaryFold = !!on;
+  try { localStorage.setItem(SUMMARY_FOLD_KEY, summaryFold ? '1' : '0'); } catch (e) {}
+  try { localStorage.setItem(SUMMARY_FOLDW_KEY, JSON.stringify(summaryFoldW)); } catch (e) {}
+  applySummaryFold();
 }
 
 // 汇总表「序号」「账户名称」两列横向滚动时固定在左侧。
@@ -8060,7 +8221,14 @@ function renderInstall(main, footer) {
     if (cg && cg.children.length === n) return cg;
     if (cg) cg.remove();
     cg = document.createElement('colgroup');
-    for (let i = 0; i < n; i++) cg.appendChild(document.createElement('col'));
+    for (let i = 0; i < n; i++) {
+      const c = document.createElement('col');
+      // 前三列（账户名称 / 账单日 / 每月合计）宽度由 JS 写死；
+      // 月份列交给 CSS 变量 --inst-mw，拖动时只改变量，不用每帧重写 colgroup。
+      // 全列都有 col + table-layout:fixed，拖任一列才不会把其它列重排。
+      c.className = i < 3 ? 'col-fx' : 'col-month';
+      cg.appendChild(c);
+    }
     table.insertBefore(cg, table.firstChild);
     return cg;
   };
@@ -8712,12 +8880,15 @@ async function syncDecodeText(code) {
 // 生成同步码
 async function buildSyncCode() {
   const payload = {
-    v: 2,
+    v: 3,
     at: new Date().toISOString(),
     accounts: state.accounts,
     transactions: state.transactions,
     installments: state.installments || [],
-    fixed: state.fixed || []
+    fixed: state.fixed || [],
+    // 分期的起止月必须一起走：对方设备的范围不同时，分期数据会全部落在
+    // 可见区间之外，看起来就像「分期页同步失败」。
+    installState: { from: installState.from, to: installState.to }
   };
   const json = JSON.stringify(payload);
   // 先 gzip 再加密：密文不可压缩，顺序反了整个文件会大 30% 以上
@@ -8763,7 +8934,139 @@ function askSyncPassword() {
   });
 }
 
-async function applySyncCode(code) {
+// 分期条目缺 id 的老数据补齐（同步合并要按 id 对齐）
+function ensureInstallIds(list) {
+  let n = 0;
+  (Array.isArray(list) ? list : []).forEach(inst => {
+    if (!inst || typeof inst !== 'object') return;
+    if (!inst.id) { inst.id = uid(); n++; }
+    if (!inst.cells || typeof inst.cells !== 'object') inst.cells = {};
+  });
+  return n;
+}
+
+// 让分期页的起止月覆盖传进来数据的全部月份。
+// 以前同步只替换 state.installments，不动 installState —— 对方设备范围不同时，
+// 分期数据全在可见区间之外，页面上一行都不显示。
+function fitInstallRange(months, incoming) {
+  let from = ymValid(installState.from) ? installState.from : ymNow();
+  let to = ymValid(installState.to) ? installState.to : ymAdd(from, 35);
+  const pool = [];
+  if (incoming) {
+    const a = ymParse(incoming.from), b = ymParse(incoming.to);
+    if (a) pool.push(a);
+    if (b) pool.push(b);
+  }
+  (months || []).forEach(m => { const v = ymParse(m); if (v) pool.push(v); });
+  for (const m of pool) {
+    if (ymIdx(m) < ymIdx(from)) from = m;
+    if (ymIdx(m) > ymIdx(to)) to = m;
+  }
+  installState = { ref: installState.ref, from, to };
+  saveInstallState();
+}
+
+// 流水指纹：没有 id 的老数据靠它判重（日期 + 转出 + 转入 + 金额 + 备注）
+function txFingerprint(t) {
+  return [t.date || '', t.from || '', t.to || '', String(t.amount ?? ''), t.note || ''].join('|');
+}
+
+// 把同步码里的数据「合并」进本机：只加新记录，同 id 的以对方为准。
+// 这就是「快速摘取另一台设备上新记的几笔，再添到本机」的实现。
+function mergeSyncPayload(data) {
+  const stat = { accAdd: 0, accUpd: 0, txAdd: 0, txUpd: 0, txDup: 0, instAdd: 0, instUpd: 0, fixedAdd: 0, fixedUpd: 0 };
+  if (!Array.isArray(state.fixed)) state.fixed = [];
+  if (!Array.isArray(state.installments)) state.installments = [];
+
+  // ① 账户：按 id 优先、名字兜底。必须建立「对方 id → 本机 id」映射，
+  //    否则对方的流水 fromId/toId 指过来会全部断链。
+  const accIdMap = new Map();
+  const byId = new Map(state.accounts.filter(a => a.id).map(a => [a.id, a]));
+  const byName = new Map(state.accounts.map(a => [String(a.name || '').trim(), a]).filter(([k]) => k));
+  for (const inc of (data.accounts || [])) {
+    if (!inc || typeof inc !== 'object') continue;
+    const name = String(inc.name || '').trim();
+    let local = (inc.id && byId.get(inc.id)) || (name && byName.get(name)) || null;
+    if (local) {
+      ['cat', 'sub', 'code', 'name', 'opening', 'billDay', 'repayDay'].forEach(f => {
+        if (inc[f] !== undefined) local[f] = inc[f];
+      });
+      if (inc.id && inc.id !== local.id) accIdMap.set(inc.id, local.id);
+      stat.accUpd++;
+    } else {
+      const copy = Object.assign({}, inc);
+      if (!copy.id) copy.id = uid();
+      state.accounts.push(copy);
+      byId.set(copy.id, copy);
+      if (name) byName.set(name, copy);
+      if (inc.id && inc.id !== copy.id) accIdMap.set(inc.id, copy.id);
+      stat.accAdd++;
+    }
+  }
+  const mapAccId = id => (id && accIdMap.get(id)) || id;
+
+  // ② 流水：按 id 合并；无 id 的老数据用指纹去重
+  const txById = new Map(state.transactions.filter(t => t.id).map(t => [t.id, t]));
+  const txSig = new Set(state.transactions.map(txFingerprint));
+  for (const inc of (data.transactions || [])) {
+    if (!inc || typeof inc !== 'object') continue;
+    const t = Object.assign({}, inc);
+    if (t.fromId) t.fromId = mapAccId(t.fromId);
+    if (t.toId) t.toId = mapAccId(t.toId);
+    const local = t.id ? txById.get(t.id) : null;
+    if (local) {
+      if (JSON.stringify(local) !== JSON.stringify(t)) { Object.assign(local, t); stat.txUpd++; }
+      txSig.add(txFingerprint(local));
+    } else if (txSig.has(txFingerprint(t))) {
+      stat.txDup++;
+    } else {
+      if (!t.id) t.id = uid();
+      t.seq = 0;
+      state.transactions.push(t);
+      txById.set(t.id, t);
+      txSig.add(txFingerprint(t));
+      stat.txAdd++;
+    }
+  }
+
+  // ③ 分期：按 id 合并；同月份的格子以对方为准，其余保留
+  const instById = new Map(state.installments.filter(x => x.id).map(x => [x.id, x]));
+  for (const inc of (data.installments || [])) {
+    if (!inc || typeof inc !== 'object') continue;
+    const local = inc.id ? instById.get(inc.id) : null;
+    if (local) {
+      ['name', 'principal', 'billDay', 'repayDay'].forEach(f => { if (inc[f] !== undefined) local[f] = inc[f]; });
+      local.cells = Object.assign({}, local.cells || {}, inc.cells || {});
+      stat.instUpd++;
+    } else {
+      const copy = Object.assign({}, inc, { cells: Object.assign({}, inc.cells || {}) });
+      if (!copy.id) copy.id = uid();
+      state.installments.push(copy);
+      instById.set(copy.id, copy);
+      stat.instAdd++;
+    }
+  }
+
+  // ④ 固定收支：按 id 合并
+  const fixedById = new Map(state.fixed.filter(x => x.id).map(x => [x.id, x]));
+  for (const inc of (data.fixed || [])) {
+    if (!inc || typeof inc !== 'object') continue;
+    const local = inc.id ? fixedById.get(inc.id) : null;
+    if (local) { Object.assign(local, inc); stat.fixedUpd++; }
+    else {
+      const copy = Object.assign({}, inc);
+      if (!copy.id) copy.id = uid();
+      state.fixed.push(copy);
+      fixedById.set(copy.id, copy);
+      stat.fixedAdd++;
+    }
+  }
+  return stat;
+}
+
+// 套用同步码。opts.merge = true 时只把「本机没有 / 对方更新」的记录并进来，
+// 不动本机原有数据；默认 false = 整表覆盖（老行为）。
+async function applySyncCode(code, opts = {}) {
   const s = String(code || '').trim();
   let json;
   if (/^LZ2[:：]/i.test(s)) {
@@ -8781,11 +9084,44 @@ async function applySyncCode(code) {
   if (!data || !Array.isArray(data.accounts) || !Array.isArray(data.transactions)) {
     throw new Error('这段码里没有可识别的账本数据');
   }
-  state.accounts = data.accounts;
-  state.transactions = data.transactions;
-  state.installments = Array.isArray(data.installments) ? data.installments : [];
+  // 老数据的分期可能没有 id：先补齐，否则按 id 合并时对不上
+  ensureInstallIds(data.installments);
+
+  const merge = !!opts.merge;
+  if (!Array.isArray(state.fixed)) state.fixed = [];
+  if (!Array.isArray(state.installments)) state.installments = [];
+
+  let stat = null;
+  if (merge) {
+    stat = mergeSyncPayload(data);
+    const months = [];
+    state.installments.forEach(i => months.push(...Object.keys(i.cells || {})));
+    fitInstallRange(months, data.installState);
+  } else {
+    state.accounts = data.accounts;
+    state.transactions = data.transactions;
+    // 以前这里只恢复 accounts/transactions/installments，固定收支被整段丢掉
+    state.installments = Array.isArray(data.installments) ? data.installments : [];
+    state.fixed = Array.isArray(data.fixed) ? data.fixed : [];
+    const months = [];
+    state.installments.forEach(i => months.push(...Object.keys(i.cells || {})));
+    fitInstallRange(months, data.installState);
+  }
+
   reseq(); save(); render();
-  return { accounts: state.accounts.length, transactions: state.transactions.length, installments: state.installments.length };
+  return {
+    merge,
+    accounts: state.accounts.length,
+    transactions: state.transactions.length,
+    installments: state.installments.length,
+    fixed: state.fixed.length,
+    added: stat ? stat.txAdd : 0,
+    updated: stat ? stat.txUpd : 0,
+    duplicated: stat ? stat.txDup : 0,
+    instAdded: stat ? stat.instAdd : 0,
+    accAdded: stat ? stat.accAdd : 0,
+    accUpdated: stat ? stat.accUpd : 0
+  };
 }
 
 
@@ -9326,14 +9662,19 @@ function openSyncDialog() {
       <div class="sync-or">— 备份 / 换设备 —</div>
 
       <div class="sync-hint" style="text-align:left;line-height:1.7">
-        同步文件里是<b>全部数据</b>（账户、流水、分期），已用你的账本密码加密。
-        用微信「文件」发到另一台设备，在那台设备上选「从文件导入」。
+        同步文件里是<b>全部数据</b>（账户、流水、分期、固定），已用你的账本密码加密。
+        用微信「文件」发到另一台设备，在那台设备上选下面两种导入方式之一。
       </div>
 
       <div class="sync-block">
         <button type="button" class="ghost" id="sync-save-file">存成同步文件（发到另一台设备）</button>
-        <button type="button" class="ghost" id="sync-load-file">从同步文件导入</button>
+        <button type="button" class="ghost" id="sync-load-file">覆盖导入（整本替换成文件里的数据）</button>
+        <button type="button" class="ghost" id="sync-merge-file">合并导入（只把文件里新的记录加进来）</button>
         <input type="file" id="sync-file" accept=".lz,.txt,.json" style="display:none">
+        <div class="sync-hint" style="margin:0;font-size:12px">
+          <b>合并导入</b>不会删掉本机的任何记录：只添加本机没有的流水 / 分期 / 账户，
+          同一笔（同 id，或日期·账户·金额·备注全同）只算一次。
+        </div>
       </div>
 
       <div class="sync-actions"><button type="button" data-act="close">关闭</button></div>
@@ -9364,9 +9705,11 @@ function openSyncDialog() {
     } catch (e) { toast('导出失败：' + e.message, { type: 'error' }); }
   };
 
-  // 从文件导入
+  // 从文件导入：覆盖 或 合并
   const fileInp = mask.querySelector('#sync-file');
-  mask.querySelector('#sync-load-file').onclick = () => fileInp.click();
+  let importMode = 'replace';
+  mask.querySelector('#sync-load-file').onclick = () => { importMode = 'replace'; fileInp.click(); };
+  mask.querySelector('#sync-merge-file').onclick = () => { importMode = 'merge'; fileInp.click(); };
   fileInp.onchange = async () => {
     const f = fileInp.files && fileInp.files[0];
     if (!f) return;
@@ -9374,8 +9717,20 @@ function openSyncDialog() {
       const text = await f.text();
       const code = text.trim();
       if (!/^LZ[0-2][:：]/i.test(code)) throw new Error('这不是本程序的同步文件');
-      if (confirm('用「' + f.name + '」的数据覆盖本机？\n\n本机当前的账户、流水、分期都会被替换。')) {
-        await applySyncCode(code);
+      const merge = importMode === 'merge';
+      const msg = merge
+        ? '把「' + f.name + '」里本机没有的记录合并进来？\n\n本机已有的数据不会被删除，重复的记录会自动跳过。'
+        : '用「' + f.name + '」的数据覆盖本机？\n\n本机当前的账户、流水、分期都会被替换。';
+      if (confirm(msg)) {
+        const r = await applySyncCode(code, { merge });
+        if (merge) {
+          toast('已合并：新增 ' + r.added + ' 笔流水 · ' + r.instAdded + ' 个分期 · '
+            + r.accAdded + ' 个账户（更新 ' + r.updated + ' 笔，重复跳过 ' + r.duplicated + ' 笔）',
+            { duration: 7000 });
+        } else {
+          toast('已导入：账户 ' + r.accounts + ' · 流水 ' + r.transactions
+            + ' · 分期 ' + r.installments + ' · 固定 ' + r.fixed, { duration: 6000 });
+        }
       }
     } catch (e) { toast('读取失败：' + e.message, { type: 'error', duration: 6000 }); }
     finally { fileInp.value = ''; }
@@ -9402,32 +9757,60 @@ const COLW_KEY = 'flow_col_widths_v3';
 const COLW_KEY_V1 = 'flow_col_widths_v1';
 const COLW_KEY_V2 = 'flow_col_widths_v2';
 
-// 布局参数：行高 / 正文字号 / 表头字号（跟列宽一起存）
+// 布局参数：全局默认 + 每页覆盖（行高 / 正文字号 / 表头字号）
 const LAYOUT_KEY = 'flow_layout_v1';
-// tableFont：按表覆盖正文字号（不改全局）。键是表的 key，值是 px。
-const DEFAULT_LAYOUT = { rowH: 32, fontSize: 15, headerFontSize: 15, tabH: 40, headerRowH: 34, tableFont: { cat: 13 } };
+const LAYOUT_PAGES = ['flow', 'summary', 'cat', 'query', 'install', 'fixed'];
+const LAYOUT_PAGE_NAMES = {
+  flow: '流水记录', summary: '账户汇总', cat: '分类统计',
+  query: '查询', install: '分期', fixed: '固定收支'
+};
+// tableFont 是老字段（按表字号），保留以兼容旧存档；新代码统一读 pageFont。
+const DEFAULT_LAYOUT = {
+  rowH: 32, fontSize: 15, headerFontSize: 15, tabH: 40, headerRowH: 34,
+  pageRowH: {}, pageFont: { cat: 13 }, pageHeadFont: {}, tableFont: { cat: 13 }
+};
+const clampRowH = v => Math.max(20, Math.min(80, Math.round(Number(v) || 0)));
+const clampFont = v => Math.max(10, Math.min(28, Math.round(Number(v) || 0)));
+
 let layoutCfg = (() => {
+  const out = {
+    rowH: DEFAULT_LAYOUT.rowH, fontSize: DEFAULT_LAYOUT.fontSize, headerFontSize: DEFAULT_LAYOUT.headerFontSize,
+    tabH: DEFAULT_LAYOUT.tabH, headerRowH: DEFAULT_LAYOUT.headerRowH,
+    pageRowH: {}, pageFont: { cat: 13 }, pageHeadFont: {}, tableFont: { cat: 13 }
+  };
   try {
     const o = JSON.parse(localStorage.getItem(LAYOUT_KEY) || 'null');
     if (o && typeof o === 'object') {
-      const tf = {};
-      if (o.tableFont && typeof o.tableFont === 'object') {
-        for (const k of Object.keys(o.tableFont)) {
-          const v = Number(o.tableFont[k]);
-          if (v >= 10 && v <= 22) tf[k] = Math.round(v);
+      if (Number(o.rowH)) out.rowH = clampRowH(o.rowH);
+      if (Number(o.fontSize)) out.fontSize = clampFont(o.fontSize);
+      if (Number(o.headerFontSize)) out.headerFontSize = clampFont(o.headerFontSize);
+      // 这两项以前读出来就被丢掉了 —— 导入后刷新即失效，看起来就是「改了没反应」
+      if (Number(o.tabH)) out.tabH = clampRowH(o.tabH);
+      if (Number(o.headerRowH)) out.headerRowH = clampRowH(o.headerRowH);
+      const takePage = (src, dst, fn) => {
+        if (!src || typeof src !== 'object') return;
+        for (const k of LAYOUT_PAGES) {
+          const v = Number(src[k]);
+          if (v) dst[k] = fn(v);
         }
-      }
-      return {
-        rowH: Math.max(20, Math.min(60, Number(o.rowH) || 32)),
-        fontSize: Math.max(10, Math.min(22, Number(o.fontSize) || 15)),
-        headerFontSize: Math.max(10, Math.min(22, Number(o.headerFontSize) || 15)),
-        tableFont: tf
       };
+      takePage(o.pageRowH, out.pageRowH, clampRowH);
+      takePage(o.pageFont, out.pageFont, clampFont);
+      takePage(o.pageHeadFont, out.pageHeadFont, clampFont);
+      // 兼容：老档案只有 tableFont（按表字号）
+      takePage(o.tableFont, out.pageFont, clampFont);
+      out.tableFont = Object.assign({}, out.pageFont);
     }
   } catch (e) {}
-  return Object.assign({}, DEFAULT_LAYOUT);
+  return out;
 })();
-function saveLayout() { try { localStorage.setItem(LAYOUT_KEY, JSON.stringify(layoutCfg)); } catch (e) {} }
+
+function saveLayout() {
+  // 老字段跟着写一份，旧版本读到也不至于把所有按表字号都丢掉
+  layoutCfg.tableFont = Object.assign({}, layoutCfg.pageFont);
+  try { localStorage.setItem(LAYOUT_KEY, JSON.stringify(layoutCfg)); } catch (e) {}
+}
+
 function applyLayout() {
   const r = document.documentElement.style;
   r.setProperty('--layout-row-h', layoutCfg.rowH + 'px');
@@ -9436,13 +9819,13 @@ function applyLayout() {
   // 这两项以前解析出来了却没生效：表头行高没有变量、标签栏高度写死在 CSS 里
   r.setProperty('--layout-head-h', (layoutCfg.headerRowH || 34) + 'px');
   r.setProperty('--layout-tab-h', (layoutCfg.tabH || 40) + 'px');
-  // 按表字号覆盖：分类统计默认 13px
-  const tf = layoutCfg.tableFont || {};
-  const map = [['--fs-cat', tf.cat], ['--fs-flow', tf.flow], ['--fs-summary', tf.summary],
-               ['--fs-query', tf.query], ['--fs-install', tf.install], ['--fs-fixed', tf.fixed]];
-  for (const [v, val] of map) {
-    if (val) r.setProperty(v, val + 'px');
-    else r.removeProperty(v);
+  r.setProperty('--fs-tab', layoutCfg.fontSize + 'px');
+  // 每页覆盖：没设置就清掉变量，CSS 里 var(--lh-x, 全局) 会自然回退
+  const put = (name, v) => { if (v) r.setProperty(name, v + 'px'); else r.removeProperty(name); };
+  for (const k of LAYOUT_PAGES) {
+    put('--lh-' + k, layoutCfg.pageRowH[k]);
+    put('--fs-' + k, layoutCfg.pageFont[k]);
+    put('--fh-' + k, layoutCfg.pageHeadFont[k]);
   }
 }
 
@@ -9518,7 +9901,8 @@ function applyWidths(table, key, px) {
   const cg = ensureColgroup(table);
   if (!cg) return;
   const cols = cg.querySelectorAll('col');
-  const w = px.map(v => Math.max(COL_MIN, Math.round(v)));
+  // 0 = 明确折叠（账户汇总的「类型/分类/简码」会用到），不能按最小宽度抬回来
+  const w = px.map(v => (Math.round(v) === 0 ? 0 : Math.max(COL_MIN, Math.round(v))));
   if (key === 'query') {
     const sum = w.reduce((a, b) => a + b, 0) || 1;
     w.forEach((v, i) => { if (cols[i]) cols[i].style.width = (v / sum * 100).toFixed(4) + '%'; });
@@ -9619,11 +10003,33 @@ function initColResize(table, key) {
       // 流水/汇总：只动被拖的那一列，表格总宽跟着变（可与窗口宽度不一致）。
       const partner = idx < n - 1 ? idx + 1 : idx - 1;
       const pairSum = base[idx] + base[partner];
+      // 汇总页收起状态下，名称列的手柄先用来「挤出」类型/分类/简码三列
+      const foldGrip = key === 'summary' && th.classList.contains('col-name') && summaryFold;
       let moved = false;
       grip.classList.add('dragging');
       try { grip.setPointerCapture(e.pointerId); } catch (err) {}
 
       const onMove = me => {
+        if (foldGrip) {
+          // 向右拖的位移按顺序分给三列：先类型、再分类、最后简码。
+          // 拖「当前结余」及之后列的手柄走不到这里，所以不会被误触发展开。
+          let rest = Math.max(0, me.clientX - startX);
+          const next = base.slice();
+          for (let i = 0; i < 3; i++) {
+            const take = Math.min(summaryFoldW[i], rest);
+            next[SUMMARY_FOLD_COLS[i]] = Math.round(take);
+            rest -= take;
+          }
+          moved = true;
+          _pendingWidths = next;
+          if (!_widthRaf) {
+            _widthRaf = requestAnimationFrame(() => {
+              _widthRaf = 0;
+              if (_pendingWidths) { paintWidths(key, _pendingWidths); _pendingWidths = null; }
+            });
+          }
+          return;
+        }
         const delta = me.clientX - startX;
         const next = base.slice();
         if (isQuery) {
@@ -9663,8 +10069,17 @@ function initColResize(table, key) {
         grip.removeEventListener('pointercancel', onUp);
         grip.classList.remove('dragging');
         if (moved) {
-          saveColWidths(); syncFlowTitleWidth(); syncGridRight();
-          try { applySummarySticky(); } catch (e) {}
+          if (foldGrip) {
+            // 三列没全拉出来就回弹收起，避免停在半截宽度上
+            const cur = widthsOf(table);
+            const full = SUMMARY_FOLD_COLS.every((ci, i) => cur[ci] >= summaryFoldW[i] - 2);
+            setSummaryFold(!full);
+            saveColWidths();
+            try { applySummarySticky(); } catch (e) {}
+          } else {
+            saveColWidths(); syncFlowTitleWidth(); syncGridRight();
+            try { applySummarySticky(); } catch (e) {}
+          }
         }
       };
       grip.addEventListener('pointermove', onMove);
@@ -9675,6 +10090,11 @@ function initColResize(table, key) {
     grip.addEventListener('dblclick', e => {
       e.preventDefault();
       e.stopPropagation();
+      // 汇总页名称列手柄：双击 = 收起 / 展开三列（比拖回去省事）
+      if (key === 'summary' && th.classList.contains('col-name')) {
+        setSummaryFold(!summaryFold);
+        return;
+      }
       const base = widthsOf(table);
       const n = base.length;
       const next = base.slice();
@@ -9799,6 +10219,16 @@ function afterUnlock() {
   try {
     const nId = migrateFlowAccountIds();
     if (nId) save();
+  } catch (e) {}
+  // 老存档里的分期可能没有 id（同步合并要按 id 对齐），启动时补齐一次
+  try {
+    if (ensureInstallIds(state.installments)) save();
+  } catch (e) {}
+  // 分期页起止月如果和已有数据完全不相交，自动扩展到能看见
+  try {
+    const months = [];
+    (state.installments || []).forEach(i => months.push(...Object.keys(i.cells || {})));
+    if (months.length) fitInstallRange(months, installState);
   } catch (e) {}
   render();
 }
