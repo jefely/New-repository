@@ -11,9 +11,9 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="紫色账本">
+<meta name="apple-mobile-web-app-title" content="紫老记账">
 <meta name="mobile-web-app-capable" content="yes">
-<title>紫色账本</title>
+<title>紫老记账</title>
 <style>
 /* ==========================================
    1. 全局变量与基础设置
@@ -657,7 +657,7 @@ table.install-table th.col-day, table.install-table td.col-day { width: 40px; mi
 /* 账单日/还款日表头缩到 34px 后要分三行才放得下 */
 table.install-table thead th.col-day { font-size: 10.5px; line-height: 1.4; }
 table.install-table th.col-sum, table.install-table td.col-sum { width: 74px; min-width: 74px; text-align: right; padding-right: 6px; position: relative; }
-table.install-table .col-month { width: 78px; min-width: 78px; }
+table.install-table .col-month { width: var(--inst-mw, 62px); min-width: var(--inst-mw, 62px); }
 /* 表头文字一律居中（要压过下面 th.col-name 的左对齐） */
 table.install-table thead th,
 table.install-table thead th.col-name,
@@ -3833,6 +3833,76 @@ table.grid thead th { overflow: visible !important; }
   -webkit-overflow-scrolling: touch;
 }
 #footer::-webkit-scrollbar { height: 0; }
+/* 简介里的「简单开始」四步 */
+.intro-steps { display: flex; flex-direction: column; gap: 6px; }
+.intro-steps .step { display: flex; gap: 8px; font-size: 12.5px; line-height: 1.7; color: var(--text-muted); }
+.intro-steps .sn {
+  flex: 0 0 18px; height: 18px; margin-top: 2px; border-radius: 50%;
+  background: #6b5bc4; color: #fff; font-size: 11px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+}
+.intro-steps code {
+  padding: 1px 6px; border-radius: 4px; font-size: 12px;
+  background: var(--bg-gray); color: #b45309; font-weight: 700;
+}
+[data-theme="dark"] .intro-steps .step { color: #b4b4b4; }
+[data-theme="dark"] .intro-steps .sn { background: #4c3d80; }
+[data-theme="dark"] .intro-steps code { background: #1c1c1c; color: #fbbf24; }
+/* 布局参数：表头行高 / 标签栏高度 也走变量，才能被「导入布局参数」改到 */
+.tabbar { height: var(--layout-tab-h, 40px) !important; }
+table.grid thead th,
+table.query-table thead th,
+table.install-table thead th {
+  height: var(--layout-head-h, 34px);
+  box-sizing: border-box;
+}
+table#fixed-table thead th { height: var(--layout-head-h, 34px) !important; }
+/* ============================================================
+   v9.51 用户反馈修正
+   ============================================================ */
+
+/* ① 深色主题：汇总表冻结列（序号 / 账户名称）hover 时不同色。
+   原因是斑马纹规则 [data-theme=dark] ... tr:nth-child(even) td.col-name 带 !important，
+   而 hover 规则 table.grid tbody tr:hover td 没带，权重相同但被 !important 压掉。 */
+[data-theme="dark"] table.grid tbody tr:not(.cat-row):hover > td,
+[data-theme="dark"] table#summary-table tbody tr:not(.cat-row):hover > td.col-name,
+[data-theme="dark"] table#summary-table tbody tr:not(.cat-row):hover > td.col-seq,
+[data-theme="dark"] table#summary-table tbody tr:not(.cat-row):nth-child(even):hover > td.col-name,
+[data-theme="dark"] table#summary-table tbody tr:not(.cat-row):nth-child(even):hover > td.col-seq {
+  background-color: #22223a !important;
+}
+/* 浅色主题同样保证冻结列跟其它列一致 */
+table.grid tbody tr:not(.cat-row):hover > td.col-name,
+table.grid tbody tr:not(.cat-row):hover > td.col-seq,
+table#summary-table tbody tr:nth-child(even):hover > td.col-name,
+table#summary-table tbody tr:nth-child(even):hover > td.col-seq {
+  background: #f3f1fb !important;
+}
+
+/* ② 功能标签 / 月份格子：先给「半屏宽」的封顶宽度，窗口再窄时才等比缩。
+   之前是 flex:1 平均分（7 个标签在 360px 屏上每个只有 51px，字被挤掉），
+   宽度完全由窗口决定，窗口一大就全变得很宽。 */
+.tabbar button {
+  flex: 0 1 auto !important;
+  width: 14.28% !important;
+  max-width: 92px !important;
+  min-width: 0 !important;
+}
+.toolbar.bar1 button,
+.toolbar.flow-bar button {
+  flex: 0 0 auto !important;
+  max-width: 96px !important;
+}
+/* 月份格子：12 个一排，给上限，窄屏再缩 */
+.toolbar.plan-bar .plan-btn[data-month],
+.toolbar.plan-bar2 .plan-btn[data-month],
+.toolbar .month-cell,
+.toolbar .plan-month {
+  flex: 0 1 auto !important;
+  width: 8.33% !important;
+  max-width: 56px !important;
+  min-width: 0 !important;
+}
 </style>
 </head>
 <body>
@@ -4030,7 +4100,7 @@ async function encryptWithSession(text) {
 // 网站二维码（内嵌 base64，离线可显示），扫码打开 https://jefely.github.io/New-repository/
 const QR_DATA_URL = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAUoAAAFKCAIAAAD0S4FSAAAFCUlEQVR42u3dS3IUMRBF0VcE+9+y2QETIfKjc+YGd7VvqAYZqe/n5yfARr88ApA3IG9A3oC8AXkD8gZ5A/IG5A3IG5A3IG+QNyBvQN6AvAF5A/KGl/0++eHv+5Y9jr9vnjv5vD3/5Xub9nr+v/v+Jp3e4OUckDcgb0DegLwBeQPyBnkDeWpqLdembe7pOdV071nt+xZOPtFrf5NOb/ByDsgbkDcgb0DegLxB3oC8gTw1tZaiSZ2Jk0n3NrFVPcmTn636vPv+Jp3e4OUckDcgb0DegLwBeYO8AXkDMbUW94du2eI2cQ7P6Q3IG5A3IG9A3oC8Qd6AvAF5AzG1Nsi9Oa2qGzPNpTm9AXkD8gbkDcgbkDfIG5A3IG8gj0yt9bzHs+eutZP/t+qWz33fr9MbkDcgb0DegLxB3oC8AXkD8gbSfGpt37ate7vH/Gz+yxzeaxvgnN4gb0DegLwBeQPyBuQN8gbkDTT07dsvNXGmrWrWque3f+9JOr0BeQPyBuQNyBuQN8gbkDcgbyCjd63ZiZUGe+nu3Vta9S303MTW835Ypzd4OQfkDcgbkDcgb0DegLxB3kCemlq7N8djB9j0ezxTNNM2cRry3l+O0xu8nAPyBuQNyBuQNyBvkDcgbyDLbgidOAM0cU6ranbwtcnCqp91egPyBuQN8gbkDcgbkDcgb0DeELvWsne2rOd+uJ4zTz3vh616GhM/r9MbvJwD8gbkDcgbkDcgb5A3IG8gT02tnUzb3JtMujfTNnHyrGqLW9Wz2vcdOb3Byzkgb0DegLwBeQPyBuQN8gZiai29p4smburqOePVczNZ1ed1egPyBuQNyBvkDcgbkDcgb0DeQEZPraXlBNi+XVwZeIvra1OJTm9A3iBvQN6AvAF5A/IG5A3yBmJqLb3nw3rOD1VNU937vFUzbVX70ibOLDq9wcs5IG9A3oC8AXkD8gZ5A/IGGvp6zuJMvKux52ayqttFe86W7XuSTm/wcg7IG5A3IG9A3oC8AXmDvIE8NbVWtU/r3oRQ1bTcaxvReu482/f37PQGL+eAvAF5A/IG5A3IG+QNyBvIshtCM3BfWtUEWNZNcU18VlUzbVX/stMbvJwD8gbkDcgbkDcgb5A3IG8gT02t5bHpohTNllU9jbScw6uahzt5znatAfIG5A3yBuQNyBuQNyBvQN4QN4SWTwhNvNfy3u/sW9jN1Bogb0DeIG9A3oC8AXkD8gbkDTG1xpo7QHvuh/NbOb0BeQPyBnkD8gbkDcgbkDcgb4gbQjNniisDt16d7B6ruuVz4u2iE39npzcgb0DeIG9A3oC8AXkD8gbkDTG1lt4TYDFp136LW9W3XzV32HPSzukNXs4BeQPyBuQNyBuQN8gbkDeQp6bWUjQ99toOsJMnee9OzHvfb9Xc4ck3WDXh5/QGL+eAvAF5A/IG5A3IG+QNyBuIqbW8ures6g7Qe7NlPSfees4sVs20Ob3Byzkgb0DegLwBeQPyBnkD8gZiai2v3qe577eq2g+Xoj1tVbvlnN6AvEHegLwBeQPyBuQNyBvkDcTUWvZOgGXgRNTEaap7E289b2Kt+o6c3uDlHJA3IG9A3oC8AXmDvAF5Aw19EzdmpeVNjml5R2TVJFbcLur0BuQNyBuQN8gbkDcgb0DegLyB/OupNcDpDcgbkDcgb5A3IG9A3oC8AXkD8gbkDfIG5A3IG5A3IG9A3iBvQN5AU38AW3Unpg+CBHwAAAAASUVORK5CYII=';
 
-const APP_VER = 'v9.50';
+const APP_VER = 'v9.51';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -4455,9 +4525,17 @@ function renderAudit(main, footer) {
   const intro = document.createElement('div');
   intro.className = 'audit-intro';
   intro.innerHTML = `
-    <div class="intro-head">紫色账本 · 简介</div>
+    <div class="intro-head">紫老记账 · 简介</div>
     <div class="intro-lead">每一笔钱，都从一个账户<b>转出</b>，进入另一个账户<b>转入</b>。<br>
       不用记「借 / 贷」，只回答一个问题：<b>这笔钱从哪来，到哪去。</b></div>
+
+    <div class="intro-sec">简单开始</div>
+    <div class="intro-steps">
+      <div class="step"><span class="sn">1</span><div>先去<b>汇总</b>表查看账户及简码，简码可直接修改。</div></div>
+      <div class="step"><span class="sn">2</span><div>再到<b>流水记录</b>表，在日期栏输入 <code>:</code>（英文冒号）插入当前日期。</div></div>
+      <div class="step"><span class="sn">3</span><div>把对应的<b>简码</b>填进「转出账户」和「转入账户」。</div></div>
+      <div class="step"><span class="sn">4</span><div>填入<b>转账金额</b>，一笔记账就完成了。</div></div>
+    </div>
 
     <div class="intro-sec">账户性质决定加减</div>
     <div class="intro-grid">
@@ -4989,6 +5067,7 @@ function parseLayoutText(text) {
       if (mH) {
         out.rowH[key + ':head'] = Number(mH[1]);
         out.headerFontSize[key] = Number(mH[2]);
+        if (out.headerRowH == null) out.headerRowH = Number(mH[1]);   // 取第一处，作为统一表头行高
         continue;
       }
       // 数据行高：32px，字号：13px
@@ -5001,8 +5080,9 @@ function parseLayoutText(text) {
       // 行高：40px，字号：15px（功能标签那一节没有「数据/表头」前缀）
       const mG = line.match(/^行高[：:]\s*(\d+)\s*px[，,]\s*字号[：:]\s*(\d+)\s*px/);
       if (mG) {
-        out.rowH[key] = Number(mG[1]);
-        out.fontSize[key] = Number(mG[2]);
+        // 「功能标签」那一段的「行高」其实是标签栏高度，别写进数据行高
+        if (key === 'tabs') { out.tabH = Number(mG[1]); out.tabFontSize = Number(mG[2]); }
+        else { out.rowH[key] = Number(mG[1]); out.fontSize[key] = Number(mG[2]); }
         continue;
       }
     }
@@ -5718,7 +5798,7 @@ function openImportTextDialog() {
     preview();
     const d = new Date();
     const pad = n => String(n).padStart(2, '0');
-    const name = '紫色账本模板_' + d.getFullYear() + pad(d.getMonth() + 1) + pad(d.getDate())
+    const name = '紫老记账模板_' + d.getFullYear() + pad(d.getMonth() + 1) + pad(d.getDate())
       + '_' + pad(d.getHours()) + pad(d.getMinutes()) + '.txt';
     try {
       const blob = new Blob(['﻿' + txt], { type: 'text/plain;charset=utf-8' });
@@ -5877,6 +5957,9 @@ function openColWidthsDialog() {
           if (p.fontSize[k] != null) { layoutCfg.fontSize = p.fontSize[k]; nL++; }
           if (p.headerFontSize[k] != null) { layoutCfg.headerFontSize = p.headerFontSize[k]; nL++; }
         }
+        // 表头行高 / 标签栏高度：以前解析了却没写回，所以「改了没反应」
+        if (p.headerRowH != null) { layoutCfg.headerRowH = p.headerRowH; nL++; }
+        if (p.tabH != null) { layoutCfg.tabH = p.tabH; nL++; }
         if (nL) { saveLayout(); applyLayout(); }
         if (p.installMonthWidth) {
           try { localStorage.setItem('flow_inst_mw_v1', String(p.installMonthWidth)); } catch (e) {}
@@ -7885,6 +7968,11 @@ function renderInstall(main, footer) {
 
   // 分期表列宽：月份列统一宽度，用 CSS 变量控制（CSS 变量 + 专用拖动）
   const MW_KEY = 'flow_inst_mw_v1';
+  // 把保存的月份列宽写进变量，保证 CSS 与拖拽基准一致
+  try {
+    const _mwSaved = parseInt(localStorage.getItem(MW_KEY), 10);
+    if (_mwSaved >= 44 && _mwSaved <= 160) table.style.setProperty('--inst-mw', _mwSaved + 'px');
+  } catch (e) {}
   let instMW = 62;
   try { instMW = parseInt(localStorage.getItem(MW_KEY), 10) || 62; } catch (e) {}
   instMW = Math.max(44, Math.min(160, instMW));
@@ -7962,24 +8050,34 @@ function renderInstall(main, footer) {
   let ws = Array.isArray(colWidths[KEY]) && colWidths[KEY].length === 3
     ? colWidths[KEY].slice()
     : JSON.parse(JSON.stringify(DEFAULT_COL_WIDTHS[KEY]));
+  // 只写 colgroup：以前是遍历 tbody 每一行 × 3 列写内联样式（44 行 = 132 次/帧），
+  // 真手指拖动时 pointermove 频率高，界面跟不上，看起来就像「各列位移不同步」。
+  const ensureCG = () => {
+    const headRow = table.querySelector('thead tr');
+    if (!headRow) return null;
+    const n = headRow.querySelectorAll('th').length;
+    let cg = table.querySelector('colgroup');
+    if (cg && cg.children.length === n) return cg;
+    if (cg) cg.remove();
+    cg = document.createElement('colgroup');
+    for (let i = 0; i < n; i++) cg.appendChild(document.createElement('col'));
+    table.insertBefore(cg, table.firstChild);
+    return cg;
+  };
+  let _fxRaf = 0;
   const applyFixed = () => {
-    const cols = table.querySelectorAll('colgroup col');
-    // 没有 colgroup 就手写 style
-    const ths = table.querySelectorAll('thead tr:first-child th');
-    for (let i = 0; i < 3 && i < ths.length; i++) {
-      ths[i].style.width = ws[i] + 'px';
-      ths[i].style.minWidth = ws[i] + 'px';
-      ths[i].style.maxWidth = ws[i] + 'px';
+    const cg = ensureCG();
+    if (!cg) return;
+    const cols = cg.querySelectorAll('col');
+    for (let i = 0; i < 3 && i < cols.length; i++) {
+      cols[i].style.width = ws[i] + 'px';
+      cols[i].style.minWidth = ws[i] + 'px';
+      cols[i].style.maxWidth = ws[i] + 'px';
     }
-    table.querySelectorAll('tbody tr').forEach(tr => {
-      for (let i = 0; i < 3; i++) {
-        const td = tr.children[i];
-        if (!td) continue;
-        td.style.width = ws[i] + 'px';
-        td.style.minWidth = ws[i] + 'px';
-        td.style.maxWidth = ws[i] + 'px';
-      }
-    });
+  };
+  const applyFixedSoon = () => {
+    if (_fxRaf) return;
+    _fxRaf = requestAnimationFrame(() => { _fxRaf = 0; applyFixed(); });
   };
   applyFixed();
   const ths = table.querySelectorAll('thead tr:first-child th');
@@ -8000,7 +8098,7 @@ function renderInstall(main, footer) {
       try { g.setPointerCapture(ev2.pointerId); } catch (e) {}
       const onMv = me => {
         ws[i] = Math.max(44, Math.min(240, baseW + (me.clientX - startX)));
-        applyFixed(); moved = true;
+        applyFixedSoon(); moved = true;
       };
       const onUp = () => {
         g.removeEventListener('pointermove', onMv);
@@ -8008,6 +8106,7 @@ function renderInstall(main, footer) {
         g.removeEventListener('pointercancel', onUp);
         g.classList.remove('dragging');
         if (moved) {
+          applyFixed();   // 收尾时同步一次，保证最终值精确
           colWidths[KEY] = ws.slice(); saveColWidths();
         }
       };
@@ -8031,14 +8130,18 @@ try {
       if (ev2.button !== 0) return;
       ev2.preventDefault(); ev2.stopPropagation();
       const startX = ev2.clientX;
-      const baseW = parseInt(table.style.getPropertyValue('--inst-mw'), 10) || 62;
+      // 基准必须取这一列的真实渲染宽度：以前读 --inst-mw（默认 62），
+      // 而 CSS 里写死 78px，两者对不上 → 一拖动就跳一下，看起来「位移不对」
+      const baseW = Math.round(th.getBoundingClientRect().width) || 62;
       let moved = false;
       g.classList.add('dragging');
       try { g.setPointerCapture(ev2.pointerId); } catch (e) {}
+      let _mwRaf = 0, _mwNext = 0;
       const onMv = me => {
-        const w = Math.max(44, Math.min(160, baseW + (me.clientX - startX)));
-        table.style.setProperty('--inst-mw', w + 'px');
+        _mwNext = Math.max(44, Math.min(160, baseW + (me.clientX - startX)));
         moved = true;
+        if (_mwRaf) return;
+        _mwRaf = requestAnimationFrame(() => { _mwRaf = 0; table.style.setProperty('--inst-mw', _mwNext + 'px'); });
       };
       const onUp = () => {
         g.removeEventListener('pointermove', onMv);
@@ -9086,7 +9189,7 @@ async function exportXLSX() {
   // 不再走「拿模板改行」那条路（那条会保留模板的标题行和说明行，
   // 数据从第 3 行开始写会把表头覆盖掉，且 dimension 不更新）。
   const bytes = await buildXlsxBytes();
-  const name = '紫色账本_' + todayISO() + '.xlsx';
+  const name = '紫老记账_' + todayISO() + '.xlsx';
   const type = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
   const blob = new Blob([bytes], { type });
   toast('[' + APP_VER + '] 已生成 Excel（' + Math.round(bytes.length / 1024) + ' KB）：流水 ' + state.transactions.length + ' 笔、账户 ' + state.accounts.length + ' 个、分期 ' + (state.installments || []).length + ' 个', { duration: 5000 });
@@ -9249,7 +9352,7 @@ function openSyncDialog() {
       const code = await buildSyncCode();
       const d = new Date();
       const pad = n => String(n).padStart(2, '0');
-      const name = '紫色账本_' + d.getFullYear() + pad(d.getMonth() + 1) + pad(d.getDate())
+      const name = '紫老记账_' + d.getFullYear() + pad(d.getMonth() + 1) + pad(d.getDate())
         + '_' + pad(d.getHours()) + pad(d.getMinutes()) + '.lz';
       const blob = new Blob([code], { type: 'text/plain;charset=utf-8' });
       const url = URL.createObjectURL(blob);
@@ -9302,7 +9405,7 @@ const COLW_KEY_V2 = 'flow_col_widths_v2';
 // 布局参数：行高 / 正文字号 / 表头字号（跟列宽一起存）
 const LAYOUT_KEY = 'flow_layout_v1';
 // tableFont：按表覆盖正文字号（不改全局）。键是表的 key，值是 px。
-const DEFAULT_LAYOUT = { rowH: 32, fontSize: 15, headerFontSize: 15, tableFont: { cat: 13 } };
+const DEFAULT_LAYOUT = { rowH: 32, fontSize: 15, headerFontSize: 15, tabH: 40, headerRowH: 34, tableFont: { cat: 13 } };
 let layoutCfg = (() => {
   try {
     const o = JSON.parse(localStorage.getItem(LAYOUT_KEY) || 'null');
@@ -9330,6 +9433,9 @@ function applyLayout() {
   r.setProperty('--layout-row-h', layoutCfg.rowH + 'px');
   r.setProperty('--layout-fs', layoutCfg.fontSize + 'px');
   r.setProperty('--layout-fs-h', layoutCfg.headerFontSize + 'px');
+  // 这两项以前解析出来了却没生效：表头行高没有变量、标签栏高度写死在 CSS 里
+  r.setProperty('--layout-head-h', (layoutCfg.headerRowH || 34) + 'px');
+  r.setProperty('--layout-tab-h', (layoutCfg.tabH || 40) + 'px');
   // 按表字号覆盖：分类统计默认 13px
   const tf = layoutCfg.tableFont || {};
   const map = [['--fs-cat', tf.cat], ['--fs-flow', tf.flow], ['--fs-summary', tf.summary],
