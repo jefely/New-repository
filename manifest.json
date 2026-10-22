@@ -1,7 +1,7 @@
 {
-  "name": "紫老记账",
-  "short_name": "紫老记账",
-  "description": "紫老记账：流水记录、账户汇总、分类统计、分期、固定收支、借贷校验",
+  "name": "NT账本",
+  "short_name": "NT账本",
+  "description": "NT账本：紫老头的专属账本，用「NT = 直觉 + 思考」的习惯进行记账",
   "lang": "zh-CN",
   "start_url": "./",
   "scope": "./",
@@ -11,28 +11,40 @@
   "theme_color": "#4c3d80",
   "icons": [
     {
-      "src": "zilao-192.png",
+      "src": "nt-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "zilao-512.png",
+      "src": "nt-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "zilao-maskable-192.png",
+      "src": "nt-maskable-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "maskable"
     },
     {
-      "src": "zilao-maskable-512.png",
+      "src": "nt-maskable-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
+    },
+    {
+      "src": "nt-mono-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "monochrome"
+    },
+    {
+      "src": "nt-mono-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "monochrome"
     }
   ]
 }

@@ -1,8 +1,8 @@
-﻿# 紫老记账
+﻿# NT账本
 
 个人复式流水账本。纯单文件前端应用，零依赖、零后端，数据完全存在浏览器本地并加密。
 
-> 当前版本：**v9.66**
+> 当前版本：**v9.68**
 
 ## 在线使用
 
@@ -73,7 +73,7 @@ https://jefely.github.io/New-repository/
 - **导出**：Excel 工作簿（流水 / 汇总 / 分期 / 固定 四张表）
 - **导入**：读 `.xlsx` 的**四张表**——流水和账户整表重建，**分期（连每个月的本金/利息格子）和固定收支也一起恢复**
 - **导入**：还可读 TXT 文本、粘贴批量添加
-- **模板**：`紫老记账模板.xlsx` 可在电脑上填好后导回
+- **模板**：`NT账本模板.xlsx` 可在电脑上填好后导回
 
 **⑦ 同步：覆盖 / 合并 / 扫二维码**
 
@@ -117,7 +117,7 @@ https://jefely.github.io/New-repository/
 **Android Chrome / 华为浏览器**：打开网址 → 菜单 → 添加到主屏幕
 **iPhone Safari**：打开网址 → 分享 → 添加到主屏幕
 
-装好后桌面显示「紫老记账」图标，全屏打开，**断网也能用**。
+装好后桌面显示「NT账本」图标，全屏打开，**断网也能用**。
 
 ---
 
@@ -143,11 +143,22 @@ https://jefely.github.io/New-repository/
 | `index.html` | 应用本体（单文件，含全部 CSS / JS） |
 | `manifest.json` | PWA 清单：应用名、图标、主题色 |
 | `sw.js` | Service Worker，离线缓存 |
-| `zilao-192.png` / `zilao-512.png` | 普通图标 |
-| `zilao-maskable-192.png` / `zilao-maskable-512.png` | Android 自适应图标（满底色，裁切后不留白边） |
+| `nt-192.png` / `nt-512.png` | 深色图标：紫底白字（Android 主屏、浏览器默认） |
+| `nt-maskable-192.png` / `nt-maskable-512.png` | Android 自适应图标（满底色，系统裁切后不留白边） |
+| `nt-light-192.png` / `nt-light-512.png` | 浅色图标：白底紫字（iOS 主屏；深色标签栏的 favicon） |
+| `nt-mono-192.png` / `nt-mono-512.png` | 单色图标（Android 13+ 主题图标，系统按壁纸自己着色） |
 
-> 图标只有这四个文件，不再保留历史版本（v2 / v3 之类）。
-> 要换图标就覆盖同名文件，同时把 `sw.js` 的 `CACHE` +1。
+> **主屏图标能不能按系统深浅色自动切换？不能。**
+> PWA 没有「深色图标 / 浅色图标」两套的接口——Android 的 manifest 不能按主题选图，
+> iOS 的 `apple-touch-icon` 也只认一张（dark/tinted 变体是原生 App 才有的能力）。
+>
+> 所以这里按**平台**分工，效果接近自动：
+> iOS 主屏用白底紫字（放任何壁纸都清楚）；Android 主屏用紫底自适应图标，
+> 再加一份 `monochrome` 给 Android 13+ 的主题图标（系统会自己染成壁纸色）；
+> **浏览器标签页**是真自动——`index.html` 里用
+> `media="(prefers-color-scheme: …)"` 配了两条 favicon。
+>
+> 换图标就覆盖同名文件，同时把 `sw.js` 里的 `CACHE` +1。
 
 ## 更新版本
 

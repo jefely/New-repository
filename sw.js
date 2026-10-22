@@ -1,10 +1,12 @@
-/* 紫老记账 · Service Worker
+/* NT账本 · Service Worker
    策略：网络优先（在线时永远拿最新版本），失败再回退缓存 —— 断网也能打开。
    改了 index.html 只需重新上传，用户下次联网打开就会自动更新。 */
-const CACHE = 'ledger-v172';
+const CACHE = 'ledger-v174';
 const ASSETS = ['./', './index.html', './manifest.json',
-  './zilao-192.png', './zilao-512.png',
-  './zilao-maskable-192.png', './zilao-maskable-512.png'];
+  './nt-192.png', './nt-512.png',
+  './nt-maskable-192.png', './nt-maskable-512.png',
+  './nt-light-192.png', './nt-light-512.png',
+  './nt-mono-192.png', './nt-mono-512.png'];
 
 self.addEventListener('install', e => {
   e.waitUntil(
