@@ -5183,17 +5183,22 @@ table#summary-table tbody td.col-name { z-index: 6; }
 .rowmenu { display: flex; flex-direction: column; gap: 10px; margin: 14px 0 4px; }
 .rowmenu-item {
   display: flex; align-items: center; justify-content: space-between; gap: 12px;
-  width: 100%; padding: 12px 14px; box-sizing: border-box;
-  border: 1px solid #cbbcf0; border-radius: 12px; background: #faf8ff;
-  color: #4c3d80; font-size: 14px; font-weight: 600; cursor: pointer; text-align: left;
+  width: 100% !important; padding: 12px 14px !important; box-sizing: border-box;
+  border: 1px solid #cbbcf0 !important; border-radius: 12px !important;
+  background: #faf8ff !important;
+  color: #4c3d80 !important; font-size: 14px !important; font-weight: 600 !important;
+  cursor: pointer; text-align: left; height: auto !important;
 }
-.rowmenu-item:hover { background: #f2ecff; border-color: #b7a3ea; }
-.rowmenu-item:active { background: #e9e0ff; }
+.rowmenu-item:hover { background: #f2ecff !important; border-color: #b7a3ea !important; }
+.rowmenu-item:active { background: #e9e0ff !important; }
 .rowmenu-label { flex: 1 1 auto; min-width: 0; }
-.rowmenu-types { flex: 0 0 auto; font-size: 12px; font-weight: 600; color: #6b5bc4; opacity: .85; white-space: nowrap; }
-[data-theme="dark"] .rowmenu-item { background: #1b1630; border-color: #3a2f66; color: #d9d0f5; }
-[data-theme="dark"] .rowmenu-item:hover { background: #241d3d; }
-[data-theme="dark"] .rowmenu-types { color: #a99bf0; }
+.rowmenu-types {
+  flex: 0 0 auto; font-size: 12px !important; font-weight: 700 !important;
+  color: #6b5bc4 !important; white-space: nowrap;
+}
+[data-theme="dark"] .rowmenu-item { background: #1b1630 !important; border-color: #3a2f66 !important; color: #d9d0f5 !important; }
+[data-theme="dark"] .rowmenu-item:hover { background: #241d3d !important; }
+[data-theme="dark"] .rowmenu-types { color: #b6a8f5 !important; }
 
 /* 二维码画布框：直角灰块 → 圆角 + 极淡紫底 */
 #sync-qr-canvas {
@@ -5413,7 +5418,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v10.12';
+const APP_VER = 'v10.13';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
