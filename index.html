@@ -5149,11 +5149,19 @@ table#summary-table tbody td.col-cat,
 table#summary-table tbody td.col-sub,
 table#summary-table tbody td.col-code {
   position: sticky;
-  z-index: 2;
 }
-table#summary-table thead th.col-cat,
-table#summary-table thead th.col-sub,
-table#summary-table thead th.col-code { z-index: 6; }
+/* 冻结列必须逐级抬高 z-index，否则后渲染的「账户名称」会把前面几列盖住
+   （同样是 z-index:2 时，DOM 顺序在后的赢） */
+table#summary-table thead th.col-seq  { z-index: 5; }
+table#summary-table thead th.col-cat  { z-index: 6; }
+table#summary-table thead th.col-sub  { z-index: 7; }
+table#summary-table thead th.col-code { z-index: 8; }
+table#summary-table thead th.col-name { z-index: 9; }
+table#summary-table tbody td.col-seq  { z-index: 2; }
+table#summary-table tbody td.col-cat  { z-index: 3; }
+table#summary-table tbody td.col-sub  { z-index: 4; }
+table#summary-table tbody td.col-code { z-index: 5; }
+table#summary-table tbody td.col-name { z-index: 6; }
 table#summary-table tbody td.col-cat,
 table#summary-table tbody td.col-sub,
 table#summary-table tbody td.col-code { background: var(--bg-main); }
@@ -5370,7 +5378,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v20.3';
+const APP_VER = 'v20.4';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
