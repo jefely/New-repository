@@ -5392,7 +5392,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v21.6';
+const APP_VER = 'v21.7';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -6016,28 +6016,6 @@ function openHelpDialog() {
       <div class="intro-lead">每一笔钱，都从一个账户<b>转出</b>，进入另一个账户<b>转入</b>。<br>
         不用记「借 / 贷」，只回答一个问题：<b>这笔钱从哪来，到哪去。</b></div>
 
-      <div class="intro-sec">功能与文件类型</div>
-    <div class="intro-lead" style="margin-bottom:8px">
-      工具栏四个按钮都是两级菜单，点开先选子功能：
-    </div>
-    <div class="modtable">
-      <div class="modrow modhead">
-        <div>模块</div><div>子功能</div><div>支持的文件</div>
-      </div>
-      <div class="modrow"><div class="modname">添加</div><div>新账本</div><div class="modtypes">—</div></div>
-      <div class="modrow"><div class="modname"></div><div>添加更新 txt 文本</div><div class="modtypes">.txt</div></div>
-      <div class="modrow"><div class="modname">同步</div><div>生成二维码</div><div class="modtypes">—</div></div>
-      <div class="modrow"><div class="modname"></div><div>识别二维码</div><div class="modtypes">—</div></div>
-      <div class="modrow"><div class="modname">导出</div><div>导出文件<small>（仅支持电脑端）</small></div><div class="modtypes">.lz　.xlsx</div></div>
-      <div class="modrow"><div class="modname"></div><div>复制内容</div><div class="modtypes">.csv　.txt</div></div>
-      <div class="modrow"><div class="modname">导入</div><div>导入覆盖文件</div><div class="modtypes">.lz　.xlsx</div></div>
-      <div class="modrow"><div class="modname"></div><div>导入覆盖账单</div><div class="modtypes">.csv　.txt　.xlsx</div></div>
-    </div>
-    <div class="intro-lead" style="margin-top:8px;font-size:12px;opacity:.8">
-      说明：手机浏览器普遍存不下文件，「导出文件」只在电脑端可靠；
-      手机上请用「复制内容」，纯文本粘到记事本或 Excel 里都能用。
-    </div>
-
     <div class="intro-sec">简单开始</div>
       <div class="intro-steps">
         <div class="step"><span class="sn">1</span><div>先去<b>汇总</b>表查看账户及简码，简码可直接修改。</div></div>
@@ -6368,6 +6346,28 @@ function renderAudit(main, footer) {
     <div class="intro-tagline">紫老头的专属账本，用「NT = 直觉 + 思考」的习惯进行记账。</div>
     <div class="intro-lead">每一笔钱，都从一个账户<b>转出</b>，进入另一个账户<b>转入</b>。<br>
       不用记「借 / 贷」，只回答一个问题：<b>这笔钱从哪来，到哪去。</b></div>
+
+    <div class="intro-sec">功能与文件类型</div>
+    <div class="intro-lead" style="margin-bottom:8px">
+    工具栏四个按钮都是两级菜单，点开先选子功能：
+    </div>
+    <div class="modtable">
+    <div class="modrow modhead">
+      <div>模块</div><div>子功能</div><div>支持的文件</div>
+    </div>
+    <div class="modrow"><div class="modname">添加</div><div>新账本</div><div class="modtypes">—</div></div>
+    <div class="modrow"><div class="modname"></div><div>添加更新 txt 文本</div><div class="modtypes">.txt</div></div>
+    <div class="modrow"><div class="modname">同步</div><div>生成二维码</div><div class="modtypes">—</div></div>
+    <div class="modrow"><div class="modname"></div><div>识别二维码</div><div class="modtypes">—</div></div>
+    <div class="modrow"><div class="modname">导出</div><div>导出文件<small>（仅支持电脑端）</small></div><div class="modtypes">.lz　.xlsx</div></div>
+    <div class="modrow"><div class="modname"></div><div>复制内容</div><div class="modtypes">.csv　.txt</div></div>
+    <div class="modrow"><div class="modname">导入</div><div>导入覆盖文件</div><div class="modtypes">.lz　.xlsx</div></div>
+    <div class="modrow"><div class="modname"></div><div>导入覆盖账单</div><div class="modtypes">.csv　.txt　.xlsx</div></div>
+    </div>
+    <div class="intro-lead" style="margin-top:8px;font-size:12px;opacity:.8">
+    说明：手机浏览器普遍存不下文件，「导出文件」只在电脑端可靠；
+    手机上请用「复制内容」，纯文本粘到记事本或 Excel 里都能用。
+    </div>
 
     <div class="intro-sec">简单开始</div>
     <div class="intro-steps">
