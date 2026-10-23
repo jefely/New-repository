@@ -105,7 +105,7 @@ footer { flex-shrink: 0; background: var(--bar-bg); color: var(--bar-text-dim); 
    3. 通用表格与表单样式 (增强可读性)
    ========================================== */
 table.grid { border-collapse: separate; border-spacing: 0; table-layout: fixed; font-size: 14px; width: 100%; }
-table.grid thead th { position: sticky; top: 0; z-index: 3; background: var(--bg-gray); color: var(--text-muted); font-weight: 700; font-size: 13px; padding: 7px 6px; text-align: center; border-bottom: 1px solid var(--border); border-right: 1px solid var(--border-light); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+table.grid thead th { position: sticky; top: 0; z-index: 3; background: var(--bg-gray); color: var(--text-muted); font-weight: 700; font-size: 13px; padding: 7px 2px; text-align: center; border-bottom: 1px solid var(--border); border-right: 1px solid var(--border-light); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 table.grid tbody td { padding: 0; border-bottom: 1px solid var(--border-light); border-right: 1px solid var(--border-light); vertical-align: middle; background: var(--bg-main); }
 table.grid tbody tr:nth-child(even) td { background: var(--bg-gray-light); }
 table.grid tbody tr:hover td { background: #f3f1fb; } /* 悬停高亮，增加可读性 */
@@ -133,7 +133,7 @@ table.grid input::placeholder { color: var(--text-light); }
    导致「账户」是白的、「金额」是浅灰的，一行里两种底色对不齐。 */
 table.grid tbody td.readonly { color: var(--text-main); padding: 7px 6px; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; font-size: 13px; overflow: hidden; text-overflow: ellipsis; }
 table.grid tbody td.readonly.strong { font-weight: 700; color: #1e293b; }
-table.grid td.col-amount input, table.grid td.col-amount.readonly { text-align: right; padding-right: 8px; font-weight: 600; color: var(--text-main); }
+table.grid td.col-amount input, table.grid td.col-amount.readonly { text-align: right; padding-right: 2px; font-weight: 600; color: var(--text-main); }
 
 /* 列对齐：日期居中、金额靠右、备注靠左；转出/转入靠左贴边
    （列压窄时居中会把账户名两头都切掉，左对齐至少能看到开头，两侧也不再留白） */
@@ -3438,8 +3438,10 @@ table#flow-table thead th.col-note { padding-left: 6px !important; padding-right
   position: absolute !important;
   top: 0 !important;
   bottom: 0 !important;
-  right: -12px !important;
-  width: 24px !important;
+  /* 表头是 overflow:hidden，手柄伸到列外会被裁掉（竖线看不见、热区只剩一半），
+     所以手柄整个放在列内右侧，竖线紧贴右边界（距边框 3px） */
+  right: 0 !important;
+  width: 8px !important;
   cursor: col-resize !important;
   z-index: 60 !important;
   touch-action: none !important;
@@ -3450,7 +3452,7 @@ table#flow-table thead th.col-note { padding-left: 6px !important; padding-right
   position: absolute !important;
   top: 22% !important;
   bottom: 22% !important;
-  left: 11px !important;      /* 24 - 2 的中心 */
+  left: 3px !important;       /* 8 - 2 的中心 */
   width: 2px !important;
   border-radius: 1px !important;
   background: transparent !important;
@@ -3459,8 +3461,8 @@ table#flow-table thead th.col-note { padding-left: 6px !important; padding-right
 .col-resizer:hover::after,
 .col-resizer.dragging::after { background: var(--primary) !important; }
 @media (max-width: 767px) {
-  .col-resizer { right: -16px !important; width: 32px !important; }
-  .col-resizer::after { left: 15px !important; background: #cbd5e1 !important; }
+  .col-resizer { right: 0 !important; width: 16px !important; }
+  .col-resizer::after { left: 7px !important; background: #cbd5e1 !important; }
   .col-resizer.dragging::after { background: var(--primary) !important; }
 }
 /* 分期表两个专用手柄沿用同一套尺寸 */
@@ -4057,8 +4059,9 @@ table#summary-table.sum-cols-folded .sum-fold-toggle::before {
   box-shadow: none !important;
 }
 .col-resizer::after {
-  left: 5px !important;
-  width: 1px !important;
+  left: auto !important;
+  right: 1px !important;
+  width: 2px !important;
   background: transparent !important;
   box-shadow: none !important;
 }
@@ -4068,7 +4071,7 @@ table#summary-table.sum-cols-folded .sum-fold-toggle::before {
 }
 @media (max-width: 767px) {
   .col-resizer { width: 14px !important; }
-  .col-resizer::after { left: 6px !important; }
+  .col-resizer::after { left: auto !important; right: 1px !important; }
 }
 
 /* ④ 分期表：固定表格布局 + 完整 colgroup，拖动一列只改那一列。
@@ -4442,7 +4445,7 @@ async function encryptWithSession(text) {
 // 网站二维码（内嵌 base64，离线可显示），扫码打开 https://jefely.github.io/New-repository/
 const QR_DATA_URL = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAUoAAAFKCAIAAAD0S4FSAAAFCUlEQVR42u3dS3IUMRBF0VcE+9+y2QETIfKjc+YGd7VvqAYZqe/n5yfARr88ApA3IG9A3oC8AXkD8gZ5A/IG5A3IG5A3IG+QNyBvQN6AvAF5A/KGl/0++eHv+5Y9jr9vnjv5vD3/5Xub9nr+v/v+Jp3e4OUckDcgb0DegLwBeQPyBnkDeWpqLdembe7pOdV071nt+xZOPtFrf5NOb/ByDsgbkDcgb0DegLxB3oC8gTw1tZaiSZ2Jk0n3NrFVPcmTn636vPv+Jp3e4OUckDcgb0DegLwBeYO8AXkDMbUW94du2eI2cQ7P6Q3IG5A3IG9A3oC8Qd6AvAF5AzG1Nsi9Oa2qGzPNpTm9AXkD8gbkDcgbkDfIG5A3IG8gj0yt9bzHs+eutZP/t+qWz33fr9MbkDcgb0DegLxB3oC8AXkD8gbSfGpt37ate7vH/Gz+yxzeaxvgnN4gb0DegLwBeQPyBuQN8gbkDTT07dsvNXGmrWrWque3f+9JOr0BeQPyBuQNyBuQN8gbkDcgbyCjd63ZiZUGe+nu3Vta9S303MTW835Ypzd4OQfkDcgbkDcgb0DegLxB3kCemlq7N8djB9j0ezxTNNM2cRry3l+O0xu8nAPyBuQNyBuQNyBvkDcgbyDLbgidOAM0cU6ranbwtcnCqp91egPyBuQN8gbkDcgbkDcgb0DeELvWsne2rOd+uJ4zTz3vh616GhM/r9MbvJwD8gbkDcgbkDcgb5A3IG8gT02tnUzb3JtMujfTNnHyrGqLW9Wz2vcdOb3Byzkgb0DegLwBeQPyBuQN8gZiai29p4smburqOePVczNZ1ed1egPyBuQNyBvkDcgbkDcgb0DeQEZPraXlBNi+XVwZeIvra1OJTm9A3iBvQN6AvAF5A/IG5A3yBmJqLb3nw3rOD1VNU937vFUzbVX70ibOLDq9wcs5IG9A3oC8AXkD8gZ5A/IGGvp6zuJMvKux52ayqttFe86W7XuSTm/wcg7IG5A3IG9A3oC8AXmDvIE8NbVWtU/r3oRQ1bTcaxvReu482/f37PQGL+eAvAF5A/IG5A3IG+QNyBvIshtCM3BfWtUEWNZNcU18VlUzbVX/stMbvJwD8gbkDcgbkDcgb5A3IG8gT02t5bHpohTNllU9jbScw6uahzt5znatAfIG5A3yBuQNyBuQNyBvQN4QN4SWTwhNvNfy3u/sW9jN1Bogb0DeIG9A3oC8AXkD8gbkDTG1xpo7QHvuh/NbOb0BeQPyBnkD8gbkDcgbkDcgb4gbQjNniisDt16d7B6ruuVz4u2iE39npzcgb0DeIG9A3oC8AXkD8gbkDTG1lt4TYDFp136LW9W3XzV32HPSzukNXs4BeQPyBuQNyBuQN8gbkDeQp6bWUjQ99toOsJMnee9OzHvfb9Xc4ck3WDXh5/QGL+eAvAF5A/IG5A3IG+QNyBuIqbW8ures6g7Qe7NlPSfees4sVs20Ob3Byzkgb0DegLwBeQPyBnkD8gZiai2v3qe577eq2g+Xoj1tVbvlnN6AvEHegLwBeQPyBuQNyBvkDcTUWvZOgGXgRNTEaap7E289b2Kt+o6c3uDlHJA3IG9A3oC8AXmDvAF5Aw19EzdmpeVNjml5R2TVJFbcLur0BuQNyBuQN8gbkDcgb0DegLyB/OupNcDpDcgbkDcgb5A3IG9A3oC8AXkD8gbkDfIG5A3IG5A3IG9A3iBvQN5AU38AW3Unpg+CBHwAAAAASUVORK5CYII=';
 
-const APP_VER = 'v9.98';
+const APP_VER = 'v9.99';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
