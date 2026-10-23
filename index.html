@@ -137,14 +137,11 @@ table.grid tbody td.readonly { color: var(--text-main); padding: 7px 6px; text-a
 table.grid tbody td.readonly.strong { font-weight: 700; color: #1e293b; }
 table.grid td.col-amount input, table.grid td.col-amount.readonly { text-align: right; padding-right: 2px; font-weight: 600; color: var(--text-main); }
 
-/* 列对齐：日期居中、金额靠右、备注靠左；转出/转入靠左贴边
-   （列压窄时居中会把账户名两头都切掉，左对齐至少能看到开头，两侧也不再留白） */
+/* 列对齐：日期居中、金额靠右、备注靠左；转出/转入居中（保持原样） */
 table#flow-table td.col-date input { text-align: center; }
 table#flow-table td.col-from input,
-table#flow-table td.col-to input { text-align: left; }
+table#flow-table td.col-to input { text-align: center; }
 table#flow-table td.col-note input { text-align: left; }
-table#flow-table thead th.col-from,
-table#flow-table thead th.col-to { text-align: left; padding-left: 2px; }
 table#summary-table td.col-cat input,
 table#summary-table td.col-code input,
 table#summary-table td.col-name input { text-align: center; }
@@ -4248,6 +4245,33 @@ html[data-theme="dark"] table#summary-table thead th.col-seq {
   height: calc(var(--layout-tab-h, 40px) + env(safe-area-inset-top, 0px)) !important;
   box-sizing: border-box !important;
 }
+
+/* ===== 全局单元格度量（布局设置里可调，所有表格统一）=====
+   ① 文字到左右边框的距离：--cell-pad-l / --cell-pad-r（默认 0 = 贴边）
+   ② 列宽手柄相对列边线的位置：--cell-grip-shift
+      0 = 手柄中心压在边线上；-2 = 左移 2px；2 = 右移 2px
+   这两项以前散落在各表各列里各写一遍，改一处漏一处，现在统一走变量。 */
+table.grid tbody td input {
+  padding-left: var(--cell-pad-l, 0px) !important;
+  padding-right: var(--cell-pad-r, 0px) !important;
+}
+table.grid thead th {
+  padding-left: var(--cell-pad-l, 0px) !important;
+  padding-right: var(--cell-pad-r, 0px) !important;
+}
+/* 手柄跨到列外，表头不能把它裁掉 */
+table.grid thead th { overflow: visible !important; }
+.col-resizer {
+  right: -6px !important;
+  width: 12px !important;
+  /* 用 transform 平移最稳：calc 里拼 var 容易踩解析坑，而且平移不影响布局 */
+  transform: translateX(var(--cell-grip-shift, 0px)) !important;
+}
+.col-resizer::after { left: 5px !important; right: auto !important; }
+@media (max-width: 767px) {
+  .col-resizer { right: -7px !important; width: 14px !important; }
+  .col-resizer::after { left: 6px !important; }
+}
 </style>
 </head>
 <body>
@@ -4447,7 +4471,7 @@ async function encryptWithSession(text) {
 // 网站二维码（内嵌 base64，离线可显示），扫码打开 https://jefely.github.io/New-repository/
 const QR_DATA_URL = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAUoAAAFKCAIAAAD0S4FSAAAFCUlEQVR42u3dS3IUMRBF0VcE+9+y2QETIfKjc+YGd7VvqAYZqe/n5yfARr88ApA3IG9A3oC8AXkD8gZ5A/IG5A3IG5A3IG+QNyBvQN6AvAF5A/KGl/0++eHv+5Y9jr9vnjv5vD3/5Xub9nr+v/v+Jp3e4OUckDcgb0DegLwBeQPyBnkDeWpqLdembe7pOdV071nt+xZOPtFrf5NOb/ByDsgbkDcgb0DegLxB3oC8gTw1tZaiSZ2Jk0n3NrFVPcmTn636vPv+Jp3e4OUckDcgb0DegLwBeYO8AXkDMbUW94du2eI2cQ7P6Q3IG5A3IG9A3oC8Qd6AvAF5AzG1Nsi9Oa2qGzPNpTm9AXkD8gbkDcgbkDfIG5A3IG8gj0yt9bzHs+eutZP/t+qWz33fr9MbkDcgb0DegLxB3oC8AXkD8gbSfGpt37ate7vH/Gz+yxzeaxvgnN4gb0DegLwBeQPyBuQN8gbkDTT07dsvNXGmrWrWque3f+9JOr0BeQPyBuQNyBuQN8gbkDcgbyCjd63ZiZUGe+nu3Vta9S303MTW835Ypzd4OQfkDcgbkDcgb0DegLxB3kCemlq7N8djB9j0ezxTNNM2cRry3l+O0xu8nAPyBuQNyBuQNyBvkDcgbyDLbgidOAM0cU6ranbwtcnCqp91egPyBuQN8gbkDcgbkDcgb0DeELvWsne2rOd+uJ4zTz3vh616GhM/r9MbvJwD8gbkDcgbkDcgb5A3IG8gT02tnUzb3JtMujfTNnHyrGqLW9Wz2vcdOb3Byzkgb0DegLwBeQPyBuQN8gZiai29p4smburqOePVczNZ1ed1egPyBuQNyBvkDcgbkDcgb0DeQEZPraXlBNi+XVwZeIvra1OJTm9A3iBvQN6AvAF5A/IG5A3yBmJqLb3nw3rOD1VNU937vFUzbVX70ibOLDq9wcs5IG9A3oC8AXkD8gZ5A/IGGvp6zuJMvKux52ayqttFe86W7XuSTm/wcg7IG5A3IG9A3oC8AXmDvIE8NbVWtU/r3oRQ1bTcaxvReu482/f37PQGL+eAvAF5A/IG5A3IG+QNyBvIshtCM3BfWtUEWNZNcU18VlUzbVX/stMbvJwD8gbkDcgbkDcgb5A3IG8gT02t5bHpohTNllU9jbScw6uahzt5znatAfIG5A3yBuQNyBuQNyBvQN4QN4SWTwhNvNfy3u/sW9jN1Bogb0DeIG9A3oC8AXkD8gbkDTG1xpo7QHvuh/NbOb0BeQPyBnkD8gbkDcgbkDcgb4gbQjNniisDt16d7B6ruuVz4u2iE39npzcgb0DeIG9A3oC8AXkD8gbkDTG1lt4TYDFp136LW9W3XzV32HPSzukNXs4BeQPyBuQNyBuQN8gbkDeQp6bWUjQ99toOsJMnee9OzHvfb9Xc4ck3WDXh5/QGL+eAvAF5A/IG5A3IG+QNyBuIqbW8ures6g7Qe7NlPSfees4sVs20Ob3Byzkgb0DegLwBeQPyBnkD8gZiai2v3qe577eq2g+Xoj1tVbvlnN6AvEHegLwBeQPyBuQNyBvkDcTUWvZOgGXgRNTEaap7E289b2Kt+o6c3uDlHJA3IG9A3oC8AXmDvAF5Aw19EzdmpeVNjml5R2TVJFbcLur0BuQNyBuQN8gbkDcgb0DegLyB/OupNcDpDcgbkDcgb5A3IG9A3oC8AXkD8gbkDfIG5A3IG5A3IG9A3iBvQN5AU38AW3Unpg+CBHwAAAAASUVORK5CYII=';
 
-const APP_VER = 'v10.0';
+const APP_VER = 'v10.1';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -5487,6 +5511,11 @@ function buildLayoutText() {
   lines.push('功能标签（流水/分类/汇总/查询/分期/固定）');
   // 以前这里写死 40px：导出 → 改 → 应用 永远回到 40，看起来就是「改不动」
   lines.push('行高：' + (L.tabH || 40) + 'px，字号：' + L.fontSize + 'px');
+  lines.push('');
+  // 全局单元格度量（所有表格共用）
+  lines.push('单元格');
+  lines.push('手柄位置：' + (L.gripShift || 0) + 'px（0 = 手柄中心压在列边线上，负数左移）');
+  lines.push('文字距边框：左 ' + (L.padL || 0) + 'px，右 ' + (L.padR || 0) + 'px（0 = 贴边）');
   lines.push('');
   for (const k of LAYOUT_PAGES) {
     lines.push(LAYOUT_PAGE_NAMES[k]);
@@ -7190,6 +7219,17 @@ function openColWidthsDialog() {
     <div class="sync-box" style="max-width:min(78vw,480px);padding:14px 16px">
       <div class="sync-title">布局设置</div>
       <div class="sync-block" style="gap:8px">
+        <div class="sync-range" style="margin:0;align-items:center;gap:6px">
+          <label style="white-space:nowrap" title="手柄中心压在列边线上 = 0；负数左移，正数右移">手柄位置
+            <input type="number" id="cw-grip" min="-12" max="12" step="1" style="width:64px;min-width:0">
+            <span class="sync-hint small" style="margin:0">px</span>
+          </label>
+          <label style="white-space:nowrap" title="文字到左右边框的距离，0 = 贴边">文字距边框
+            <input type="number" id="cw-padl" min="0" max="20" step="1" style="width:52px;min-width:0">
+            <input type="number" id="cw-padr" min="0" max="20" step="1" style="width:52px;min-width:0">
+            <span class="sync-hint small" style="margin:0">左 / 右 px</span>
+          </label>
+        </div>
         <button type="button" id="cw-reset" style="width:100%">恢复默认布局</button>
         <button type="button" class="ghost" id="cw-copy" style="width:100%">导出布局参数</button>
         <button type="button" class="ghost" id="cw-paste" style="width:100%">导入布局参数</button>
@@ -7211,6 +7251,24 @@ function openColWidthsDialog() {
   const cl = (v, lo, hi, def) => { let n = parseInt(v, 10); if (isNaN(n)) n = def; return Math.max(lo, Math.min(hi, n)); };
   const area = mask.querySelector('#cw-area');
   const ta = mask.querySelector('#cw-json');
+
+  // 全局单元格度量：手柄位置、文字到左右边框的距离。改一下就立刻生效，不用确认。
+  const gripEl = mask.querySelector('#cw-grip');
+  const padLEl = mask.querySelector('#cw-padl');
+  const padREl = mask.querySelector('#cw-padr');
+  if (gripEl) gripEl.value = String(layoutCfg.gripShift || 0);
+  if (padLEl) padLEl.value = String(layoutCfg.padL || 0);
+  if (padREl) padREl.value = String(layoutCfg.padR || 0);
+  const applyCellCfg = () => {
+    layoutCfg.gripShift = clampShift(gripEl ? gripEl.value : 0);
+    layoutCfg.padL = clampPad(padLEl ? padLEl.value : 0);
+    layoutCfg.padR = clampPad(padREl ? padREl.value : 0);
+    if (gripEl) gripEl.value = String(layoutCfg.gripShift);
+    if (padLEl) padLEl.value = String(layoutCfg.padL);
+    if (padREl) padREl.value = String(layoutCfg.padR);
+    saveLayout(); applyLayout();
+  };
+  [gripEl, padLEl, padREl].forEach(el => { if (el) { el.oninput = applyCellCfg; el.onchange = applyCellCfg; } });
 
   mask.querySelector('#cw-reset').onclick = () => {
     colWidths = JSON.parse(JSON.stringify(DEFAULT_COL_WIDTHS));
@@ -11311,8 +11369,14 @@ const LAYOUT_PAGE_NAMES = {
 // tableFont 是老字段（按表字号），保留以兼容旧存档；新代码统一读 pageFont。
 const DEFAULT_LAYOUT = {
   rowH: 32, fontSize: 15, headerFontSize: 15, tabH: 40, headerRowH: 34,
-  pageRowH: {}, pageFont: { cat: 13 }, pageHeadFont: {}, tableFont: { cat: 13 }
+  pageRowH: {}, pageFont: { cat: 13 }, pageHeadFont: {}, tableFont: { cat: 13 },
+  // 全局单元格度量：
+  //   gripShift 手柄相对列边线的位置（0 = 手柄中心压在边线上，-2 = 左移 2px，2 = 右移 2px）
+  //   padL / padR 单元格文字到左右边框的距离（0 = 贴边）
+  gripShift: 0, padL: 0, padR: 0
 };
+const clampShift = v => Math.max(-12, Math.min(12, Math.round(Number(v) || 0)));
+const clampPad = v => Math.max(0, Math.min(20, Math.round(Number(v) || 0)));
 const clampRowH = v => Math.max(20, Math.min(80, Math.round(Number(v) || 0)));
 const clampFont = v => Math.max(10, Math.min(28, Math.round(Number(v) || 0)));
 
@@ -11320,6 +11384,7 @@ let layoutCfg = (() => {
   const out = {
     rowH: DEFAULT_LAYOUT.rowH, fontSize: DEFAULT_LAYOUT.fontSize, headerFontSize: DEFAULT_LAYOUT.headerFontSize,
     tabH: DEFAULT_LAYOUT.tabH, headerRowH: DEFAULT_LAYOUT.headerRowH,
+    gripShift: 0, padL: 0, padR: 0,
     pageRowH: {}, pageFont: { cat: 13 }, pageHeadFont: {}, tableFont: { cat: 13 }
   };
   try {
@@ -11331,6 +11396,9 @@ let layoutCfg = (() => {
       // 这两项以前读出来就被丢掉了 —— 导入后刷新即失效，看起来就是「改了没反应」
       if (Number(o.tabH)) out.tabH = clampRowH(o.tabH);
       if (Number(o.headerRowH)) out.headerRowH = clampRowH(o.headerRowH);
+      if (o.gripShift != null) out.gripShift = clampShift(o.gripShift);
+      if (o.padL != null) out.padL = clampPad(o.padL);
+      if (o.padR != null) out.padR = clampPad(o.padR);
       const takePage = (src, dst, fn) => {
         if (!src || typeof src !== 'object') return;
         for (const k of LAYOUT_PAGES) {
@@ -11364,6 +11432,10 @@ function applyLayout() {
   r.setProperty('--layout-head-h', (layoutCfg.headerRowH || 34) + 'px');
   r.setProperty('--layout-tab-h', (layoutCfg.tabH || 40) + 'px');
   r.setProperty('--fs-tab', layoutCfg.fontSize + 'px');
+  // 全局单元格度量：所有表格共用（手柄位置、文字到左右边框的距离）
+  r.setProperty('--cell-grip-shift', (Number(layoutCfg.gripShift) || 0) + 'px');
+  r.setProperty('--cell-pad-l', (Number(layoutCfg.padL) || 0) + 'px');
+  r.setProperty('--cell-pad-r', (Number(layoutCfg.padR) || 0) + 'px');
   // 每页覆盖：没设置就清掉变量，CSS 里 var(--lh-x, 全局) 会自然回退
   const put = (name, v) => { if (v) r.setProperty(name, v + 'px'); else r.removeProperty(name); };
   for (const k of LAYOUT_PAGES) {
