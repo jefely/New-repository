@@ -5448,7 +5448,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v10.20';
+const APP_VER = 'v10.21';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -12904,10 +12904,103 @@ function openRowMenu(title, rows) {
 }
 
 function openExportMenu() {
-  openRowMenu('导出', [
-    { label: '导出文件（仅支持电脑端）', types: '.lz　.xlsx', run: () => exportXLSX() },
-    { label: '复制内容', types: '.csv　.txt', run: () => openCsvFallbackDialog() }
-  ]);
+  const dlg = mkDialog(`
+    <div class="sync-title">导出</div>
+
+    <div class="sync-sec">
+      <div class="add-sec-head">
+        <span class="add-sec-title">导出文件</span>
+      </div>
+      <div class="add-sec-btns" style="justify-content:flex-start;gap:8px">
+        <button type="button" class="ghost add-sec-btn" id="ex-lz">导出.lz文件</button>
+        <button type="button" class="ghost add-sec-btn" id="ex-xlsx">导出.xlsx文件</button>
+      </div>
+      <div class="sync-hint small" style="text-align:left;margin-top:8px;line-height:1.6">
+        只有电脑端支持导出文件功能，导出的 .lz 文件可以选择保存在本地，用于导入。
+      </div>
+    </div>
+
+    <div class="sync-sec">
+      <div class="add-sec-head">
+        <span class="add-sec-title">复制内容</span>
+        <span class="add-sec-btns">
+          <button type="button" class="ghost add-sec-btn" id="ex-csv">生成.csv</button>
+          <button type="button" class="ghost add-sec-btn" id="ex-txt">生成.txt</button>
+          <button type="button" class="add-sec-btn add-sec-main" id="ex-copy">复制</button>
+        </span>
+      </div>
+      <textarea id="ex-out" spellcheck="false" placeholder="点上面的「生成.csv」或「生成.txt」，内容会出现在这里，再点「复制」。"
+        style="width:100%;height:240px;font-size:12px;font-family:ui-monospace,Consolas,monospace;padding:8px;box-sizing:border-box;border:1px solid var(--border-light);border-radius:9px;background:var(--bg-main);color:var(--text-main);line-height:1.6"></textarea>
+      <div class="sync-hint small" style="text-align:left;margin-top:6px" id="ex-note">说明：复制出来的内容是纯文本，粘到记事本存成对应后缀即可。</div>
+    </div>
+
+    <div class="sync-actions"><button type="button" class="ghost" data-act="close">关闭</button></div>
+  `);
+  const ta = dlg.querySelector('#ex-out');
+  const note = dlg.querySelector('#ex-note');
+
+  const csvText = () => {
+    const clean = v => String(v == null ? '' : v).replace(/[\r\n\t]+/g, ' ').trim();
+    const rows = [['日期', '转出', '转入', '金额', '备注'].join('\t')];
+    for (const t of state.transactions) {
+      rows.push([toYYMMDD(t.date), clean(t.from), clean(t.to), (Number(t.amount) || 0).toFixed(2), clean(t.note)].join('\t'));
+    }
+    return '\ufeff' + rows.join('\r\n');
+  };
+
+  const txtText = () => {
+    const pad = n => String(n).padStart(2, '0');
+    const lines = ['账户'];
+    for (const a of state.accounts) {
+      lines.push([a.cat || '资产类', a.sub || '', a.code || '', a.name || '', (a.opening === '' || a.opening == null) ? '0.00' : a.opening, ''].join('，'));
+    }
+    lines.push('', '流水');
+    for (const t of state.transactions) {
+      lines.push([toYYMMDD(t.date), t.from || '', t.to || '', (Number(t.amount) || 0).toFixed(2), (t.note || '').replace(/[\r\n]/g, ' '), ''].join('，'));
+    }
+    return lines.join('\n');
+  };
+
+  dlg.querySelector('#ex-csv').onclick = () => {
+    ta.value = csvText();
+    note.textContent = '已生成 CSV（制表符分隔，' + state.transactions.length + ' 笔流水）。点「复制」带走。';
+  };
+  dlg.querySelector('#ex-txt').onclick = () => {
+    ta.value = txtText();
+    note.textContent = '已生成 TXT 模板：账户 ' + state.accounts.length + ' 个、流水 ' + state.transactions.length + ' 笔。点「复制」带走。';
+  };
+  dlg.querySelector('#ex-copy').onclick = async () => {
+    if (!ta.value) { toast('先点「生成.csv」或「生成.txt」', { type: 'error' }); return; }
+    let ok = false;
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) { await navigator.clipboard.writeText(ta.value); ok = true; }
+    } catch (e) {}
+    if (!ok) { try { ta.focus(); ta.select(); ok = document.execCommand('copy'); } catch (e) {} }
+    toast(ok ? ('已复制 ' + ta.value.length + ' 个字符') : '复制失败，请长按文本框全选复制',
+      ok ? { duration: 4000 } : { type: 'error', duration: 6000 });
+  };
+
+  dlg.querySelector('#ex-lz').onclick = async () => {
+    try {
+      const code = await buildSyncCode();
+      const d = new Date();
+      const pad = n => String(n).padStart(2, '0');
+      const name = 'NT账本_' + d.getFullYear() + pad(d.getMonth() + 1) + pad(d.getDate())
+        + '_' + pad(d.getHours()) + pad(d.getMinutes()) + '.lz';
+      const blob = new Blob([code], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = name;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+      toast('已导出 ' + name + '（' + Math.round(blob.size / 1024) + ' KB）', { duration: 6000 });
+    } catch (e) { toast('导出失败：' + (e && e.message ? e.message : e), { type: 'error' }); }
+  };
+
+  dlg.querySelector('#ex-xlsx').onclick = async () => {
+    try { await exportXLSX(); }
+    catch (e) { toast('导出失败：' + (e && e.message ? e.message : e), { type: 'error', duration: 6000 }); }
+  };
 }
 
 function openImportMenu() {
