@@ -5448,7 +5448,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v10.26';
+const APP_VER = 'v10.27';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -13106,7 +13106,7 @@ function openSyncDialog() {
           <canvas id="sync-qr-canvas" title="点一下放大"
             style="display:block;margin:0 auto;width:100%;max-width:300px;height:auto;image-rendering:pixelated;border-radius:10px;background:#fff"></canvas>
           <div id="sync-qr-info" class="sync-hint" style="margin:8px 0 0;text-align:center;font-size:12px"></div>
-          <div id="sync-qr-nav" style="display:none;align-items:center;justify-content:center;gap:12px;margin-top:10px">
+          <div id="sync-qr-nav" style="display:flex;align-items:center;justify-content:center;gap:12px;margin-top:10px">
             <button type="button" class="ghost" id="sync-qr-prev" style="padding:0 12px;height:28px">上一张</button>
             <span id="sync-qr-idx" style="font-size:12px;color:var(--text-muted)"></span>
             <button type="button" class="ghost" id="sync-qr-next" style="padding:0 12px;height:28px">下一张</button>
@@ -13116,12 +13116,17 @@ function openSyncDialog() {
 
       <div class="sync-sec">
         <div class="sync-sec-title">识别二维码</div>
-        <div class="sync-hint small" style="text-align:left">
-          用手机的系统相机扫二维码，或者识别保存在相册里的图片，自动同步。
+        <div class="add-sec-btns" style="justify-content:flex-start;gap:6px;margin-top:2px">
+          <button type="button" class="ghost add-sec-btn" id="sync-qr-pick">选择图片</button>
+          <button type="button" class="ghost add-sec-btn" id="sync-qr-clear">清空</button>
+          <button type="button" class="ghost add-sec-btn" id="sync-qr-paste">粘贴</button>
+          <button type="button" class="add-sec-btn add-sec-main" id="sync-qr-copy">复制</button>
         </div>
-        <div class="sync-btnrow" style="margin-top:10px">
-          <button type="button" class="ghost" id="sync-qr-pick">打开图片</button>
-          <button type="button" class="ghost" id="sync-qr-paste">粘贴文本</button>
+        <textarea id="sync-qr-read" spellcheck="false" readonly placeholder="上面生成二维码时，这里会自动填入二维码里的文本；也可以选择图片 / 粘贴来识别。"
+          style="width:100%;height:120px;margin-top:9px;font-size:11px;font-family:ui-monospace,Consolas,monospace;padding:8px;box-sizing:border-box;border:1px solid var(--border-light);border-radius:9px;background:var(--bg-main);color:var(--text-main);line-height:1.55"></textarea>
+        <div class="sync-hint small" style="text-align:left;margin-top:7px;line-height:1.6">
+          用手机的系统相机扫上面的二维码，或点「选择图片」识别相册里的二维码截图，
+          识别成功后自动合并到本机。也可以把二维码下面那段文本「粘贴」进来。
         </div>
       </div>
 
@@ -13160,6 +13165,9 @@ function openSyncDialog() {
     mask.querySelector('#sync-qr-info').textContent = info;
     const txEl = mask.querySelector('#sync-qr-text');
     if (txEl) txEl.value = p.url;
+    // 识别区那个框跟着显示同一段文本
+    const readEl = mask.querySelector('#sync-qr-read');
+    if (readEl) readEl.value = p.url;
     if (qrIdxEl) qrIdxEl.textContent = '第 ' + (qrIdx + 1) + ' / ' + qrParts.length + ' 张';
     if (qrNav) qrNav.style.display = qrParts.length > 1 ? 'flex' : 'none';
   };
@@ -13256,9 +13264,40 @@ function openSyncDialog() {
     };
     inp.click();
   };
-  if (pasteBtn) pasteBtn.onclick = () => {
+  const readEl = mask.querySelector('#sync-qr-read');
+  const clearBtn = mask.querySelector('#sync-qr-clear');
+  const copyBtn = mask.querySelector('#sync-qr-copy');
+
+  if (clearBtn) clearBtn.onclick = () => {
+    if (readEl) readEl.value = '';
+    toast('已清空', { duration: 1500 });
+  };
+
+  if (copyBtn) copyBtn.onclick = async () => {
+    const txt = readEl ? readEl.value.trim() : '';
+    if (!txt) { toast('这里是空的，先生成二维码或选择图片', { type: 'error' }); return; }
+    let ok = false;
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) { await navigator.clipboard.writeText(txt); ok = true; }
+    } catch (e) {}
+    if (!ok) { try { readEl.focus(); readEl.select(); ok = document.execCommand('copy'); } catch (e) {} }
+    toast(ok ? ('已复制 ' + txt.length + ' 个字符') : '复制失败，请长按文本框全选复制',
+      ok ? { duration: 3000 } : { type: 'error', duration: 6000 });
+  };
+
+  if (pasteBtn) pasteBtn.onclick = async () => {
+    // 能读剪贴板就直接识别，读不到再让人手动粘
+    let txt = '';
+    try {
+      if (navigator.clipboard && navigator.clipboard.readText) txt = await navigator.clipboard.readText();
+    } catch (e) {}
+    if (txt && String(txt).trim()) {
+      if (readEl) readEl.value = String(txt).trim();
+      await applyQrText(txt);
+      return;
+    }
     const raw = window.prompt('把二维码下面那段文本粘进来：');
-    if (raw) applyQrText(raw);
+    if (raw) { if (readEl) readEl.value = raw; applyQrText(raw); }
   };
 }
 
