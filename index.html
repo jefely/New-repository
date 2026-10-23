@@ -1488,10 +1488,7 @@ table#summary-table { min-width: 800px !important; }
   white-space: nowrap !important;
 }
 /* 工具栏按表格宽度定宽后，超出视口时整页横向滚动即可 */
-/* 横向滚动必须发生在 .grid-wrap 上：sticky 只对「最近的滚动祖先」生效，
-   如果滑块属于 #main，冻结列就跟不上，拖动时照样被甩出去。 */
-#main { overflow-x: hidden !important; }
-.grid-wrap { overflow-x: auto !important; overflow-y: auto; }
+#main { overflow-x: auto !important; }
 .toolbar.flow-bar > button,
 .toolbar.bar1 > button,
 .toolbar.bar2 > button,
@@ -4214,9 +4211,11 @@ table#fixed-table tbody td.col-amount input { text-align: right; }
 table#fixed-table tbody td.col-note input { text-align: left; }
 table#fixed-table tbody td select { text-align: center; text-align-last: center; }
 
-/* ⑭ 汇总表冻结列：left 由 applySummarySticky() 逐格写入（含类型/分类/简码/名称的累加偏移）。
-   这里不要再写 !important 的 left，否则会把内联值压掉 —— 之前正是这条把「账户名称」
-   的 left 锁死在序号列宽上，展开三列后它仍然贴在 52px。 */
+/* ⑭ 汇总表冻结列：left 由 --summary-seq-w 决定，JS 只写一次变量，不再逐格写 style */
+table#summary-table thead th.col-seq,
+table#summary-table tbody td.col-seq { left: 0 !important; }
+table#summary-table thead th.col-name,
+table#summary-table tbody td.col-name { left: var(--summary-seq-w, 54px) !important; }
 
 /* ⑬ 深色主题：序号列表头与其它表头同色（原来它是 #0d0d0d，旁边是 #141414，看着更黑） */
 html[data-theme="dark"] table.grid thead th.col-seq,
@@ -5136,52 +5135,6 @@ table#summary-table thead th.col-move { border-right: none !important; }
   .thanks-row .thanks-qr { flex: none; width: 156px; height: auto; }
   .thanks-qr-miss { flex: none; width: 156px; height: 156px; }
 }
-
-/* 汇总表：类型 / 分类 / 简码 三列也跟着「序号」一起冻结，
-   横向拖动条只滚右边的金额区，不会再把这四列甩出去。
-   （收起状态它们宽度是 0，sticky 自然不影响） */
-table#summary-table thead th.col-cat,
-table#summary-table thead th.col-sub,
-table#summary-table thead th.col-code,
-table#summary-table tbody td.col-cat,
-table#summary-table tbody td.col-sub,
-table#summary-table tbody td.col-code {
-  position: sticky;
-}
-/* 冻结列必须逐级抬高 z-index，否则后渲染的「账户名称」会把前面几列盖住
-   （同样是 z-index:2 时，DOM 顺序在后的赢） */
-table#summary-table thead th.col-seq  { z-index: 5; }
-table#summary-table thead th.col-cat  { z-index: 6; }
-table#summary-table thead th.col-sub  { z-index: 7; }
-table#summary-table thead th.col-code { z-index: 8; }
-table#summary-table thead th.col-name { z-index: 9; }
-table#summary-table tbody td.col-seq  { z-index: 2; }
-table#summary-table tbody td.col-cat  { z-index: 3; }
-table#summary-table tbody td.col-sub  { z-index: 4; }
-table#summary-table tbody td.col-code { z-index: 5; }
-table#summary-table tbody td.col-name { z-index: 6; }
-table#summary-table tbody td.col-cat,
-table#summary-table tbody td.col-sub,
-table#summary-table tbody td.col-code { background: var(--bg-main); }
-table#summary-table tbody tr:nth-child(even) td.col-cat,
-table#summary-table tbody tr:nth-child(even) td.col-sub,
-table#summary-table tbody tr:nth-child(even) td.col-code { background: var(--bg-gray-light); }
-
-/* 账本说明里的「功能与文件类型」对照表 */
-.modtable { border: 1px solid var(--border-light); border-radius: 10px; overflow: hidden; margin-bottom: 4px; }
-.modrow {
-  display: grid; grid-template-columns: 58px 1fr auto; gap: 8px; align-items: center;
-  padding: 8px 11px; font-size: 13px; border-top: 1px solid var(--border-light);
-}
-.modrow:first-child { border-top: none; }
-.modhead { background: var(--bg-gray); font-weight: 700; font-size: 12px; color: var(--text-muted); }
-.modname { font-weight: 700; color: var(--primary); }
-.modrow small { font-weight: 400; opacity: .75; }
-.modtypes { font-size: 12px; color: var(--text-muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
-@media (max-width: 560px) {
-  .modrow { grid-template-columns: 46px 1fr auto; padding: 7px 9px; font-size: 12.5px; }
-  .modtypes { font-size: 11px; }
-}
 </style>
 </head>
 <body>
@@ -5392,7 +5345,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v21.7';
+const APP_VER = 'v10.01';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -5818,22 +5771,18 @@ function openExtractAccountsDialog() {
   };
 }
 
-/* 上移：与「上一个同类型的行」交换位置。点一次挪一格，可以精细排顺序；
-   跨类型不换（否则会跳到别的分组里，看起来像乱跑）。 */
+/* 置顶：把某个账户挪到「它所属类型」的第一位。
+   反复对不同的行点 ▲，就能排出自己想要的顺序（后点的排在最上）。 */
 function pinAccountToTop(id) {
-  const arr = state.accounts;
-  const i = arr.findIndex(a => a.id === id);
+  const i = state.accounts.findIndex(a => a.id === id);
   if (i < 0) return;
-  const cat = arr[i].cat || '';
-  let j = i - 1;
-  while (j >= 0 && (arr[j].cat || '') !== cat) j--;
-  if (j < 0) {
-    toast((arr[i].name || '这一行') + ' 已经是「' + (cat || '未分类') + '」里第一行了', { duration: 1800 });
-    return;
-  }
-  const tmp = arr[j]; arr[j] = arr[i]; arr[i] = tmp;
+  const cat = state.accounts[i].cat || '';
+  const j = state.accounts.findIndex(a => (a.cat || '') === cat);
+  if (j < 0 || j === i) { toast('已经在最前面了', { duration: 1200 }); return; }
+  const [item] = state.accounts.splice(i, 1);
+  state.accounts.splice(j, 0, item);
   save(); render();
-  toast('已上移：' + (arr[j].name || '这一行'), { duration: 1500 });
+  toast('已置顶：' + (item.name || '这一行') + ' → 「' + (cat || '未分类') + '」最前面', { duration: 2500 });
 }
 
 /* 修改账本密码：先用旧密码把当前密文解开（验证），再换新 salt + 新 key 重新加密写盘 */
@@ -6016,7 +5965,7 @@ function openHelpDialog() {
       <div class="intro-lead">每一笔钱，都从一个账户<b>转出</b>，进入另一个账户<b>转入</b>。<br>
         不用记「借 / 贷」，只回答一个问题：<b>这笔钱从哪来，到哪去。</b></div>
 
-    <div class="intro-sec">简单开始</div>
+      <div class="intro-sec">简单开始</div>
       <div class="intro-steps">
         <div class="step"><span class="sn">1</span><div>先去<b>汇总</b>表查看账户及简码，简码可直接修改。</div></div>
         <div class="step"><span class="sn">2</span><div>到<b>流水记录</b>表，日期栏输入 <code>:</code> 插入今天。</div></div>
@@ -6346,28 +6295,6 @@ function renderAudit(main, footer) {
     <div class="intro-tagline">紫老头的专属账本，用「NT = 直觉 + 思考」的习惯进行记账。</div>
     <div class="intro-lead">每一笔钱，都从一个账户<b>转出</b>，进入另一个账户<b>转入</b>。<br>
       不用记「借 / 贷」，只回答一个问题：<b>这笔钱从哪来，到哪去。</b></div>
-
-    <div class="intro-sec">功能与文件类型</div>
-    <div class="intro-lead" style="margin-bottom:8px">
-    工具栏四个按钮都是两级菜单，点开先选子功能：
-    </div>
-    <div class="modtable">
-    <div class="modrow modhead">
-      <div>模块</div><div>子功能</div><div>支持的文件</div>
-    </div>
-    <div class="modrow"><div class="modname">添加</div><div>新账本</div><div class="modtypes">—</div></div>
-    <div class="modrow"><div class="modname"></div><div>添加更新 txt 文本</div><div class="modtypes">.txt</div></div>
-    <div class="modrow"><div class="modname">同步</div><div>生成二维码</div><div class="modtypes">—</div></div>
-    <div class="modrow"><div class="modname"></div><div>识别二维码</div><div class="modtypes">—</div></div>
-    <div class="modrow"><div class="modname">导出</div><div>导出文件<small>（仅支持电脑端）</small></div><div class="modtypes">.lz　.xlsx</div></div>
-    <div class="modrow"><div class="modname"></div><div>复制内容</div><div class="modtypes">.csv　.txt</div></div>
-    <div class="modrow"><div class="modname">导入</div><div>导入覆盖文件</div><div class="modtypes">.lz　.xlsx</div></div>
-    <div class="modrow"><div class="modname"></div><div>导入覆盖账单</div><div class="modtypes">.csv　.txt　.xlsx</div></div>
-    </div>
-    <div class="intro-lead" style="margin-top:8px;font-size:12px;opacity:.8">
-    说明：手机浏览器普遍存不下文件，「导出文件」只在电脑端可靠；
-    手机上请用「复制内容」，纯文本粘到记事本或 Excel 里都能用。
-    </div>
 
     <div class="intro-sec">简单开始</div>
     <div class="intro-steps">
@@ -8875,6 +8802,7 @@ function openColWidthsDialog() {
         </div>
         <button type="button" id="cw-copy" style="width:100%">导出布局参数（文本）</button>
         <button type="button" class="ghost" id="cw-paste" style="width:100%">导入布局参数（文本）</button>
+        <button type="button" class="ghost" id="cw-autofit" style="width:100%">列宽按内容收紧（像分期表那样）</button>
         <button type="button" class="ghost" id="cw-reset" style="width:100%">恢复默认布局</button>
       </div>
       <div id="cw-area" style="display:none;margin-top:8px">
@@ -8897,6 +8825,23 @@ function openColWidthsDialog() {
 
   // 手柄位置 / 文字距边框 / 账户列对齐 不再单独做控件 —— 全部写进「导出布局参数」那段文本里改。
 
+  // 一键把当前页所有表的列宽收到「刚好装下内容」（fitWidth 就是分期表那种按文字量的逻辑）
+  const autoFitBtn = mask.querySelector('#cw-autofit');
+  if (autoFitBtn) autoFitBtn.onclick = () => {
+    let n = 0;
+    document.querySelectorAll('table[data-colkey]').forEach(t => {
+      const key = t.dataset.colkey;
+      const ths = [...t.querySelectorAll('thead th')];
+      if (!ths.length) return;
+      const ws = ths.map((_, i) => Math.max(COL_MIN, fitWidth(t, i)));
+      applyWidths(t, key, ws);
+      n++;
+    });
+    saveColWidths();
+    close();
+    render();
+    toast('已把 ' + n + ' 张表的列宽按内容收紧', { duration: 4000 });
+  };
   mask.querySelector('#cw-reset').onclick = () => {
     colWidths = JSON.parse(JSON.stringify(DEFAULT_COL_WIDTHS));
     saveColWidths();
@@ -9619,9 +9564,9 @@ function renderFlow(main, footer) {
   bar.className = 'toolbar flow-bar';
   bar.innerHTML = `
     <span class="flow-title">流水记录</span>
-    <button class="ghost" id="f-add" title="新账本 / 添加更新 txt 文本">添加</button>
+    <button class="ghost" id="f-add" title="批量添加账户与流水（文本 / TXT）">添加</button>
     <button class="ghost" id="f-sync">同步</button>
-    <button class="ghost" id="f-import" title="导入覆盖文件（.lz .xlsx）/ 导入覆盖账单（.csv .txt .xlsx）">导入</button>
+    <button class="ghost" id="f-import" title="导入 Excel 或文本">导入</button>
     <button class="ghost" id="f-exp">导出</button>
     <button class="ghost" id="f-theme" title="切换反色主题">主题</button>
     <button class="ghost" id="f-cols" title="布局设置：列宽 / 行高 / 字号">布局</button>
@@ -9629,16 +9574,19 @@ function renderFlow(main, footer) {
   main.appendChild(bar);
 
   // 「添加」= 批量添加（文本 / TXT）
-  document.getElementById('f-add').onclick = () => openAddMenu();
-  document.getElementById('f-sync').onclick = () => openSyncMenu();
-  // 导出：两级菜单 —— 导出文件（仅电脑端）/ 复制内容
-  document.getElementById('f-exp').onclick = () => openExportMenu();
+  document.getElementById('f-add').onclick = () => openImportTextDialog();
+  document.getElementById('f-sync').onclick = () => openSyncDialog();
+  // 导出：直接生成 xlsx（原来那层对话框里只有一个「从 Excel 添加流水」，
+  // 和工具栏的「导入」功能重复，已删掉整层对话框）
+  document.getElementById('f-exp').onclick = async () => {
+    try { await exportXLSX(); }
+    catch (err) { toast('导出失败：' + (err && err.message ? err.message : err), { type: 'error', duration: 6000 }); }
+  };
   document.getElementById('f-theme').onclick = () => toggleTheme();
   const colsBtn = document.getElementById('f-cols');
   if (colsBtn) colsBtn.onclick = () => openColWidthsDialog();
-  // 导入：两级菜单 —— 导入覆盖文件 / 导入覆盖账单
   const impBtn = document.getElementById('f-import');
-  if (impBtn) impBtn.onclick = () => openImportMenu();
+  if (impBtn) impBtn.onclick = () => openImportHub();
 
   // 3. 表格主体
   const wrap = document.createElement('div');
@@ -10415,7 +10363,7 @@ function renderSummary(main, footer) {
       <th class="col-hout">转出历史</th>
       <th class="col-hin">转入历史</th>
       <th class="col-open">期初</th>
-      <th class="col-move" title="点 ▲ 与上一行交换位置（同「类型」内）">上移</th>
+      <th class="col-move" title="点 ▲ 立刻把该行移到所属类型最前面">置顶</th>
       <th class="col-del"></th>
       <th class="col-bill"></th>
       <th class="col-repay"></th>
@@ -10581,40 +10529,8 @@ function setSummaryFold(on) {
 function applySummarySticky() {
   const table = document.getElementById('summary-table');
   if (!table) return;
-  const cols = Array.isArray(colWidths.summary) ? colWidths.summary : [];
-  const seqW = Math.round(cols[0] || 54);
-  table.style.setProperty('--summary-seq-w', seqW + 'px');
-
-  // 依次累加「序号 → 类型 → 分类 → 简码 → 账户名称」的 left 偏移。
-  // 宽度用 summaryBaseWidths()（它总能给出「展开时的真实宽度」）：
-  //   · 直接读 colWidths.summary 不行 —— 收起视图下前三列是 0；
-  //   · 量 getBoundingClientRect 也不行 —— 刚设完 colgroup 还没重排，量到的是旧值 0。
-  const real = summaryBaseWidths();
-  const idxOf = { 'col-seq': 0, 'col-cat': 1, 'col-sub': 2, 'col-code': 3, 'col-name': 4 };
-  // 收起状态前三列实际渲染宽度是 0，偏移也必须按 0 算，
-  // 否则「账户名称」会被推到 260px，左边空出一块。
-  const effW = (i) => {
-    if (summaryFold && i >= 1 && i <= 3) return 0;
-    return Math.round(real[i] || 0);
-  };
-  const offs = {};
-  let acc = 0;
-  for (const cls in idxOf) {
-    offs[cls] = acc;
-    let w = effW(idxOf[cls]);
-    if (cls === 'col-seq' && !w) w = seqW;
-    acc += w;
-  }
-  const apply = (cell) => {
-    for (const cls in offs) {
-      if (cell.classList.contains(cls)) {
-        cell.style.left = offs[cls] + 'px';
-        return;
-      }
-    }
-  };
-  table.querySelectorAll('thead th').forEach(apply);
-  table.querySelectorAll('tbody td').forEach(apply);
+  const w = Math.round((Array.isArray(colWidths.summary) && colWidths.summary[0]) || 54);
+  table.style.setProperty('--summary-seq-w', w + 'px');
 }
 
 // 汇总页两条工具栏的右边界：都对齐表格「期初」列的右边框。
@@ -10803,7 +10719,7 @@ function makeSummaryRow(acc, idx, range) {
     pin.type = 'button';
     pin.className = 'pin-btn';
     pin.textContent = '▲';
-    pin.title = '上移：与上一个「' + (acc.cat || '同类') + '」行交换位置';
+    pin.title = '置顶：移到「' + (acc.cat || '当前类型') + '」的最前面';
     pin.onclick = (ev) => { ev.stopPropagation(); pinAccountToTop(acc.id); };
     tdMove.appendChild(pin);
   }
@@ -12683,262 +12599,6 @@ const XLSX_TPL_IDB = 'flow_xlsx_template_v2';
 // 用模板 + 当前数据生成 .xlsx
 
 // 「Excel」按钮：有模板就走模板，没有就提示选文件
-/* ============================================================
-   存文件的正确姿势（手机端尤其重要）
-   ------------------------------------------------------------
-   手机浏览器里 <a download> + blob 经常「看起来点了、提示也弹了，但文件没落地」
-   （华为浏览器丢进 Download/Browser 子目录、微信内置浏览器直接吞掉）。
-   所以：
-     1) 能分享就先用 navigator.share（系统面板里可以「保存到文件/网盘/发给自己」）
-     2) 不支持分享再退回 <a download>
-     3) 提示语如实写，不再谎报「已保存」
-   ============================================================ */
-/* 保存方式选择：手机浏览器里 <a download> 经常假装成功，所以不赌它，
-   直接给三条路让用户选，其中「复制全文」在纯文本文件上 100% 可行。 */
-function openSaveChoiceDialog(text, filename, blob) {
-  /* 华为浏览器等不支持 navigator.share 的文件分享，<a download> 又常是假保存。
-     所以这里给三条真能用的路：
-       ① 复制全文（记事本另存）—— 一定成
-       ② 长按「另存为」的 data: 链接 —— 手机浏览器普遍支持
-       ③ 新窗口打开纯文本 —— 再全选复制
-     只有浏览器真的支持文件分享时，才显示「系统分享」按钮。 */
-  const canShareFiles = (() => {
-    try {
-      if (!navigator.canShare) return false;
-      const f = new File(['x'], 'x.txt', { type: 'text/plain' });
-      return navigator.canShare({ files: [f] });
-    } catch (e) { return false; }
-  })();
-
-  // data: 链接（长按另存为）。纯文本 base64 体积约 1.37 倍，几 KB 没问题。
-  let dataUrl = '';
-  try {
-    const b64 = btoa(unescape(encodeURIComponent(text)));
-    dataUrl = 'data:text/plain;charset=utf-8;base64,' + b64;
-  } catch (e) {}
-
-  const dlg = mkDialog(`
-    <div class="sync-title">保存同步文件</div>
-    <div class="sync-hint small" style="text-align:left;line-height:1.7">
-      文件名 <b>${esc(filename)}</b>，约 ${Math.round((blob ? blob.size : text.length) / 1024)} KB。<br>
-      手机浏览器对「直接下载」支持不一，用下面任意一种都能存下来。
-    </div>
-    <div style="display:flex;flex-direction:column;gap:8px;margin-top:14px">
-      <button type="button" id="sv-copy">① 复制全文（最稳）</button>
-      ${dataUrl ? `<a id="sv-longpress" href="${dataUrl}" download="${esc(filename)}"
-        style="display:block;text-align:center;padding:9px 12px;border-radius:9px;text-decoration:none;
-        border:1px solid #cbbcf0;background:#faf8ff;color:#5b4ea8;font-size:14px;font-weight:600">
-        ② 长按这里 → 「链接另存为 / 下载链接」</a>` : ''}
-      <button type="button" class="ghost" id="sv-window">③ 新窗口打开纯文本</button>
-      <button type="button" class="ghost" id="sv-swdl">④ 交给系统下载（可能有效）</button>
-      ${window.showSaveFilePicker ? `<button type="button" class="ghost" id="sv-picker">④ 选择保存位置（另存为）</button>` : ''}
-      ${canShareFiles ? `<button type="button" class="ghost" id="sv-share">系统分享 / 发送给朋友</button>` : ''}
-    </div>
-    <textarea id="sv-text" readonly style="width:100%;height:140px;margin-top:12px;font-family:ui-monospace,Consolas,monospace;font-size:11px;line-height:1.5;padding:8px;border-radius:9px;border:1px solid var(--border-light);background:var(--bg-main);color:var(--text-main)">${esc(text)}</textarea>
-    <div class="sync-actions"><button type="button" class="ghost" data-act="close">关闭</button></div>
-  `);
-  const ta = dlg.querySelector('#sv-text');
-
-  const copyNow = async () => {
-    let ok = false;
-    try {
-      if (navigator.clipboard && navigator.clipboard.writeText) { await navigator.clipboard.writeText(text); ok = true; }
-    } catch (e) {}
-    if (!ok) { try { ta.focus(); ta.select(); ok = document.execCommand('copy'); } catch (e) {} }
-    toast(ok ? ('已复制全文 —— 粘到记事本，存成 ' + filename) : '复制失败，请长按下面的文本全选复制',
-      ok ? { duration: 7000 } : { type: 'error' });
-    return ok;
-  };
-
-  dlg.querySelector('#sv-copy').onclick = () => { copyNow(); };
-
-  dlg.querySelector('#sv-window').onclick = () => {
-    try {
-      const w = window.open('', '_blank');
-      if (!w) { toast('浏览器拦了新窗口，请用「复制全文」', { type: 'error' }); return; }
-      w.document.write('<meta charset="utf-8"><title>' + esc(filename) + '</title>'
-        + '<textarea style="width:100%;height:96vh;font-family:monospace;font-size:12px;border:0;padding:8px;box-sizing:border-box">'
-        + esc(text) + '</textarea>');
-      w.document.close();
-      try { const t2 = w.document.querySelector('textarea'); t2.focus(); t2.select(); } catch (e) {}
-      toast('已在新窗口打开，全选复制后存成 ' + filename, { duration: 6000 });
-    } catch (e) { toast('打开失败：' + e.message, { type: 'error' }); }
-  };
-
-  const swBtn = dlg.querySelector('#sv-swdl');
-  if (swBtn) swBtn.onclick = async () => {
-    const r = await swForceDownload(blob, filename);
-    if (r.via === 'sw') saveResultToast(r, filename, blob.size);
-    else toast('这条路也走不通，请用 ① 复制全文', { type: 'error', duration: 6000 });
-  };
-
-  const pkBtn = dlg.querySelector('#sv-picker');
-  if (pkBtn) pkBtn.onclick = async () => {
-    const r = await saveBlobToDevice(blob, filename);
-    saveResultToast(r, filename, blob.size);
-  };
-
-  const shareBtn = dlg.querySelector('#sv-share');
-  if (shareBtn) shareBtn.onclick = async () => {
-    const r = await saveBlobToDevice(blob, filename, { shareOnly: true });
-    if (r.via === 'nosupport') { toast('这个浏览器不支持系统分享，请用 ① 或 ②', { duration: 5000 }); return; }
-    saveResultToast(r, filename, blob.size);
-  };
-
-  setTimeout(() => { try { ta.focus(); ta.setSelectionRange(0, ta.value.length); } catch (e) {} }, 100);
-}
-
-
-/* 强制下载：把 Blob 交给 Service Worker，由它用 Content-Disposition: attachment 回应，
-   浏览器必须交给系统下载管理器（<a download> 在部分手机上会被静默忽略）。 */
-async function swForceDownload(blob, filename) {
-  if (!navigator.serviceWorker || !navigator.serviceWorker.controller) return { via: 'nosupport' };
-  try {
-    const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-    const reg = await navigator.serviceWorker.ready;
-    const target = reg.active || navigator.serviceWorker.controller;
-    const ch = new MessageChannel();
-    const ack = new Promise(res => { ch.port1.onmessage = () => res(true); setTimeout(() => res(false), 1500); });
-    target.postMessage({ type: 'DL_PUT', id, blob, name: filename }, [ch.port2]);
-    await ack;
-
-    const url = new URL('__dl/' + id, location.href).href;
-    // 优先用隐藏 iframe（有些浏览器对 a.click 拦截，对 iframe 放行）
-    const ifr = document.createElement('iframe');
-    ifr.style.display = 'none';
-    ifr.src = url;
-    document.body.appendChild(ifr);
-    setTimeout(() => { try { ifr.remove(); } catch (e) {} }, 20000);
-    return { via: 'sw' };
-  } catch (e) {
-    return { via: 'fail', error: e };
-  }
-}
-
-async function saveBlobToDevice(blob, filename, opts) {
-  const file = (typeof File === 'function') ? new File([blob], filename, { type: blob.type || 'application/octet-stream' }) : null;
-
-  // ① 手机：系统分享（「存储到文件」最可靠）
-  if (file && navigator.canShare && navigator.canShare({ files: [file] })) {
-    try {
-      await navigator.share({ files: [file], title: filename });
-      return { via: 'share' };
-    } catch (e) {
-      if (e && e.name === 'AbortError') return { via: 'cancel' };
-      // 其它错误继续走下载
-    }
-  }
-
-  if (opts && opts.shareOnly) return { via: 'nosupport' };
-
-  // ② 文件选择器（File System Access API）：让用户自己选目录，真正「另存为」。
-  //    Android Chrome / 部分国产内核浏览器支持；不支持就跳过。
-  if (window.showSaveFilePicker) {
-    try {
-      const dot = (filename.match(/\.[^.]+$/) || ['.txt'])[0];
-      const mime = blob.type || 'application/octet-stream';
-      const acc = {};
-      acc[mime] = [dot];
-      const handle = await window.showSaveFilePicker({
-        suggestedName: filename,
-        types: [{ description: '文件', accept: acc }]
-      });
-      const w = await handle.createWritable();
-      await w.write(blob);
-      await w.close();
-      return { via: 'picker', name: handle.name };
-    } catch (e) {
-      if (e && e.name === 'AbortError') return { via: 'cancel' };
-      // 其它错误继续走下载
-    }
-  }
-
-  // ③ Service Worker 强制下载（带 Content-Disposition，手机浏览器绕不过）
-  if (!(opts && opts.skipSW)) {
-    const rSw = await swForceDownload(blob, filename);
-    if (rSw.via === 'sw') return { via: 'sw' };
-  }
-
-  // ④ 普通下载
-  try {
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = filename; a.rel = 'noopener';
-    document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 10000);
-    return { via: 'download' };
-  } catch (e) {
-    return { via: 'fail', error: e };
-  }
-}
-
-function saveResultToast(r, filename, size) {
-  const kb = Math.round(size / 1024) + ' KB';
-  if (r.via === 'sw') toast('已交给系统下载：' + filename + '（' + kb + '）\n请到手机的「下载」或「文件」里查看', { duration: 8000 });
-  else if (r.via === 'picker') toast('已保存到你选的目录：' + (r.name || filename) + '（' + kb + '）', { duration: 6000 });
-  else if (r.via === 'share') toast('已通过系统分享保存：' + filename + '（' + kb + '）', { duration: 5000 });
-  else if (r.via === 'cancel') toast('已取消保存', { duration: 2500 });
-  else if (r.via === 'download') toast('已发起下载：' + filename + '（' + kb + '）\n如果没看到文件，请到浏览器的下载列表里找，或改用「分享」方式保存', { duration: 8000 });
-  else toast('保存失败：' + (r.error && r.error.message ? r.error.message : '浏览器不允许下载'), { type: 'error', duration: 7000 });
-}
-
-/* Excel 在手机上给一条百分百可行的退路：导出 CSV 纯文本，让用户复制。
-   （XLSX 是二进制，剪贴板 API 不支持这个 MIME，复制注定失败） */
-function openCsvFallbackDialog() {
-  /* 用「制表符」分隔而不是逗号：备注里出现逗号/引号也不会串列。
-     换行一律换成空格 —— 否则一条流水会被拆成两行，表格直接错位。 */
-  const clean = v => String(v == null ? '' : v).replace(/[\r\n\t]+/g, ' ').trim();
-  const rows = [];
-  rows.push(['日期', '转出', '转入', '金额', '备注'].join('\t'));
-  for (const t of state.transactions) {
-    rows.push([
-      toYYMMDD(t.date),
-      clean(t.from),
-      clean(t.to),
-      (Number(t.amount) || 0).toFixed(2),
-      clean(t.note)
-    ].join('\t'));
-  }
-  // BOM：没有它 Excel 会把中文读成乱码
-  const csv = '\ufeff' + rows.join('\r\n');
-  const fname = 'NT账本_' + todayISO() + '.csv';
-
-  const dlg = mkDialog(`
-    <div class="sync-title">复制为表格文本</div>
-    <div class="sync-hint small" style="text-align:left;line-height:1.7">
-      XLSX 是二进制文件，手机浏览器如果存不下来，就用这个：<br>
-      下面 ${state.transactions.length} 笔流水（<b>制表符分隔</b>，Excel / WPS 直接认），
-      全选复制 → 粘到记事本存成 <b>${esc(fname)}</b>。
-    </div>
-    <textarea id="csv-text" readonly style="width:100%;height:200px;margin-top:12px;font-family:ui-monospace,Consolas,monospace;font-size:11px;line-height:1.5;padding:8px;border-radius:9px;border:1px solid var(--border-light);background:var(--bg-main);color:var(--text-main)">${esc(csv)}</textarea>
-    <div class="sync-actions">
-      <button type="button" id="csv-copy">复制全文</button>
-      <button type="button" class="ghost" id="csv-share">系统分享 / 存成文件</button>
-      <button type="button" class="ghost" data-act="close">关闭</button>
-    </div>
-  `);
-  const ta = dlg.querySelector('#csv-text');
-  setTimeout(() => { try { ta.focus(); ta.setSelectionRange(0, ta.value.length); } catch (e) {} }, 100);
-
-  dlg.querySelector('#csv-copy').onclick = async () => {
-    let ok = false;
-    try {
-      if (navigator.clipboard && navigator.clipboard.writeText) { await navigator.clipboard.writeText(csv); ok = true; }
-    } catch (e) {}
-    if (!ok) { try { ta.focus(); ta.select(); ok = document.execCommand('copy'); } catch (e) {} }
-    toast(ok ? ('已复制 ' + state.transactions.length + ' 笔流水 —— 粘到记事本存成 ' + fname) : '复制失败，请长按上面的文本全选复制',
-      ok ? { duration: 6000 } : { type: 'error', duration: 6000 });
-  };
-
-  dlg.querySelector('#csv-share').onclick = async () => {
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
-    const r = await saveBlobToDevice(blob, fname, { shareOnly: true });
-    if (r.via === 'nosupport') { toast('这个浏览器不支持系统分享，请用「复制全文」', { duration: 5000 }); return; }
-    saveResultToast(r, fname, blob.size);
-  };
-}
-
-
 async function exportXLSX() {
   // 直接用手写的生成器：表头/日期格式/列宽/冻结都由它保证，
   // 不再走「拿模板改行」那条路（那条会保留模板的标题行和说明行，
@@ -12947,19 +12607,7 @@ async function exportXLSX() {
   const name = 'NT账本_' + todayISO() + '.xlsx';
   const type = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
   const blob = new Blob([bytes], { type });
-
-  // ★ 手机/平板：先试系统分享面板（「存储到文件」「发给朋友」「存网盘」都在里面），
-  //   这是唯一能在手机上真正把文件落地的通道；<a download> 在华为/微信里经常是假的。
-  try {
-    const rShare = await saveBlobToDevice(blob, name, { shareOnly: true });
-    if (rShare.via === 'share') {
-      toast('已生成 Excel（' + Math.round(bytes.length / 1024) + ' KB），请在系统面板里选择「保存到文件」', { duration: 6000 });
-      return;
-    }
-    if (rShare.via === 'cancel') { return; }
-  } catch (e) {}
-
-  toast('已生成 Excel（' + Math.round(bytes.length / 1024) + ' KB）：流水 ' + state.transactions.length + ' 笔、账户 ' + state.accounts.length + ' 个、分期 ' + (state.installments || []).length + ' 个', { duration: 5000 });
+  toast('[' + APP_VER + '] 已生成 Excel（' + Math.round(bytes.length / 1024) + ' KB）：流水 ' + state.transactions.length + ' 笔、账户 ' + state.accounts.length + ' 个、分期 ' + (state.installments || []).length + ' 个', { duration: 5000 });
   // 手机（窄屏 / 触屏）不试前面那两级：华为浏览器会「假装支持」然后什么都不做，
   // 直接走最后的 data URL + 剪贴板，那个是用户主动点击，绕不过去。
   const isMobile = (typeof window !== 'undefined')
@@ -13043,7 +12691,7 @@ function showExportDone(name, size, url, dataUrl, info) {
         <a href="${dataUrl}" download="${esc(name)}" style="display:block;text-decoration:none">
           <button type="button" class="ghost" style="width:100%">换个方式保存</button>
         </a>
-        <button type="button" id="x-copy-csv" class="ghost" style="width:100%">复制为 CSV 文本（手机可用）</button>
+        <button type="button" id="x-copy-file" class="ghost" style="width:100%">复制文件到剪贴板</button>
       </div>
       <div class="sync-hint" style="text-align:left;font-size:12px;color:#64748b">
         长按上面任一按钮 →「链接另存为」也能保存
@@ -13053,8 +12701,6 @@ function showExportDone(name, size, url, dataUrl, info) {
   document.body.appendChild(mask);
   const close = () => mask.remove();
   bindMaskClose(mask, close);
-  const csvBtn2 = mask.querySelector('#x-copy-csv');
-  if (csvBtn2) csvBtn2.onclick = () => { mask.remove(); openCsvFallbackDialog(); };
   // 「复制文件到剪贴板」：华为浏览器唯一能走通的路 —— 复制后去微信/邮件里粘贴
   const copyBtn = mask.querySelector('#x-copy-file');
   if (copyBtn) {
@@ -13075,65 +12721,7 @@ function showExportDone(name, size, url, dataUrl, info) {
 
 try { watchOtherTabs(); } catch (e) {}
 
-/* ============================================================
-   四个功能模块统一做成「两级菜单」（账本说明里有一张对照表）：
-     添加 → 新账本 / 添加更新txt文本          .txt
-     同步 → 生成二维码 / 识别二维码
-     导出 → 导出文件（仅电脑端）/ 复制内容     .lz .xlsx / .csv .txt
-     导入 → 导入覆盖文件 / 导入覆盖账单        .lz .xlsx / .csv .txt .xlsx
-   菜单只负责分流，具体实现仍复用原来的弹窗。
-   ============================================================ */
-function openModuleMenu(title, items) {
-  const dlg = mkDialog(`
-    <div class="sync-title">${esc(title)}</div>
-    <div style="display:flex;flex-direction:column;gap:10px;margin-top:14px">
-      ${items.map((it, i) => `
-        <button type="button" class="mod-btn" data-idx="${i}" style="text-align:left;padding:11px 13px;line-height:1.45">
-          <div style="font-weight:700;font-size:14px">${esc(it.label)}</div>
-          ${it.note ? `<div style="font-weight:400;font-size:12px;opacity:.75;margin-top:3px">${esc(it.note)}</div>` : ''}
-          ${it.types ? `<div style="font-weight:600;font-size:11.5px;margin-top:4px;color:#6b5bc4">${esc(it.types)}</div>` : ''}
-        </button>`).join('')}
-    </div>
-    <div class="sync-actions"><button type="button" class="ghost" data-act="close">取消</button></div>
-  `);
-  dlg.querySelectorAll('.mod-btn').forEach(b => {
-    b.onclick = () => {
-      const it = items[Number(b.dataset.idx)];
-      dlg.remove();
-      try { it.run(); } catch (e) { toast('打开失败：' + e.message, { type: 'error' }); }
-    };
-  });
-}
-
-function openAddMenu() {
-  openModuleMenu('添加', [
-    { label: '新账本', note: '从空白开始录入账户与流水', run: () => openImportTextDialog() },
-    { label: '添加更新txt文本', note: '粘贴文本，追加或更新已有账户 / 流水', types: '.txt', run: () => openImportTextDialog() }
-  ]);
-}
-
-function openSyncMenu() {
-  openModuleMenu('同步', [
-    { label: '生成二维码', note: '把数据做成二维码，另一台设备扫过去', run: () => openSyncDialog('qr') },
-    { label: '识别二维码', note: '扫另一台设备的码，识别后合并进来', run: () => openSyncDialog('qr') }
-  ]);
-}
-
-function openExportMenu() {
-  openModuleMenu('导出', [
-    { label: '导出文件（仅支持电脑端）', note: '手机浏览器普遍存不下文件，这条只在电脑上可靠', types: '.lz  .xlsx', run: () => exportXLSX() },
-    { label: '复制内容', note: '纯文本复制，手机上一定可用，粘到记事本 / Excel 都行', types: '.csv  .txt', run: () => openCsvFallbackDialog() }
-  ]);
-}
-
-function openImportMenu() {
-  openModuleMenu('导入', [
-    { label: '导入覆盖文件', note: '整本替换成文件里的数据（换手机 / 恢复备份）', types: '.lz  .xlsx', run: () => openSyncDialog('file', true) },
-    { label: '导入覆盖账单', note: '把表格或文本里的账单铺进当前账本', types: '.csv  .txt  .xlsx', run: () => openImportHub() }
-  ]);
-}
-
-function openSyncDialog(initialTab, focusImport) {
+function openSyncDialog() {
   const mask = document.createElement('div');
   mask.className = 'confirm-mask';
   mask.innerHTML = `
@@ -13235,16 +12823,13 @@ function openSyncDialog(initialTab, focusImport) {
   // 两个标签页：备份 / 换设备 · 扫码合并
   const syncTabs = [...mask.querySelectorAll('.sync-tab')];
   const panes = { file: mask.querySelector('#sync-pane-file'), qr: mask.querySelector('#sync-pane-qr') };
-  const activateSyncTab = (key) => {
-    syncTabs.forEach(x => x.classList.toggle('active', x.dataset.syncTab === key));
-    Object.keys(panes).forEach(k => { if (panes[k]) panes[k].hidden = (k !== key); });
-    try { mask.querySelector('.sync-box').scrollTop = 0; } catch (e) {}
-  };
   syncTabs.forEach(tab => {
-    tab.onclick = () => activateSyncTab(tab.dataset.syncTab);
+    tab.onclick = () => {
+      syncTabs.forEach(x => x.classList.toggle('active', x === tab));
+      Object.keys(panes).forEach(k => { if (panes[k]) panes[k].hidden = (k !== tab.dataset.syncTab); });
+      try { mask.querySelector('.sync-box').scrollTop = 0; } catch (e) {}
+    };
   });
-  // 从「同步 / 导入」两级菜单进来时，直接落到对应标签页
-  if (initialTab === 'qr' || initialTab === 'file') activateSyncTab(initialTab);
 
   // 存成同步文件
   mask.querySelector('#sync-save-file').onclick = async () => {
@@ -13255,7 +12840,12 @@ function openSyncDialog(initialTab, focusImport) {
       const name = 'NT账本_' + d.getFullYear() + pad(d.getMonth() + 1) + pad(d.getDate())
         + '_' + pad(d.getHours()) + pad(d.getMinutes()) + '.lz';
       const blob = new Blob([code], { type: 'text/plain;charset=utf-8' });
-      openSaveChoiceDialog(code, name, blob);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = name;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 2000);
+      toast('已存为 ' + name + '（' + Math.round(blob.size / 1024) + ' KB）', { duration: 5000 });
     } catch (e) { toast('导出失败：' + e.message, { type: 'error' }); }
   };
 
