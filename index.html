@@ -4471,7 +4471,7 @@ async function encryptWithSession(text) {
 // 网站二维码（内嵌 base64，离线可显示），扫码打开 https://jefely.github.io/New-repository/
 const QR_DATA_URL = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAUoAAAFKCAIAAAD0S4FSAAAFCUlEQVR42u3dS3IUMRBF0VcE+9+y2QETIfKjc+YGd7VvqAYZqe/n5yfARr88ApA3IG9A3oC8AXkD8gZ5A/IG5A3IG5A3IG+QNyBvQN6AvAF5A/KGl/0++eHv+5Y9jr9vnjv5vD3/5Xub9nr+v/v+Jp3e4OUckDcgb0DegLwBeQPyBnkDeWpqLdembe7pOdV071nt+xZOPtFrf5NOb/ByDsgbkDcgb0DegLxB3oC8gTw1tZaiSZ2Jk0n3NrFVPcmTn636vPv+Jp3e4OUckDcgb0DegLwBeYO8AXkDMbUW94du2eI2cQ7P6Q3IG5A3IG9A3oC8Qd6AvAF5AzG1Nsi9Oa2qGzPNpTm9AXkD8gbkDcgbkDfIG5A3IG8gj0yt9bzHs+eutZP/t+qWz33fr9MbkDcgb0DegLxB3oC8AXkD8gbSfGpt37ate7vH/Gz+yxzeaxvgnN4gb0DegLwBeQPyBuQN8gbkDTT07dsvNXGmrWrWque3f+9JOr0BeQPyBuQNyBuQN8gbkDcgbyCjd63ZiZUGe+nu3Vta9S303MTW835Ypzd4OQfkDcgbkDcgb0DegLxB3kCemlq7N8djB9j0ezxTNNM2cRry3l+O0xu8nAPyBuQNyBuQNyBvkDcgbyDLbgidOAM0cU6ranbwtcnCqp91egPyBuQN8gbkDcgbkDcgb0DeELvWsne2rOd+uJ4zTz3vh616GhM/r9MbvJwD8gbkDcgbkDcgb5A3IG8gT02tnUzb3JtMujfTNnHyrGqLW9Wz2vcdOb3Byzkgb0DegLwBeQPyBuQN8gZiai29p4smburqOePVczNZ1ed1egPyBuQNyBvkDcgbkDcgb0DeQEZPraXlBNi+XVwZeIvra1OJTm9A3iBvQN6AvAF5A/IG5A3yBmJqLb3nw3rOD1VNU937vFUzbVX70ibOLDq9wcs5IG9A3oC8AXkD8gZ5A/IGGvp6zuJMvKux52ayqttFe86W7XuSTm/wcg7IG5A3IG9A3oC8AXmDvIE8NbVWtU/r3oRQ1bTcaxvReu482/f37PQGL+eAvAF5A/IG5A3IG+QNyBvIshtCM3BfWtUEWNZNcU18VlUzbVX/stMbvJwD8gbkDcgbkDcgb5A3IG8gT02t5bHpohTNllU9jbScw6uahzt5znatAfIG5A3yBuQNyBuQNyBvQN4QN4SWTwhNvNfy3u/sW9jN1Bogb0DeIG9A3oC8AXkD8gbkDTG1xpo7QHvuh/NbOb0BeQPyBnkD8gbkDcgbkDcgb4gbQjNniisDt16d7B6ruuVz4u2iE39npzcgb0DeIG9A3oC8AXkD8gbkDTG1lt4TYDFp136LW9W3XzV32HPSzukNXs4BeQPyBuQNyBuQN8gbkDeQp6bWUjQ99toOsJMnee9OzHvfb9Xc4ck3WDXh5/QGL+eAvAF5A/IG5A3IG+QNyBuIqbW8ures6g7Qe7NlPSfees4sVs20Ob3Byzkgb0DegLwBeQPyBnkD8gZiai2v3qe577eq2g+Xoj1tVbvlnN6AvEHegLwBeQPyBuQNyBvkDcTUWvZOgGXgRNTEaap7E289b2Kt+o6c3uDlHJA3IG9A3oC8AXmDvAF5Aw19EzdmpeVNjml5R2TVJFbcLur0BuQNyBuQN8gbkDcgb0DegLyB/OupNcDpDcgbkDcgb5A3IG9A3oC8AXkD8gbkDfIG5A3IG5A3IG9A3iBvQN5AU38AW3Unpg+CBHwAAAAASUVORK5CYII=';
 
-const APP_VER = 'v10.4';
+const APP_VER = 'v10.5';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -5453,6 +5453,18 @@ function parseLayoutText(text) {
     if (!lines.length) continue;
     // 第一行是页面名（可能带括号说明）
     const head = lines[0].replace(/（.*?）|\(.*?\)/g, '').trim();
+    // 「单元格」段不是页面，它承载全局的单元格度量（手柄位置 / 文字距边框 / 账户列对齐）
+    if (/^单元格$/.test(head)) {
+      for (const line of lines.slice(1)) {
+        const mGrip = line.match(/^手柄位置[：:]\s*(-?\d+)/);
+        if (mGrip) { out.cell = out.cell || {}; out.cell.gripShift = Number(mGrip[1]); continue; }
+        const mPad = line.match(/^文字距边框[：:]\s*左\s*(\d+)\s*px[，,、\s]*右\s*(\d+)/);
+        if (mPad) { out.cell = out.cell || {}; out.cell.padL = Number(mPad[1]); out.cell.padR = Number(mPad[2]); continue; }
+        const mAlign = line.match(/^账户列对齐[：:]\s*(\S+)/);
+        if (mAlign) { out.cell = out.cell || {}; out.cell.align = /靠左|left/i.test(mAlign[1]) ? 'left' : 'center'; continue; }
+      }
+      continue;
+    }
     const key = LAYOUT_SECTION_KEYS[head];
     if (!key) continue;
     out.sections++;
@@ -5490,6 +5502,14 @@ function parseLayoutText(text) {
         else { out.rowH[key] = Number(mG[1]); out.fontSize[key] = Number(mG[2]); }
         continue;
       }
+      // 单元格（全局）：手柄位置、文字距边框、账户列对齐
+      // 这三行可以出现在任意一段里，取第一个出现的值
+      const mGrip = line.match(/^手柄位置[：:]\s*(-?\d+)/);
+      if (mGrip) { out.cell = out.cell || {}; out.cell.gripShift = Number(mGrip[1]); continue; }
+      const mPad = line.match(/^文字距边框[：:]\s*左\s*(\d+)\s*px[，,、\s]*右\s*(\d+)/);
+      if (mPad) { out.cell = out.cell || {}; out.cell.padL = Number(mPad[1]); out.cell.padR = Number(mPad[2]); continue; }
+      const mAlign = line.match(/^账户列对齐[：:]\s*(\S+)/);
+      if (mAlign) { out.cell = out.cell || {}; out.cell.align = /靠左|left/i.test(mAlign[1]) ? 'left' : 'center'; continue; }
     }
   }
   if (!out.sections) throw new Error('没找到任何页面段落，格式可能不对');
@@ -5512,10 +5532,11 @@ function buildLayoutText() {
   // 以前这里写死 40px：导出 → 改 → 应用 永远回到 40，看起来就是「改不动」
   lines.push('行高：' + (L.tabH || 40) + 'px，字号：' + L.fontSize + 'px');
   lines.push('');
-  // 全局单元格度量（所有表格共用）
+  // 全局单元格度量（所有表格共用）：改这三行就够，不用在界面上摆控件
   lines.push('单元格');
-  lines.push('手柄位置：' + (L.gripShift || 0) + 'px（0 = 手柄中心压在列边线上，负数左移）');
+  lines.push('手柄位置：' + (L.gripShift || 0) + 'px（0 = 手柄中心压在列边线上，负数左移，正数右移）');
   lines.push('文字距边框：左 ' + (L.padL || 0) + 'px，右 ' + (L.padR || 0) + 'px（0 = 贴边）');
+  lines.push('账户列对齐：' + (L.align === 'left' ? '靠左' : '居中') + '（居中时两侧留白 = (列宽 − 文字宽) ÷ 2）');
   lines.push('');
   for (const k of LAYOUT_PAGES) {
     lines.push(LAYOUT_PAGE_NAMES[k]);
@@ -7219,40 +7240,14 @@ function openColWidthsDialog() {
     <div class="sync-box" style="max-width:min(78vw,480px);padding:14px 16px">
       <div class="sync-title">布局设置</div>
       <div class="sync-block" style="gap:8px">
-        <div style="display:flex;flex-direction:column;gap:2px">
-          <div style="display:flex;align-items:center;gap:8px">
-            <span style="white-space:nowrap;font-size:12px;min-width:64px">手柄位置</span>
-            <input type="range" id="cw-grip" min="-12" max="12" step="1" style="flex:1;min-width:0">
-            <span id="cw-grip-val" style="font-size:12px;min-width:44px;text-align:right;color:var(--text-muted)">0 px</span>
-          </div>
-          <div class="sync-hint small" style="margin:0;line-height:1.3">0 = 手柄中心压在列边线上，负数左移，正数右移</div>
+        <div class="sync-hint small" style="margin:0;line-height:1.5;text-align:left">
+          列宽、行高、字号、手柄位置、文字距边框、账户列对齐 —— 全部在下面这段**文本参数**里改，
+          不另做控件（设置项一多，界面就繁琐了）。
         </div>
-        <div style="display:flex;flex-direction:column;gap:2px">
-          <div style="display:flex;align-items:center;gap:8px">
-            <span style="white-space:nowrap;font-size:12px;min-width:64px">文字距左边</span>
-            <input type="range" id="cw-padl" min="0" max="20" step="1" style="flex:1;min-width:0">
-            <span id="cw-padl-val" style="font-size:12px;min-width:44px;text-align:right;color:var(--text-muted)">0 px</span>
-          </div>
-          <div style="display:flex;align-items:center;gap:8px">
-            <span style="white-space:nowrap;font-size:12px;min-width:64px">文字距右边</span>
-            <input type="range" id="cw-padr" min="0" max="20" step="1" style="flex:1;min-width:0">
-            <span id="cw-padr-val" style="font-size:12px;min-width:44px;text-align:right;color:var(--text-muted)">0 px</span>
-          </div>
-          <div class="sync-hint small" style="margin:0;line-height:1.3">0 = 文字贴边</div>
-        </div>
-        <div class="sync-range" style="margin:0;align-items:center;gap:6px">
-          <label style="white-space:nowrap" title="转出/转入两列：居中时两侧留白由列宽决定，靠左则贴左边框">账户列对齐
-            <select id="cw-align" style="width:auto;min-width:0">
-              <option value="center">居中</option>
-              <option value="left">靠左</option>
-            </select>
-          </label>
-          <span class="sync-hint small" style="margin:0">居中时两侧留白 = (列宽 − 文字宽) ÷ 2</span>
-        </div>
+        <button type="button" id="cw-copy" style="width:100%">导出布局参数（文本）</button>
+        <button type="button" class="ghost" id="cw-paste" style="width:100%">导入布局参数（文本）</button>
         <button type="button" class="ghost" id="cw-autofit" style="width:100%">列宽按内容收紧（像分期表那样）</button>
-        <button type="button" id="cw-reset" style="width:100%">恢复默认布局</button>
-        <button type="button" class="ghost" id="cw-copy" style="width:100%">导出布局参数</button>
-        <button type="button" class="ghost" id="cw-paste" style="width:100%">导入布局参数</button>
+        <button type="button" class="ghost" id="cw-reset" style="width:100%">恢复默认布局</button>
       </div>
       <div id="cw-area" style="display:none;margin-top:8px">
         <textarea id="cw-json" spellcheck="false" style="width:100%;height:170px;font-size:11px;font-family:ui-monospace,Consolas,monospace;padding:8px;box-sizing:border-box;border:1px solid var(--border);border-radius:6px;background:var(--bg-main);color:var(--text-main);line-height:1.5"></textarea>
@@ -7272,28 +7267,7 @@ function openColWidthsDialog() {
   const area = mask.querySelector('#cw-area');
   const ta = mask.querySelector('#cw-json');
 
-  // 全局单元格度量：手柄位置、文字到左右边框的距离。改一下就立刻生效，不用确认。
-  const gripEl = mask.querySelector('#cw-grip');   // range 滑块，最小 -12 最大 12
-  const padLEl = mask.querySelector('#cw-padl');
-  const padREl = mask.querySelector('#cw-padr');
-  if (gripEl) gripEl.value = String(layoutCfg.gripShift || 0);
-  if (padLEl) padLEl.value = String(layoutCfg.padL || 0);
-  if (padREl) padREl.value = String(layoutCfg.padR || 0);
-  const alignEl = mask.querySelector('#cw-align');
-  if (alignEl) alignEl.value = layoutCfg.align === 'left' ? 'left' : 'center';
-  const applyCellCfg = () => {
-    layoutCfg.gripShift = clampShift(gripEl ? gripEl.value : 0);
-    layoutCfg.padL = clampPad(padLEl ? padLEl.value : 0);
-    layoutCfg.padR = clampPad(padREl ? padREl.value : 0);
-    layoutCfg.align = alignEl && alignEl.value === 'left' ? 'left' : 'center';
-    const showVal = (el, v) => { const s = el && document.getElementById(el); if (s) s.textContent = (v > 0 ? '+' : '') + v + ' px'; };
-    showVal('cw-grip-val', layoutCfg.gripShift);
-    showVal('cw-padl-val', layoutCfg.padL);
-    showVal('cw-padr-val', layoutCfg.padR);
-    saveLayout(); applyLayout();
-  };
-  [gripEl, padLEl, padREl, alignEl].forEach(el => { if (el) { el.oninput = applyCellCfg; el.onchange = applyCellCfg; } });
-  applyCellCfg();   // 先把数值标签刷成当前值
+  // 手柄位置 / 文字距边框 / 账户列对齐 不再单独做控件 —— 全部写进「导出布局参数」那段文本里改。
 
   // 一键把当前页所有表的列宽收到「刚好装下内容」（fitWidth 就是分期表那种按文字量的逻辑）
   const autoFitBtn = mask.querySelector('#cw-autofit');
@@ -7364,6 +7338,13 @@ function openColWidthsDialog() {
         if (p.tabFontSize != null) { layoutCfg.fontSize = clampFont(p.tabFontSize); nL++; }
         // 表头行高各页统一，取文本里第一处
         if (p.headerRowH != null) { layoutCfg.headerRowH = clampRowH(p.headerRowH); nL++; }
+        // 单元格那三行：手柄位置 / 文字距边框 / 账户列对齐
+        if (p.cell) {
+          if (p.cell.gripShift != null) { layoutCfg.gripShift = clampShift(p.cell.gripShift); nL++; }
+          if (p.cell.padL != null) { layoutCfg.padL = clampPad(p.cell.padL); nL++; }
+          if (p.cell.padR != null) { layoutCfg.padR = clampPad(p.cell.padR); nL++; }
+          if (p.cell.align) { layoutCfg.align = p.cell.align; nL++; }
+        }
         if (nL) { saveLayout(); applyLayout(); }
         if (p.installMonthWidth) {
           try { localStorage.setItem('flow_inst_mw_v1', String(p.installMonthWidth)); } catch (e) {}
