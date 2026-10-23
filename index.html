@@ -5044,6 +5044,37 @@ table.install-table thead th.col-month {
   html body .toolbar .m-btn { padding: 0 4px !important; font-size: 12.5px !important; }
   html body .toolbar.flow-bar .flow-title { font-size: 12.5px !important; margin-right: 2px !important; }
 }
+
+/* ===== 手机：流水页工具栏真正压成一行（v18.2）=====
+   上一版加了 html body 前缀仍然没压下来：按钮上有 min-width / padding 的多条规则在打架。
+   这次带上 #main（id 选择器）把特异性拉到最高，四个属性全部钉死。 */
+@media (max-width: 767px) {
+  html body #main .toolbar { gap: 4px !important; padding: 4px 6px !important; }
+  html body #main .toolbar > button,
+  html body #main .toolbar > .m-btn,
+  html body #main .toolbar .m-btn {
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    flex: 0 0 auto !important;
+    padding: 0 4px !important;
+    font-size: 12px !important;
+    height: 24px !important;
+    line-height: 24px !important;
+    white-space: nowrap !important;
+  }
+  html body #main .toolbar.flow-bar .flow-title,
+  html body #main .toolbar.flow-bar .bar-title,
+  html body #main .toolbar.flow-bar .fixed-title {
+    font-size: 12px !important;
+    margin-right: 2px !important;
+    white-space: nowrap !important;
+  }
+}
+@media (max-width: 340px) {
+  html body #main .toolbar > button,
+  html body #main .toolbar .m-btn { padding: 0 3px !important; font-size: 11.5px !important; }
+}
 </style>
 </head>
 <body>
@@ -5254,7 +5285,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v18.1';
+const APP_VER = 'v18.2';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
