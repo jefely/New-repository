@@ -5374,7 +5374,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v10.07';
+const APP_VER = 'v10.08';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -5813,7 +5813,32 @@ function pinAccountToTop(id) {
     return;
   }
   const tmp = arr[j]; arr[j] = arr[i]; arr[i] = tmp;
+
+  /* 整页 render 会把表格重建成默认列宽（收起的summary 视图下 colgroup 是 0，
+     renderSummary 重建时又按默认值铺一遍）。所以先把用户调过的列宽存一份，
+     渲染完立刻写回去。 */
+  const savedColW = JSON.parse(JSON.stringify(colWidths || {}));
+  const savedReal = summaryRealW ? summaryRealW.slice() : null;
+  const savedFold = summaryFold;
+
   save(); render();
+
+  try {
+    colWidths = savedColW;
+    if (savedReal) summaryRealW = savedReal;
+    const t = document.getElementById('summary-table');
+    if (t) {
+      const real = summaryBaseWidths();
+      summaryRealW = real.slice();
+      const view = real.slice();
+      if (summaryFold) SUMMARY_FOLD_COLS.forEach(ci => { view[ci] = 0; });
+      applyWidths(t, 'summary', view);
+      colWidths.summary = real;      // 落盘的永远是真实宽度
+      applySummarySticky();
+    }
+    saveColWidths();
+  } catch (e) {}
+
   toast('已上移：' + (arr[j].name || '这一行'), { duration: 1500 });
 }
 
