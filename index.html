@@ -662,7 +662,7 @@ table.query-table tr > td:last-child { border-right: none; }
 .toolbar.install-bar > button { width: 62px; padding: 0; }
 .toolbar.install-bar > .inst-label:first-of-type { margin-left: 16px; }
 .inst-label { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; color: var(--text-muted); white-space: nowrap; }
-.inst-input { width: 62px; height: 28px; padding: 0 6px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 13px; text-align: center; outline: none; font-variant-numeric: tabular-nums; }
+.inst-input { width: 62px; height: 26px; padding: 0 6px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 13px; text-align: center; outline: none; font-variant-numeric: tabular-nums; }
 .inst-input:focus { border-color: var(--primary); background: #f3f1fb; }
 
 /* 列宽必须硬性保底，否则月份列一多、浏览器就把「账户名称」压成几个字。
@@ -779,7 +779,7 @@ table.install-table tr.inst-i td.col-name input:focus { background: #f3f1fb; }
 .flow-title { position: absolute; left: 0; top: 50%; transform: translateY(-50%); width: var(--flow-title-w, 100%); text-align: center; font-size: 16px; font-weight: 700; color: var(--text-main); white-space: nowrap; pointer-events: none; }
 /* 工具栏内的按钮、输入框统一高度 28px（border-box 含边框），
    否则带边框的 ghost 按钮会比月份按钮高出几个像素，同一行看起来参差不齐 */
-.toolbar input { height: 28px; padding: 0 10px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 14px; outline: none; }
+.toolbar input { height: 26px; padding: 0 10px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 14px; outline: none; }
 .toolbar input:focus { border-color: var(--primary); }
 .toolbar button { height: 26px; padding: 0 12px; background: var(--primary); color: #fff; border: none; border-radius: var(--radius); font-size: 14px; cursor: pointer; font-weight: 600; }
 .toolbar button.ghost { background: #fff; color: var(--text-muted); border: 1px solid var(--border); }
@@ -802,12 +802,12 @@ table.install-table tr.inst-i td.col-name input:focus { background: #f3f1fb; }
 /* 注意特异性：这几条必须用 .month-row .m-btn（0,2,0）压过 .toolbar button（0,1,1），
    否则月份按钮会被工具栏那条"主按钮"规则刷成蓝底，导致 12 个月份全是选中态。 */
 /* 12 个月按钮统一宽度，按「12月」这种三位内容定尺寸，个位数月份不再窄一截 */
-.month-row .m-btn { flex: 0 0 46px; width: 46px; min-width: 0; height: 28px; padding: 0; font-size: 13px; font-weight: 600; background: #fff; color: var(--text-main); border: 1px solid var(--border); border-radius: var(--radius); cursor: pointer; text-align: center; }
+.month-row .m-btn { flex: 0 0 46px; width: 46px; min-width: 0; height: 26px; padding: 0; font-size: 13px; font-weight: 600; background: #fff; color: var(--text-main); border: 1px solid var(--border); border-radius: var(--radius); cursor: pointer; text-align: center; }
 .month-row .m-btn[data-active="true"] { background: var(--primary); color: #fff; border-color: var(--primary); }
 .month-row .m-btn:active { background: #dbeafe; }
 .month-row .m-btn[data-active="true"]:active { background: var(--primary-dark); }
 
-.range-inline { flex: 0 0 auto; margin-left: auto; display: inline-flex; align-items: center; height: 28px; padding: 0 12px; font-size: 13px; font-weight: 600; color: var(--primary-dark); background: #f3f1fb; border-radius: var(--radius); }
+.range-inline { flex: 0 0 auto; margin-left: auto; display: inline-flex; align-items: center; height: 26px; padding: 0 12px; font-size: 13px; font-weight: 600; color: var(--primary-dark); background: #f3f1fb; border-radius: var(--radius); }
 
 /* ==========================================
    6. 页面动画与空状态
@@ -1263,8 +1263,8 @@ table.install-table tbody tr.inst-p > td.col-name {
 .toolbar.bar2 .grow,
 .toolbar.bar1 > button,
 .toolbar.bar2 > button {
-  height: 28px !important;
-  line-height: 28px !important;
+  height: 26px !important;
+  line-height: 26px !important;
   box-sizing: border-box !important;
 }
 /* 4) 分期「起 / 止」距离前面的按钮 = 2ch */
@@ -1310,7 +1310,7 @@ table#summary-table th, table#summary-table td { padding-left: 4px !important; p
   justify-content: center !important;
   width: 100% !important;
   min-width: 0 !important;
-  height: 28px !important;
+  height: 26px !important;
   padding: 0 !important;
   box-sizing: border-box !important;
   font-size: 14px !important;
@@ -1626,7 +1626,7 @@ table#summary-table { min-width: 800px !important; }
   width: auto !important;
   min-width: 0 !important;
   max-width: none !important;
-  height: 28px !important;
+  height: 26px !important;
   padding: 0 9px !important;
   box-sizing: border-box !important;
   font-size: 13px !important;
@@ -1642,7 +1642,7 @@ table#summary-table { min-width: 800px !important; }
   width: 54px !important;
   min-width: 54px !important;
   max-width: 54px !important;
-  height: 28px !important;
+  height: 26px !important;
   padding: 0 2px !important;
   font-size: 13px !important;
   text-align: center !important;
@@ -1719,7 +1719,7 @@ table#summary-table { min-width: 800px !important; }
   width: auto !important;
   min-width: 0 !important;
   max-width: none !important;
-  height: 28px !important;
+  height: 26px !important;
   padding: 0 9px !important;
   font-size: 13px !important;
   white-space: nowrap !important;
@@ -1730,7 +1730,7 @@ table#summary-table { min-width: 800px !important; }
   width: 54px !important;
   min-width: 54px !important;
   max-width: 54px !important;
-  height: 28px !important;
+  height: 26px !important;
   padding: 0 2px !important;
   font-size: 13px !important;
   text-align: center !important;
@@ -1765,7 +1765,7 @@ table#summary-table { min-width: 800px !important; }
 .toolbar.plan-bar2 > input.grow {
   flex: 1 1 0 !important;
   min-width: 0 !important;
-  height: 28px !important;
+  height: 26px !important;
   box-sizing: border-box !important;
   font-size: 13px !important;
 }
@@ -1781,7 +1781,7 @@ table#summary-table { min-width: 800px !important; }
 .toolbar.plan-bar2 > .range-group > input {
   flex: 1 1 0 !important;
   min-width: 0 !important;
-  height: 28px !important;
+  height: 26px !important;
   padding: 0 2px !important;
   font-size: 13px !important;
   text-align: center !important;
@@ -1810,7 +1810,7 @@ table#summary-table { min-width: 800px !important; }
   gap: 0 !important;
   flex: 0 0 auto !important;
   min-width: 0 !important;
-  height: 28px !important;
+  height: 26px !important;
   padding: 0 4px !important;
   box-sizing: border-box !important;
   border: 1px solid var(--border) !important;
@@ -1864,7 +1864,7 @@ table#summary-table { min-width: 800px !important; }
   width: 40px !important;
   min-width: 40px !important;
   max-width: 40px !important;
-  height: 28px !important;
+  height: 26px !important;
   padding: 0 !important;
   font-size: 13px !important;
   box-sizing: border-box !important;
@@ -1881,7 +1881,7 @@ table#summary-table { min-width: 800px !important; }
 .toolbar.plan-bar2 > input.plan-end {
   flex: 1 1 0 !important;
   min-width: 0 !important;
-  height: 28px !important;
+  height: 26px !important;
   padding: 0 8px !important;
   font-size: 14px !important;
   box-sizing: border-box !important;
@@ -1922,7 +1922,7 @@ table#summary-table { min-width: 800px !important; }
   display: flex !important;
   align-items: center !important;
   gap: 0 !important;
-  height: 28px !important;
+  height: 26px !important;
   padding: 0 5px !important;
   box-sizing: border-box !important;
   border: 1px solid var(--border) !important;
@@ -1965,8 +1965,8 @@ table#summary-table { min-width: 800px !important; }
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
-  height: 28px !important;
-  line-height: 28px !important;
+  height: 26px !important;
+  line-height: 26px !important;
   font-size: 13px !important;
   color: var(--text-muted) !important;
   padding: 0 4px !important;
@@ -1982,7 +1982,7 @@ table#summary-table { min-width: 800px !important; }
   width: 132px !important;
   min-width: 132px !important;
   max-width: 132px !important;
-  height: 28px !important;
+  height: 26px !important;
   padding: 0 8px !important;
   font-size: 14px !important;
   text-align: center !important;
@@ -2496,9 +2496,9 @@ table.subsum-table tbody tr.cat-total-row:nth-child(even) > td {
 /* 查询页「清空」按钮：高度和工具栏按钮统一为 28px */
 table.query-table button.q-clear,
 [data-theme="dark"] table.query-table button.q-clear {
-  height: 28px !important;
-  min-height: 28px !important;
-  max-height: 28px !important;
+  height: 26px !important;
+  min-height: 26px !important;
+  max-height: 26px !important;
   padding: 0 11px !important;
   box-sizing: border-box !important;
   display: inline-flex !important;
@@ -5026,7 +5026,7 @@ async function encryptWithSession(text) {
 // 网站二维码（内嵌 base64，离线可显示），扫码打开 https://jefely.github.io/New-repository/
 const QR_DATA_URL = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAUoAAAFKCAIAAAD0S4FSAAAFCUlEQVR42u3dS3IUMRBF0VcE+9+y2QETIfKjc+YGd7VvqAYZqe/n5yfARr88ApA3IG9A3oC8AXkD8gZ5A/IG5A3IG5A3IG+QNyBvQN6AvAF5A/KGl/0++eHv+5Y9jr9vnjv5vD3/5Xub9nr+v/v+Jp3e4OUckDcgb0DegLwBeQPyBnkDeWpqLdembe7pOdV071nt+xZOPtFrf5NOb/ByDsgbkDcgb0DegLxB3oC8gTw1tZaiSZ2Jk0n3NrFVPcmTn636vPv+Jp3e4OUckDcgb0DegLwBeYO8AXkDMbUW94du2eI2cQ7P6Q3IG5A3IG9A3oC8Qd6AvAF5AzG1Nsi9Oa2qGzPNpTm9AXkD8gbkDcgbkDfIG5A3IG8gj0yt9bzHs+eutZP/t+qWz33fr9MbkDcgb0DegLxB3oC8AXkD8gbSfGpt37ate7vH/Gz+yxzeaxvgnN4gb0DegLwBeQPyBuQN8gbkDTT07dsvNXGmrWrWque3f+9JOr0BeQPyBuQNyBuQN8gbkDcgbyCjd63ZiZUGe+nu3Vta9S303MTW835Ypzd4OQfkDcgbkDcgb0DegLxB3kCemlq7N8djB9j0ezxTNNM2cRry3l+O0xu8nAPyBuQNyBuQNyBvkDcgbyDLbgidOAM0cU6ranbwtcnCqp91egPyBuQN8gbkDcgbkDcgb0DeELvWsne2rOd+uJ4zTz3vh616GhM/r9MbvJwD8gbkDcgbkDcgb5A3IG8gT02tnUzb3JtMujfTNnHyrGqLW9Wz2vcdOb3Byzkgb0DegLwBeQPyBuQN8gZiai29p4smburqOePVczNZ1ed1egPyBuQNyBvkDcgbkDcgb0DeQEZPraXlBNi+XVwZeIvra1OJTm9A3iBvQN6AvAF5A/IG5A3yBmJqLb3nw3rOD1VNU937vFUzbVX70ibOLDq9wcs5IG9A3oC8AXkD8gZ5A/IGGvp6zuJMvKux52ayqttFe86W7XuSTm/wcg7IG5A3IG9A3oC8AXmDvIE8NbVWtU/r3oRQ1bTcaxvReu482/f37PQGL+eAvAF5A/IG5A3IG+QNyBvIshtCM3BfWtUEWNZNcU18VlUzbVX/stMbvJwD8gbkDcgbkDcgb5A3IG8gT02t5bHpohTNllU9jbScw6uahzt5znatAfIG5A3yBuQNyBuQNyBvQN4QN4SWTwhNvNfy3u/sW9jN1Bogb0DeIG9A3oC8AXkD8gbkDTG1xpo7QHvuh/NbOb0BeQPyBnkD8gbkDcgbkDcgb4gbQjNniisDt16d7B6ruuVz4u2iE39npzcgb0DeIG9A3oC8AXkD8gbkDTG1lt4TYDFp136LW9W3XzV32HPSzukNXs4BeQPyBuQNyBuQN8gbkDeQp6bWUjQ99toOsJMnee9OzHvfb9Xc4ck3WDXh5/QGL+eAvAF5A/IG5A3IG+QNyBuIqbW8ures6g7Qe7NlPSfees4sVs20Ob3Byzkgb0DegLwBeQPyBnkD8gZiai2v3qe577eq2g+Xoj1tVbvlnN6AvEHegLwBeQPyBuQNyBvkDcTUWvZOgGXgRNTEaap7E289b2Kt+o6c3uDlHJA3IG9A3oC8AXmDvAF5Aw19EzdmpeVNjml5R2TVJFbcLur0BuQNyBuQN8gbkDcgb0DegLyB/OupNcDpDcgbkDcgb5A3IG9A3oC8AXkD8gbkDfIG5A3IG5A3IG9A3iBvQN5AU38AW3Unpg+CBHwAAAAASUVORK5CYII=';
 
-const APP_VER = 'v14.0';
+const APP_VER = 'v14.1';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
