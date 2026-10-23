@@ -5305,7 +5305,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v18.7';
+const APP_VER = 'v18.8';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -10219,6 +10219,20 @@ function renderSummary(main, footer) {
     const firstBtn = bar1.querySelector('button');
     if (firstBtn) bar1.insertBefore(balBtn, firstBtn);
     else bar1.appendChild(balBtn);
+
+    // 「应用调序」：把「移动到」列填的行号立刻落地（不用等下次打开）
+    const mvBtn = document.createElement('button');
+    mvBtn.type = 'button';
+    mvBtn.className = 'bal-btn';
+    mvBtn.textContent = '应用调序';
+    mvBtn.title = '把「移动到」列填的行号立即执行（从上往下依次落地）';
+    mvBtn.onclick = () => {
+      const n = applyMoveRequests();
+      if (n) { save(); render(); toast('已调整 ' + n + ' 行', { duration: 3000 }); }
+      else toast('没有待执行的调序：先在「移动到」列填行号', { duration: 3500 });
+    };
+    if (firstBtn) bar1.insertBefore(mvBtn, firstBtn.nextSibling);
+    else bar1.appendChild(mvBtn);
   } catch (e) {}
 
   main.appendChild(bar1);
