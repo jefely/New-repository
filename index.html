@@ -4223,7 +4223,21 @@ html[data-theme="dark"] table.grid thead th.col-seq,
 html[data-theme="dark"] table#summary-table thead th.col-seq {
   background-color: #141414 !important;
 }
-.sync-sec { padding: 10px 0 8px; border-bottom: 1px dashed var(--border-light); }
+/* 功能块：圆角卡片，套主题紫（原来是一条虚线分隔，看着像文档不像界面） */
+.sync-sec {
+  padding: 13px 14px 14px;
+  margin: 10px 0;
+  border: 1px solid #dcd0f7;
+  border-radius: 13px;
+  background: #fbf9ff;
+}
+.sync-sec:last-child { margin-bottom: 0; }
+[data-theme="dark"] .sync-sec {
+  border-color: #3d3270;
+  background: #191428;
+}
+.sync-sec .sync-sec-title { color: #5b4ea8; font-size: 13px; font-weight: 700; }
+[data-theme="dark"] .sync-sec .sync-sec-title { color: #b6a8f5; }
 .sync-sec:last-of-type { border-bottom: none; padding-bottom: 2px; }
 .sync-sec-title { font-size: 12px; font-weight: 700; color: var(--text-muted); margin-bottom: 6px; letter-spacing: .3px; }
 .sync-btncol { display: flex; flex-direction: column; gap: 6px; margin: 8px 0 6px; }
@@ -5180,6 +5194,12 @@ table#summary-table tbody td.col-name { z-index: 6; }
 [data-theme="dark"] .rowmenu-item { background: #1b1630; border-color: #3a2f66; color: #d9d0f5; }
 [data-theme="dark"] .rowmenu-item:hover { background: #241d3d; }
 [data-theme="dark"] .rowmenu-types { color: #a99bf0; }
+
+/* 二维码画布框：直角灰块 → 圆角 + 极淡紫底 */
+#sync-pane-qr canvas, .sync-qr-canvas, .qr-box {
+  border-radius: 12px !important;
+  overflow: hidden;
+}
 </style>
 </head>
 <body>
@@ -5390,7 +5410,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v10.10';
+const APP_VER = 'v10.11';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
