@@ -5418,7 +5418,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v10.14';
+const APP_VER = 'v10.15';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -12872,128 +12872,45 @@ function openSyncDialog() {
   mask.className = 'confirm-mask';
   mask.innerHTML = `
     <div class="sync-box sync-box-wide">
-      <div class="sync-title">同步 / 分享</div>
+      <div class="sync-title">同步</div>
 
-      <div class="sync-tabs">
-        <button type="button" class="sync-tab active" data-sync-tab="file">备份 / 换设备</button>
-        <button type="button" class="sync-tab" data-sync-tab="qr">扫码合并</button>
+      <div class="sync-sec">
+        <div class="sync-sec-title">生成二维码</div>
+        <div class="sync-range">
+          <label>截止到 <input type="date" id="sync-qr-until"></label>
+          <label>之前 <input type="number" id="sync-qr-days" min="1" max="60" value="7" style="width:56px"> 天</label>
+          <label>每张 <input type="number" id="sync-qr-per" min="3" max="100" value="70" style="width:56px"> 笔</label>
+          <button type="button" class="ghost" id="sync-qr-make"
+            style="height:28px;padding:0 14px;margin-left:auto;border-radius:8px">生成</button>
+        </div>
+        <div id="sync-qr-result" style="margin-top:10px">
+          <canvas id="sync-qr-canvas" title="点一下放大"
+            style="display:block;margin:0 auto;width:100%;max-width:300px;height:auto;image-rendering:pixelated;border-radius:10px;background:#fff"></canvas>
+          <div id="sync-qr-info" class="sync-hint" style="margin:8px 0 0;text-align:center;font-size:12px"></div>
+          <div id="sync-qr-nav" style="display:none;align-items:center;justify-content:center;gap:12px;margin-top:10px">
+            <button type="button" class="ghost" id="sync-qr-prev" style="padding:0 12px;height:28px">上一张</button>
+            <span id="sync-qr-idx" style="font-size:12px;color:var(--text-muted)"></span>
+            <button type="button" class="ghost" id="sync-qr-next" style="padding:0 12px;height:28px">下一张</button>
+          </div>
+        </div>
       </div>
 
-      <!-- ① 文件方式 -->
-      <section class="sync-pane" id="sync-pane-file">
-        <div class="sync-sec">
-          <div class="sync-sec-title">① 同步文件（全部数据 · 已加密）</div>
-          <div class="sync-hint small" style="margin-top:0">
-            文件里是<b>全部数据</b>（账户、流水、分期、固定），用你的账本密码加密。
-          </div>
-          <div class="sync-btncol">
-            <button type="button" class="sync-btn-main" id="sync-save-file">存成同步文件（发到另一台设备）</button>
-            <div class="sync-btnrow">
-              <button type="button" class="ghost" id="sync-load-file">覆盖导入</button>
-              <button type="button" class="ghost" id="sync-merge-file">合并导入</button>
-            </div>
-          </div>
-          <div class="sync-hint small">
-            <b>覆盖导入</b>：整本替换成文件里的数据（换手机 / 恢复备份）。<br>
-            <b>合并导入</b>：只添加本机没有的流水 / 分期 / 账户，一条不删；
-            同一笔（同 id，或日期·账户·金额·备注全同）只算一次。
-          </div>
+      <div class="sync-sec">
+        <div class="sync-sec-title">识别二维码</div>
+        <div class="sync-hint small" style="text-align:left">
+          用手机的系统相机扫二维码，或者识别保存在相册里的图片，自动同步。
         </div>
-
-        <div class="sync-sec">
-          <div class="sync-sec-title">② 在新设备上安装</div>
-          <div class="sync-site">
-            <img id="sync-qr" alt="扫码打开" width="120" height="120">
-            <div class="sync-site-text">
-              扫这个码打开网页 → 浏览器菜单里「添加到主屏幕」，
-              以后点图标就能用，<b>断网也能开</b>。
-              <div class="sync-site-url">jefely.github.io/nt-ledger</div>
-            </div>
-          </div>
+        <div class="sync-btnrow" style="margin-top:10px">
+          <button type="button" class="ghost" id="sync-qr-pick">打开图片</button>
+          <button type="button" class="ghost" id="sync-qr-paste">粘贴文本</button>
         </div>
-        <input type="file" id="sync-file" accept=".lz,.txt,.json" style="display:none">
-      </section>
-
-      <!-- ② 扫码合并 -->
-      <section class="sync-pane" id="sync-pane-qr" hidden>
-        <div class="sync-sec">
-          <div class="sync-sec-title">① 选择要带的记录</div>
-          <div class="sync-range">
-            <label>截止到 <input type="date" id="sync-qr-until"></label>
-            <label>之前 <input type="number" id="sync-qr-days" min="1" max="60" value="7" style="width:56px"> 天</label>
-            <label>每张 <input type="number" id="sync-qr-per" min="3" max="100" value="20" style="width:56px"> 笔</label>
-          </div>
-          <div class="sync-btncol" style="margin-top:0">
-            <button type="button" class="sync-btn-main" id="sync-qr-make">生成二维码</button>
-          </div>
-          <div class="sync-hint small">
-            一张装不下会自动切成几张，按「上一张 / 下一张」依次扫；
-            每张都只加本机没有的记录。
-          </div>
-        </div>
-
-        <div class="sync-sec" id="sync-qr-result" hidden>
-          <div class="sync-sec-title">② 让另一台手机扫</div>
-          <canvas id="sync-qr-canvas" title="点一下放大" style="display:block;margin:0 auto;max-width:100%;height:auto;image-rendering:pixelated;border:1px solid var(--border);border-radius:6px;background:#fff;cursor:zoom-in"></canvas>
-          <div id="sync-qr-info" class="sync-hint" style="margin:8px 0 0;text-align:center;font-size:12px"></div>
-          <div id="sync-qr-nav" style="display:none;align-items:center;justify-content:center;gap:10px;margin-top:8px">
-            <button type="button" class="ghost" id="sync-qr-prev" style="padding:0 10px;height:26px">上一张</button>
-            <span id="sync-qr-idx" style="font-size:12px;color:var(--text-muted)"></span>
-            <button type="button" class="ghost" id="sync-qr-next" style="padding:0 10px;height:26px">下一张</button>
-          </div>
-          <div class="sync-hint small" style="text-align:center">点二维码可全屏放大（更容易扫）</div>
-          <textarea id="sync-qr-text" readonly spellcheck="false" style="width:100%;height:54px;margin-top:6px;font-size:10px;font-family:ui-monospace,Consolas,monospace;padding:6px;box-sizing:border-box;border:1px solid var(--border);border-radius:6px;background:var(--bg-main);color:var(--text-muted)"></textarea>
-          <div class="sync-hint small">
-            二维码里是明文，别给外人扫；实在扫不动就把上面这段发到另一台设备。
-          </div>
-        </div>
-
-        <div class="sync-sec">
-          <div class="sync-warn">
-            用手机的<b>系统相机</b>扫。微信 / 支付宝的「扫一扫」会把这个码当成商品码，
-            提示「未找到商品信息」—— 那是它们的问题，不是二维码坏了。
-          </div>
-        </div>
-      </section>
+      </div>
 
       <div class="sync-actions"><button type="button" data-act="close">关闭</button></div>
     </div>`;
   document.body.appendChild(mask);
   const close = () => mask.remove();
   bindMaskClose(mask, close);
-
-  // 二维码：内嵌的 base64 PNG，离线也能显示
-  const qr = mask.querySelector('#sync-qr');
-  if (qr) { const u = siteQrDataUrl(); if (u) qr.src = u; }
-
-  // 两个标签页：备份 / 换设备 · 扫码合并
-  const syncTabs = [...mask.querySelectorAll('.sync-tab')];
-  const panes = { file: mask.querySelector('#sync-pane-file'), qr: mask.querySelector('#sync-pane-qr') };
-  syncTabs.forEach(tab => {
-    tab.onclick = () => {
-      syncTabs.forEach(x => x.classList.toggle('active', x === tab));
-      Object.keys(panes).forEach(k => { if (panes[k]) panes[k].hidden = (k !== tab.dataset.syncTab); });
-      try { mask.querySelector('.sync-box').scrollTop = 0; } catch (e) {}
-    };
-  });
-
-  // 存成同步文件
-  mask.querySelector('#sync-save-file').onclick = async () => {
-    try {
-      const code = await buildSyncCode();
-      const d = new Date();
-      const pad = n => String(n).padStart(2, '0');
-      const name = 'NT账本_' + d.getFullYear() + pad(d.getMonth() + 1) + pad(d.getDate())
-        + '_' + pad(d.getHours()) + pad(d.getMinutes()) + '.lz';
-      const blob = new Blob([code], { type: 'text/plain;charset=utf-8' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url; a.download = name;
-      document.body.appendChild(a); a.click(); a.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 2000);
-      toast('已存为 ' + name + '（' + Math.round(blob.size / 1024) + ' KB）', { duration: 5000 });
-    } catch (e) { toast('导出失败：' + e.message, { type: 'error' }); }
-  };
 
   // 生成合并二维码
   const qrMake = mask.querySelector('#sync-qr-make');
@@ -13114,6 +13031,53 @@ function openSyncDialog() {
 
 
 
+
+  /* ---------- 识别二维码：选一张图，解码后合并 ----------
+     能用的浏览器（Chrome / 华为自带内核）有 BarcodeDetector，直接读图；
+     没有就退回「粘贴二维码下面那段文本」。 */
+  const pickBtn = mask.querySelector('#sync-qr-pick');
+  const pasteBtn = mask.querySelector('#sync-qr-paste');
+  const applyQrText = async (raw) => {
+    try {
+      if (!raw || !String(raw).trim()) { toast('没读到内容', { type: 'error' }); return; }
+      const r = await applySyncCode(String(raw).trim(), { merge: true });
+      toast('已合并：新增 ' + r.added + ' 笔流水 · ' + r.instAdded + ' 个分期 · '
+        + r.accAdded + ' 个账户（更新 ' + r.updated + ' 笔，重复跳过 ' + r.duplicated + ' 笔）',
+        { duration: 7000 });
+      close();
+    } catch (e) {
+      toast('识别失败：' + (e && e.message ? e.message : e), { type: 'error', duration: 6000 });
+    }
+  };
+
+  if (pickBtn) pickBtn.onclick = () => {
+    const inp = document.createElement('input');
+    inp.type = 'file';
+    inp.accept = 'image/*';
+    inp.onchange = async () => {
+      const f = inp.files && inp.files[0];
+      if (!f) return;
+      try {
+        if (!('BarcodeDetector' in window)) {
+          toast('这个浏览器不能读图里的二维码，请用「粘贴文本」', { type: 'error', duration: 6000 });
+          return;
+        }
+        const bmp = await createImageBitmap(f);
+        const det = new window.BarcodeDetector({ formats: ['qr_code'] });
+        const codes = await det.detect(bmp);
+        if (!codes.length) { toast('这张图里没找到二维码', { type: 'error', duration: 5000 }); return; }
+        await applyQrText(codes[0].rawValue);
+      } catch (e) {
+        toast('读图失败：' + (e && e.message ? e.message : e) + '（可用「粘贴文本」）', { type: 'error', duration: 7000 });
+      }
+    };
+    inp.click();
+  };
+
+  if (pasteBtn) pasteBtn.onclick = () => {
+    const raw = window.prompt('把二维码下面那段文本粘进来：');
+    if (raw) applyQrText(raw);
+  };
 // 默认列宽（用户调好的，作为新用户 / 重置后的初始值）
 const DEFAULT_COL_WIDTHS = {
   flow:    [50, 77, 107, 117, 109, 179, 52],
