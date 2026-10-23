@@ -5376,7 +5376,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v20.8';
+const APP_VER = 'v20.9';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -12676,6 +12676,60 @@ const XLSX_TPL_IDB = 'flow_xlsx_template_v2';
      2) 不支持分享再退回 <a download>
      3) 提示语如实写，不再谎报「已保存」
    ============================================================ */
+/* 保存方式选择：手机浏览器里 <a download> 经常假装成功，所以不赌它，
+   直接给三条路让用户选，其中「复制全文」在纯文本文件上 100% 可行。 */
+function openSaveChoiceDialog(text, filename, blob) {
+  const dlg = mkDialog(`
+    <div class="sync-title">保存同步文件</div>
+    <div class="sync-hint small" style="text-align:left;line-height:1.7">
+      文件名 <b>${esc(filename)}</b>，约 ${Math.round((blob ? blob.size : text.length) / 1024)} KB。<br>
+      手机浏览器对「直接下载」支持不一，下面三种任选一种，建议用<b>复制全文</b>。
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-top:14px">
+      <button type="button" id="sv-copy">复制全文（推荐，粘到记事本存成 .lz）</button>
+      <button type="button" class="ghost" id="sv-share">系统分享 / 发送给朋友</button>
+      <button type="button" class="ghost" id="sv-dl">直接下载文件</button>
+    </div>
+    <textarea id="sv-text" readonly style="width:100%;height:150px;margin-top:12px;font-family:ui-monospace,Consolas,monospace;font-size:11px;line-height:1.5;padding:8px;border-radius:9px;border:1px solid var(--border-light);background:var(--bg-main);color:var(--text-main)">${esc(text)}</textarea>
+    <div class="sync-actions"><button type="button" class="ghost" data-act="close">关闭</button></div>
+  `);
+  const ta = dlg.querySelector('#sv-text');
+
+  const copyNow = async () => {
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(text);
+        toast('已复制全文（' + Math.round(text.length / 1024) + ' KB）—— 粘到记事本，存成 ' + filename, { duration: 7000 });
+        return true;
+      }
+    } catch (e) {}
+    // 剪贴板 API 不可用：退回 execCommand
+    try {
+      ta.focus(); ta.select();
+      const ok = document.execCommand('copy');
+      toast(ok ? ('已复制全文 —— 粘到记事本，存成 ' + filename) : '复制失败，请长按下面的文本全选复制', { duration: 7000 });
+      return ok;
+    } catch (e) {
+      toast('复制失败，请长按下面的文本全选复制', { type: 'error' });
+      return false;
+    }
+  };
+
+  dlg.querySelector('#sv-copy').onclick = async () => { await copyNow(); };
+  dlg.querySelector('#sv-share').onclick = async () => {
+    const r = await saveBlobToDevice(blob, filename, { shareOnly: true });
+    if (r.via === 'nosupport') { toast('这个浏览器不支持系统分享，请用「复制全文」', { duration: 5000 }); return; }
+    saveResultToast(r, filename, blob.size);
+  };
+  dlg.querySelector('#sv-dl').onclick = async () => {
+    const r = await saveBlobToDevice(blob, filename);
+    saveResultToast(r, filename, blob.size);
+  };
+
+  // 打开就把文本选中，长按/复制都能立刻用
+  setTimeout(() => { try { ta.focus(); ta.setSelectionRange(0, ta.value.length); } catch (e) {} }, 100);
+}
+
 async function saveBlobToDevice(blob, filename, opts) {
   const file = (typeof File === 'function') ? new File([blob], filename, { type: blob.type || 'application/octet-stream' }) : null;
 
@@ -12711,6 +12765,45 @@ function saveResultToast(r, filename, size) {
   else if (r.via === 'cancel') toast('已取消保存', { duration: 2500 });
   else if (r.via === 'download') toast('已发起下载：' + filename + '（' + kb + '）\n如果没看到文件，请到浏览器的下载列表里找，或改用「分享」方式保存', { duration: 8000 });
   else toast('保存失败：' + (r.error && r.error.message ? r.error.message : '浏览器不允许下载'), { type: 'error', duration: 7000 });
+}
+
+/* Excel 在手机上给一条百分百可行的退路：导出 CSV 纯文本，让用户复制。
+   （XLSX 是二进制，剪贴板 API 不支持这个 MIME，复制注定失败） */
+function openCsvFallbackDialog() {
+  const rows = [];
+  rows.push(['日期', '转出', '转入', '金额', '备注'].join(','));
+  for (const t of state.transactions) {
+    const esc2 = v => {
+      const s2 = String(v == null ? '' : v);
+      return /[",\n]/.test(s2) ? '"' + s2.replace(/"/g, '""') + '"' : s2;
+    };
+    rows.push([toYYMMDD(t.date), t.from || '', t.to || '', (Number(t.amount) || 0).toFixed(2), t.note || ''].map(esc2).join(','));
+  }
+  const csv = '\ufeff' + rows.join('\n');
+  const dlg = mkDialog(`
+    <div class="sync-title">复制为 CSV</div>
+    <div class="sync-hint small" style="text-align:left;line-height:1.7">
+      XLSX 是二进制文件，手机浏览器如果存不下来，就用这个：
+      下面 ${state.transactions.length} 笔流水的 CSV 文本，全选复制 → 粘到记事本存成 <b>NT账本_${todayISO()}.csv</b>，
+      用 Excel / WPS 打开就是一张表。
+    </div>
+    <textarea id="csv-text" readonly style="width:100%;height:200px;margin-top:12px;font-family:ui-monospace,Consolas,monospace;font-size:11px;line-height:1.5;padding:8px;border-radius:9px;border:1px solid var(--border-light);background:var(--bg-main);color:var(--text-main)">${esc(csv)}</textarea>
+    <div class="sync-actions">
+      <button type="button" id="csv-copy">复制 CSV 全文</button>
+      <button type="button" class="ghost" data-act="close">关闭</button>
+    </div>
+  `);
+  const ta = dlg.querySelector('#csv-text');
+  setTimeout(() => { try { ta.focus(); ta.setSelectionRange(0, ta.value.length); } catch (e) {} }, 100);
+  dlg.querySelector('#csv-copy').onclick = async () => {
+    let ok = false;
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) { await navigator.clipboard.writeText(csv); ok = true; }
+    } catch (e) {}
+    if (!ok) { try { ta.focus(); ta.select(); ok = document.execCommand('copy'); } catch (e) {} }
+    toast(ok ? '已复制 CSV 全文 —— 粘到记事本存成 .csv 即可' : '复制失败，请长按上面的文本全选复制',
+      ok ? { duration: 6000 } : { type: 'error', duration: 6000 });
+  };
 }
 
 async function exportXLSX() {
@@ -12966,22 +13059,7 @@ function openSyncDialog() {
       const name = 'NT账本_' + d.getFullYear() + pad(d.getMonth() + 1) + pad(d.getDate())
         + '_' + pad(d.getHours()) + pad(d.getMinutes()) + '.lz';
       const blob = new Blob([code], { type: 'text/plain;charset=utf-8' });
-      const r = await saveBlobToDevice(blob, name);
-      if (r.via === 'fail') {
-        // 下载也不行 → 把内容摊出来，让用户全选复制
-        const dlg = mkDialog(`
-          <div class="sync-title">手动保存同步文件</div>
-          <div class="sync-hint small" style="text-align:left">
-            浏览器不让直接存文件。下面这段就是同步文件的全部内容 —— 全选复制，粘到记事本里保存成 <b>${esc(name)}</b> 即可。
-          </div>
-          <textarea readonly style="width:100%;height:200px;font-family:ui-monospace,Consolas,monospace;font-size:11px;line-height:1.5;padding:8px;border-radius:9px;border:1px solid var(--border-light);background:var(--bg-main);color:var(--text-main)">${esc(code)}</textarea>
-          <div class="sync-actions"><button type="button" class="ghost" data-act="close">关闭</button></div>
-        `);
-        const ta = dlg.querySelector('textarea');
-        setTimeout(() => { try { ta.focus(); ta.select(); } catch (e) {} }, 80);
-      } else {
-        saveResultToast(r, name, blob.size);
-      }
+      openSaveChoiceDialog(code, name, blob);
     } catch (e) { toast('导出失败：' + e.message, { type: 'error' }); }
   };
 
