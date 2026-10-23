@@ -5295,7 +5295,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v18.3';
+const APP_VER = 'v18.4';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -6086,10 +6086,15 @@ function renderAudit(main, footer) {
       <div class="audit-sep"></div>
       <div class="audit-title" style="margin-top:18px">重置账本</div>
       <div class="sync-hint small" style="margin-top:8px">
-        清空全部流水、分期、固定收支，账户恢复成内置的默认账户。
+        <b>重置账户（保留数据）</b>：只把账户表恢复成内置默认，流水/分期/固定都留着；
+        之后流水里的账户名可能对不上，需要你手动改账户名或流水来修正。<br>
+        <b>重置账本（清空数据）</b>：全部清空并恢复默认账户，
         <b style="color:#dc2626">不可撤销</b>，请先「导出」或「存成同步文件」备份。
       </div>
-      <div style="margin-top:12px"><button type="button" id="ver-reset" class="danger-btn">重置账本</button></div>
+      <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
+        <button type="button" id="ver-reset-keep" class="danger-btn">重置账户（保留数据）</button>
+        <button type="button" id="ver-reset" class="danger-btn">重置账本（清空数据）</button>
+      </div>
     </div>`;
   main.appendChild(vpane);
 
@@ -6132,7 +6137,9 @@ function renderAudit(main, footer) {
     } catch (e) { $c.textContent = '—'; }
     if (remote && localHas) $n.textContent = '已是最新，无需更新。';
     const $rt = vpane.querySelector('#ver-reset');
-    if ($rt) $rt.onclick = () => openResetDialog();
+    if ($rt) $rt.onclick = () => openResetDialog('wipe');
+    const $rk = vpane.querySelector('#ver-reset-keep');
+    if ($rk) $rk.onclick = () => openResetDialog('keep');
     $b.onclick = async () => {
       if ($b.disabled) return;
       $b.disabled = true; $b.textContent = '检查中…';
@@ -8581,24 +8588,39 @@ function openColWidthsDialog() {
   };
 }
 
-function openResetDialog() {
+/* mode: 'wipe' 清空全部 | 'keep' 只重置账户、保留流水 */
+function openResetDialog(mode) {
+  const keep = mode === 'keep';
+  const nTx = state.transactions.length;
+  const nAcc = state.accounts.length;
+  const nInst = (state.installments || []).length;
+  const nFixed = (state.fixed || []).length;
+  const defN = defaultAccounts.length;
+
   const mask = document.createElement('div');
   mask.className = 'confirm-mask';
   mask.innerHTML = `
     <div class="sync-box">
-      <div class="sync-title">重置账本</div>
+      <div class="sync-title">${keep ? '重置账户（保留数据）' : '重置账本（清空数据）'}</div>
       <div class="sync-hint" style="text-align:left;line-height:1.8">
-        这一步会<b>删除全部数据</b>：<br>
-        · 流水 ${state.transactions.length} 笔<br>
-        · 账户 ${state.accounts.length} 个（重置为内置的 ${defaultAccounts.length} 个）<br>
-        · 分期 ${(state.installments || []).length} 个<br>
-        · 固定收支 ${(state.fixed || []).length} 条<br>
-        <span style="color:#dc2626">不可撤销，建议先导出 Excel 或生成同步码备份。</span>
+        ${keep ? `只把<b>账户表</b>恢复成内置的 ${defN} 个，下列数据全部保留：<br>
+        · 流水 ${nTx} 笔<br>
+        · 分期 ${nInst} 个<br>
+        · 固定收支 ${nFixed} 条<br>
+        现有 ${nAcc} 个账户会被替换。<br>
+        <span style="color:#dc2626">重置后流水里的账户名很可能对不上，校验会提示「对不上的名称」。
+        需要你手动到 汇总页修改账户名、或到流水里改转出/转入，才能恢复平衡。</span>`
+        : `这一步会<b>删除全部数据</b>：<br>
+        · 流水 ${nTx} 笔<br>
+        · 账户 ${nAcc} 个（重置为内置的 ${defN} 个）<br>
+        · 分期 ${nInst} 个<br>
+        · 固定收支 ${nFixed} 条<br>
+        <span style="color:#dc2626">不可撤销，建议先导出 Excel 或生成同步码备份。</span>`}
       </div>
       <div class="sync-hint" style="text-align:left">确认请输入 <b>重置</b> 两个字：</div>
       <input type="text" id="reset-word" placeholder="输入 重置" style="width:100%;height:32px;margin-bottom:10px">
       <div class="sync-actions">
-        <button type="button" id="reset-do" disabled>确定重置</button>
+        <button type="button" id="reset-do" disabled>${keep ? '确定重置账户' : '确定重置'}</button>
         <button type="button" class="ghost" data-act="close">取消</button>
       </div>
     </div>`;
@@ -8607,17 +8629,24 @@ function openResetDialog() {
   const input = mask.querySelector('#reset-word');
   const go = mask.querySelector('#reset-do');
   input.oninput = () => { go.disabled = input.value.trim() !== '重置'; };
-  go.onclick = () => { if (input.value.trim() !== '重置') return; close(); doReset(); };
+  go.onclick = () => { if (input.value.trim() !== '重置') return; close(); doReset(mode); };
   bindMaskClose(mask, close);
   setTimeout(() => { try { input.focus(); } catch (e) {} }, 60);
 }
 
-function doReset() {
+/* mode: 'wipe'（默认，清空全部） | 'keep'（只重置账户，保留流水/分期/固定） */
+function doReset(mode) {
+  const keep = mode === 'keep';
+  const keepTx = keep ? state.transactions.slice() : [];
+  const keepInst = keep ? (state.installments || []).slice() : [];
+  const keepFixed = keep ? (state.fixed || []).slice() : [];
+
   state.accounts = JSON.parse(JSON.stringify(defaultAccounts));
-  state.transactions = [];
-  state.installments = [];
-  state.fixed = [];
-  try {
+  state.transactions = keepTx;
+  state.installments = keepInst;
+  state.fixed = keepFixed;
+
+  if (!keep) try {
     localStorage.removeItem(SUMMARY_STATE_KEY);
     localStorage.removeItem('flow_install_state_v1');
     localStorage.removeItem('flow_fixed_lastrun_v1');
@@ -8626,6 +8655,8 @@ function doReset() {
     localStorage.removeItem(COLW_KEY_V2);
     localStorage.removeItem('flow_inst_mw_v1');
   } catch (e) {}
+  // 列宽：清空模式才恢复默认；保留模式用户只是换账户，列宽不该被动
+  if (keep) { reseq(); save(); render(); return toast('已重置账户：' + state.accounts.length + ' 个内置账户，流水/分期/固定全部保留', { duration: 6000 }); }
   // 列宽也回到内置默认
   colWidths = JSON.parse(JSON.stringify(DEFAULT_COL_WIDTHS));
   _undoStack.length = 0;
