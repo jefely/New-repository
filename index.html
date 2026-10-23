@@ -5376,7 +5376,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v21.3';
+const APP_VER = 'v21.4';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -12713,6 +12713,7 @@ function openSaveChoiceDialog(text, filename, blob) {
         border:1px solid #cbbcf0;background:#faf8ff;color:#5b4ea8;font-size:14px;font-weight:600">
         ② 长按这里 → 「链接另存为 / 下载链接」</a>` : ''}
       <button type="button" class="ghost" id="sv-window">③ 新窗口打开纯文本</button>
+      ${window.showSaveFilePicker ? `<button type="button" class="ghost" id="sv-picker">④ 选择保存位置（另存为）</button>` : ''}
       ${canShareFiles ? `<button type="button" class="ghost" id="sv-share">系统分享 / 发送给朋友</button>` : ''}
     </div>
     <textarea id="sv-text" readonly style="width:100%;height:140px;margin-top:12px;font-family:ui-monospace,Consolas,monospace;font-size:11px;line-height:1.5;padding:8px;border-radius:9px;border:1px solid var(--border-light);background:var(--bg-main);color:var(--text-main)">${esc(text)}</textarea>
@@ -12744,6 +12745,12 @@ function openSaveChoiceDialog(text, filename, blob) {
       try { const t2 = w.document.querySelector('textarea'); t2.focus(); t2.select(); } catch (e) {}
       toast('已在新窗口打开，全选复制后存成 ' + filename, { duration: 6000 });
     } catch (e) { toast('打开失败：' + e.message, { type: 'error' }); }
+  };
+
+  const pkBtn = dlg.querySelector('#sv-picker');
+  if (pkBtn) pkBtn.onclick = async () => {
+    const r = await saveBlobToDevice(blob, filename);
+    saveResultToast(r, filename, blob.size);
   };
 
   const shareBtn = dlg.querySelector('#sv-share');
