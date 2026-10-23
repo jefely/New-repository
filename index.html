@@ -5226,6 +5226,18 @@ table#summary-table tbody td.col-name { z-index: 6; }
 }
 [data-theme="dark"] .add-sec-title { color: #b6a8f5; }
 [data-theme="dark"] .add-sec-btn { background: #1b1630 !important; border-color: #3a2f66 !important; color: #cfc4f5 !important; }
+
+/* 外层已经有「添加账本 + 新建」，账本区表头不要重复出现 */
+.book-section .book-head { display: none !important; }
+
+/* 「添加流水」这一行不许换行：标题 nowrap，按钮收紧 */
+.add-sec-head { flex-wrap: nowrap !important; }
+.add-sec-title { white-space: nowrap !important; font-size: 13px !important; flex: 0 0 auto; }
+.add-sec-btns { flex: 0 1 auto; justify-content: flex-end; flex-wrap: nowrap !important; gap: 5px !important; }
+.add-sec-btn {
+  padding: 0 8px !important; font-size: 11.5px !important;
+  letter-spacing: 0 !important; min-width: 0 !important; flex: 0 0 auto;
+}
 </style>
 </head>
 <body>
@@ -5436,7 +5448,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v10.19';
+const APP_VER = 'v10.20';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
