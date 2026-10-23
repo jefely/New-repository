@@ -5345,7 +5345,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v10.02';
+const APP_VER = 'v10.03';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -10714,7 +10714,8 @@ function makeSummaryRow(acc, idx, range) {
   const tdOpen = mkInputCell('opening', 'text', 'col-open');
   tdOpen.querySelector('input').style.textAlign = 'right'; tr.appendChild(tdOpen);
 
-  // 「上移」列（表头里已经有这一列，数据行必须跟着补一格，否则整行错位）
+
+  // 「上移」：与上一个同类型的行交换位置，点一次挪一格
   const tdMove = document.createElement('td');
   tdMove.className = 'col-move';
   if (!isNew) {
@@ -10723,20 +10724,6 @@ function makeSummaryRow(acc, idx, range) {
     pin.className = 'pin-btn';
     pin.textContent = '▲';
     pin.title = '上移：与上一个「' + (acc.cat || '同类') + '」行交换位置';
-    pin.onclick = (ev) => { ev.stopPropagation(); pinAccountToTop(acc.id); };
-    tdMove.appendChild(pin);
-  }
-  tr.appendChild(tdMove);
-
-  // 「置顶」：点一下立刻移到所属类型的最前面；反复点不同行就能排出想要的顺序
-  const tdMove = document.createElement('td');
-  tdMove.className = 'col-move';
-  if (!isNew) {
-    const pin = document.createElement('button');
-    pin.type = 'button';
-    pin.className = 'pin-btn';
-    pin.textContent = '▲';
-    pin.title = '置顶：移到「' + (acc.cat || '当前类型') + '」的最前面';
     pin.onclick = (ev) => { ev.stopPropagation(); pinAccountToTop(acc.id); };
     tdMove.appendChild(pin);
   }
