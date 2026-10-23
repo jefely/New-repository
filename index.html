@@ -5208,6 +5208,24 @@ table#summary-table tbody td.col-name { z-index: 6; }
   background: #fff;
 }
 [data-theme="dark"] #sync-qr-canvas { border-color: #3d3270; }
+
+/* 「添加」弹窗：每块各带一个小标题，右上角放操作按钮 */
+.add-sec-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+.add-sec-title { font-size: 14px; font-weight: 700; color: #5b4ea8; }
+.add-sec-btns { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.add-sec-btn {
+  height: 26px !important; padding: 0 10px !important; border-radius: 7px !important;
+  font-size: 12px !important; font-weight: 600 !important;
+  border: 1px solid #cbbcf0 !important; background: #fff !important; color: #5b4ea8 !important;
+  box-shadow: none !important;
+}
+.add-sec-btn:hover { background: #f6f1ff !important; }
+.add-sec-main {
+  border: 0 !important; color: #fff !important;
+  background: linear-gradient(135deg, #8b6cff, #6b5bc4) !important;
+}
+[data-theme="dark"] .add-sec-title { color: #b6a8f5; }
+[data-theme="dark"] .add-sec-btn { background: #1b1630 !important; border-color: #3a2f66 !important; color: #cfc4f5 !important; }
 </style>
 </head>
 <body>
@@ -5418,7 +5436,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v10.17';
+const APP_VER = 'v10.19';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -8731,36 +8749,56 @@ function openImportTextDialog() {
   mask.className = 'confirm-mask';
   mask.innerHTML = `
     <div class="sync-box" style="max-width:min(96vw,560px)">
-      <div class="sync-title">添加</div>
-      <div id="book-slot"></div>
-      <div class="sync-hint" style="text-align:left;line-height:1.7">
-        一段文本用「账户」「流水」两个词分段，字段之间用中文逗号。<br>
-        账户：<code>类型，分类，简码，名称，期初，</code><br>
-        流水：<code>YYMMDD，转出，转入，金额，备注，</code><br>
-        账户按「名称」判重，已存在的自动忽略。
+      <div class="sync-title">添加账本 · 流水记录</div>
+
+      <div class="sync-sec">
+        <div class="add-sec-head">
+          <span class="add-sec-title">添加账本</span>
+          <button type="button" class="ghost add-sec-btn" id="imp-book-new">新建</button>
+        </div>
+        <div id="book-slot"></div>
       </div>
-      <textarea id="imp-text" spellcheck="false" placeholder="账户
+
+      <div class="sync-sec">
+        <div class="add-sec-head">
+          <span class="add-sec-title">添加流水</span>
+          <span class="add-sec-btns">
+            <button type="button" class="ghost add-sec-btn" id="imp-file-btn">载入.txt</button>
+            <button type="button" class="ghost add-sec-btn" id="imp-tpl-btn">另存.txt</button>
+            <button type="button" class="add-sec-btn add-sec-main" id="imp-go">确认添加</button>
+          </span>
+        </div>
+        <input type="file" id="imp-file" accept=".txt,.csv,.text" style="display:none">
+        <textarea id="imp-text" spellcheck="false" placeholder="账户
 资产类，现金，XJ，现金，200.00，
 资产类，充值，FK，饭卡，0.00，
 
 流水
 261022，ZHX，水，3.00，
 261022，XJ，水，3.00，"
-        style="width:100%;height:170px;font-size:12px;font-family:ui-monospace,Consolas,monospace;padding:8px;box-sizing:border-box;border:1px solid var(--border);border-radius:6px;background:var(--bg-main);color:var(--text-main);line-height:1.6"></textarea>
-      <div class="sync-block" style="gap:8px;margin-top:8px">
-        <button type="button" class="ghost" id="imp-file-btn" style="width:100%">从 TXT 文件读取</button>
-        <input type="file" id="imp-file" accept=".txt,.csv,.text" style="display:none">
-        <button type="button" class="ghost" id="imp-tpl-btn" style="width:100%">导出当前数据为 TXT（模板）</button>
+          style="width:100%;height:260px;font-size:12px;font-family:ui-monospace,Consolas,monospace;padding:8px;box-sizing:border-box;border:1px solid var(--border-light);border-radius:9px;background:var(--bg-main);color:var(--text-main);line-height:1.6"></textarea>
+        <div id="imp-preview" class="sync-hint small" style="text-align:left;min-height:18px;margin-top:6px">识别到：</div>
       </div>
-      <div id="imp-preview" class="sync-hint" style="text-align:left;min-height:18px;margin-top:6px"></div>
+
+      <div class="sync-hint small" style="text-align:left;line-height:1.6;margin-top:2px">
+        用「账户」「流水」两个词分段，字段之间用中文逗号。<br>
+        账户：<code>类型，分类，简码，名称，期初，</code>　流水：<code>YYMMDD，转出，转入，金额，备注，</code><br>
+        账户按「名称」判重，已存在的自动忽略。
+      </div>
+
       <div class="sync-actions">
-        <button type="button" id="imp-go">导入</button>
         <button type="button" class="ghost" data-act="close">关闭</button>
       </div>
     </div>`;
   document.body.appendChild(mask);
   const slot = mask.querySelector('#book-slot');
   if (slot) slot.appendChild(buildBookSection());
+  // 顶部的「新建」转发给账本区里那个按钮，保持逻辑只有一份
+  const newBtn = mask.querySelector('#imp-book-new');
+  if (newBtn) newBtn.onclick = () => {
+    const inner = mask.querySelector('.book-section .book-new');
+    if (inner) inner.click();
+  };
   const close = () => mask.remove();
   bindMaskClose(mask, close);
   const ta = mask.querySelector('#imp-text');
