@@ -781,7 +781,7 @@ table.install-table tr.inst-i td.col-name input:focus { background: #f3f1fb; }
    否则带边框的 ghost 按钮会比月份按钮高出几个像素，同一行看起来参差不齐 */
 .toolbar input { height: 28px; padding: 0 10px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 14px; outline: none; }
 .toolbar input:focus { border-color: var(--primary); }
-.toolbar button { height: 28px; padding: 0 12px; background: var(--primary); color: #fff; border: none; border-radius: var(--radius); font-size: 14px; cursor: pointer; font-weight: 600; }
+.toolbar button { height: 26px; padding: 0 12px; background: var(--primary); color: #fff; border: none; border-radius: var(--radius); font-size: 14px; cursor: pointer; font-weight: 600; }
 .toolbar button.ghost { background: #fff; color: var(--text-muted); border: 1px solid var(--border); }
 .toolbar button[data-active="true"] { background: var(--primary); color: #fff; border-color: var(--primary); }
 
@@ -792,7 +792,7 @@ table.install-table tr.inst-i td.col-name input:focus { background: #f3f1fb; }
    宽度由 CSS flex 自适应，这里的值是首帧兜底。
    必须带 min-width:0 —— input 默认 size=20 的固有宽度会被 flex 的
    min-width:auto 当成下限，否则 flex-basis 会被顶到 200px 宽。 */
-.year-input { flex: 0 0 96px; min-width: 0; height: 28px; padding: 0; font-size: 14px; font-weight: 700; text-align: center; border: 1px solid var(--border); border-radius: var(--radius); }
+.year-input { flex: 0 0 96px; min-width: 0; height: 26px; padding: 0; font-size: 14px; font-weight: 700; text-align: center; border: 1px solid var(--border); border-radius: var(--radius); }
 /* 月份排成两行：1-6 月在第一行、7-12 月在第二行，两行的左边缘自动对齐。
    桌面上第一行直接占用「区间/月份 + 导出/导入」那一行，所以不额外增加行高；
    手机上 12 个都挤在第二行排两排。 */
@@ -4807,6 +4807,26 @@ table#summary-table td input {
   body .toolbar.plan-bar,
   body .toolbar.plan-bar2 { max-width: 420px !important; }
 }
+
+/* ===== 工具栏高度统一（v14.0）=====
+   按钮、年份输入框、月份格子统一 26px —— 原来按钮 28、年份框 28、
+   分期页按钮又各写各的，混在一行里高低不齐。 */
+.toolbar > button,
+.toolbar > .m-btn,
+.toolbar button,
+.toolbar input.year-input,
+.toolbar input[type="date"],
+.toolbar select {
+  height: 26px !important;
+  min-height: 26px !important;
+  line-height: 24px !important;
+  box-sizing: border-box !important;
+}
+/* 分期页那排按钮宽度固定 62，高度跟着统一 */
+.toolbar.install-bar > button { height: 26px !important; line-height: 24px !important; }
+/* 汇总页「月份」格子与按钮同高 */
+.toolbar .month-row > button,
+.toolbar .month-btn { height: 26px !important; line-height: 24px !important; }
 </style>
 </head>
 <body>
@@ -5006,7 +5026,7 @@ async function encryptWithSession(text) {
 // 网站二维码（内嵌 base64，离线可显示），扫码打开 https://jefely.github.io/New-repository/
 const QR_DATA_URL = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAUoAAAFKCAIAAAD0S4FSAAAFCUlEQVR42u3dS3IUMRBF0VcE+9+y2QETIfKjc+YGd7VvqAYZqe/n5yfARr88ApA3IG9A3oC8AXkD8gZ5A/IG5A3IG5A3IG+QNyBvQN6AvAF5A/KGl/0++eHv+5Y9jr9vnjv5vD3/5Xub9nr+v/v+Jp3e4OUckDcgb0DegLwBeQPyBnkDeWpqLdembe7pOdV071nt+xZOPtFrf5NOb/ByDsgbkDcgb0DegLxB3oC8gTw1tZaiSZ2Jk0n3NrFVPcmTn636vPv+Jp3e4OUckDcgb0DegLwBeYO8AXkDMbUW94du2eI2cQ7P6Q3IG5A3IG9A3oC8Qd6AvAF5AzG1Nsi9Oa2qGzPNpTm9AXkD8gbkDcgbkDfIG5A3IG8gj0yt9bzHs+eutZP/t+qWz33fr9MbkDcgb0DegLxB3oC8AXkD8gbSfGpt37ate7vH/Gz+yxzeaxvgnN4gb0DegLwBeQPyBuQN8gbkDTT07dsvNXGmrWrWque3f+9JOr0BeQPyBuQNyBuQN8gbkDcgbyCjd63ZiZUGe+nu3Vta9S303MTW835Ypzd4OQfkDcgbkDcgb0DegLxB3kCemlq7N8djB9j0ezxTNNM2cRry3l+O0xu8nAPyBuQNyBuQNyBvkDcgbyDLbgidOAM0cU6ranbwtcnCqp91egPyBuQN8gbkDcgbkDcgb0DeELvWsne2rOd+uJ4zTz3vh616GhM/r9MbvJwD8gbkDcgbkDcgb5A3IG8gT02tnUzb3JtMujfTNnHyrGqLW9Wz2vcdOb3Byzkgb0DegLwBeQPyBuQN8gZiai29p4smburqOePVczNZ1ed1egPyBuQNyBvkDcgbkDcgb0DeQEZPraXlBNi+XVwZeIvra1OJTm9A3iBvQN6AvAF5A/IG5A3yBmJqLb3nw3rOD1VNU937vFUzbVX70ibOLDq9wcs5IG9A3oC8AXkD8gZ5A/IGGvp6zuJMvKux52ayqttFe86W7XuSTm/wcg7IG5A3IG9A3oC8AXmDvIE8NbVWtU/r3oRQ1bTcaxvReu482/f37PQGL+eAvAF5A/IG5A3IG+QNyBvIshtCM3BfWtUEWNZNcU18VlUzbVX/stMbvJwD8gbkDcgbkDcgb5A3IG8gT02t5bHpohTNllU9jbScw6uahzt5znatAfIG5A3yBuQNyBuQNyBvQN4QN4SWTwhNvNfy3u/sW9jN1Bogb0DeIG9A3oC8AXkD8gbkDTG1xpo7QHvuh/NbOb0BeQPyBnkD8gbkDcgbkDcgb4gbQjNniisDt16d7B6ruuVz4u2iE39npzcgb0DeIG9A3oC8AXkD8gbkDTG1lt4TYDFp136LW9W3XzV32HPSzukNXs4BeQPyBuQNyBuQN8gbkDeQp6bWUjQ99toOsJMnee9OzHvfb9Xc4ck3WDXh5/QGL+eAvAF5A/IG5A3IG+QNyBuIqbW8ures6g7Qe7NlPSfees4sVs20Ob3Byzkgb0DegLwBeQPyBnkD8gZiai2v3qe577eq2g+Xoj1tVbvlnN6AvEHegLwBeQPyBuQNyBvkDcTUWvZOgGXgRNTEaap7E289b2Kt+o6c3uDlHJA3IG9A3oC8AXmDvAF5Aw19EzdmpeVNjml5R2TVJFbcLur0BuQNyBuQN8gbkDcgb0DegLyB/OupNcDpDcgbkDcgb5A3IG9A3oC8AXkD8gbkDfIG5A3IG5A3IG9A3iBvQN5AU38AW3Unpg+CBHwAAAAASUVORK5CYII=';
 
-const APP_VER = 'v13.9';
+const APP_VER = 'v14.0';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
