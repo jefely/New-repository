@@ -5374,7 +5374,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v10.08';
+const APP_VER = 'v10.09';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -5812,33 +5812,27 @@ function pinAccountToTop(id) {
     toast((arr[i].name || '这一行') + ' 已经是「' + (cat || '未分类') + '」里第一行了', { duration: 1800 });
     return;
   }
+
   const tmp = arr[j]; arr[j] = arr[i]; arr[i] = tmp;
+  save();                       // 只存数据，不 render —— render 会重建表格，把用户调过的列宽冲掉
 
-  /* 整页 render 会把表格重建成默认列宽（收起的summary 视图下 colgroup 是 0，
-     renderSummary 重建时又按默认值铺一遍）。所以先把用户调过的列宽存一份，
-     渲染完立刻写回去。 */
-  const savedColW = JSON.parse(JSON.stringify(colWidths || {}));
-  const savedReal = summaryRealW ? summaryRealW.slice() : null;
-  const savedFold = summaryFold;
-
-  save(); render();
-
-  try {
-    colWidths = savedColW;
-    if (savedReal) summaryRealW = savedReal;
-    const t = document.getElementById('summary-table');
-    if (t) {
-      const real = summaryBaseWidths();
-      summaryRealW = real.slice();
-      const view = real.slice();
-      if (summaryFold) SUMMARY_FOLD_COLS.forEach(ci => { view[ci] = 0; });
-      applyWidths(t, 'summary', view);
-      colWidths.summary = real;      // 落盘的永远是真实宽度
-      applySummarySticky();
-    }
-    saveColWidths();
-  } catch (e) {}
-
+  // 只把这两个 DOM 行换个位置，表格其它部分（colgroup / 列宽 / 滚动位置）原地不动
+  const t = document.getElementById('summary-table');
+  if (!t) { toast('已上移：' + (arr[j].name || '这一行'), { duration: 1500 }); return; }
+  const rowTop = t.querySelector('tbody tr[data-id="' + arr[j].id + '"]');   // 换序后它在上面
+  const rowBot = t.querySelector('tbody tr[data-id="' + arr[i].id + '"]');   // 它在下面
+  if (rowTop && rowBot && rowTop !== rowBot) {
+    rowBot.parentNode.insertBefore(rowTop, rowBot);
+    // 序号跟着重排（分组标签行不参与）
+    let n = 1;
+    t.querySelectorAll('tbody tr[data-id]').forEach(r => {
+      const td = r.querySelector('td.col-seq');
+      if (td && !r.classList.contains('cat-row')) td.textContent = String(n++);
+    });
+    try { applySummarySticky(); } catch (e) {}
+  } else {
+    render();
+  }
   toast('已上移：' + (arr[j].name || '这一行'), { duration: 1500 });
 }
 
