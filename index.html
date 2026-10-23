@@ -5007,7 +5007,13 @@ table.install-table thead th.col-month {
   color: #fff !important;
 }
 .audit-pane[hidden] { display: none !important; }
-.audit-pane { width: 100%; }
+/* 注意：不能给 .audit-pane 统一 width:100%，
+   「账本说明」那一块本身带左右 12px 外边距，100% 再加外边距就会超出屏幕一点点。 */
+.audit-pane { width: 100%; box-sizing: border-box; }
+.audit-intro.audit-pane { width: auto; }
+@media (max-width: 767px) {
+  .audit-intro { margin-left: 8px; margin-right: 8px; padding: 12px 12px; }
+}
 </style>
 </head>
 <body>
@@ -5218,7 +5224,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v17.9';
+const APP_VER = 'v18.0';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
