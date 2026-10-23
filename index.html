@@ -4264,6 +4264,27 @@ table#summary-table.cols-custom th.col-seq, table#summary-table.cols-custom td.c
 /* 汇总表写死了 min-width:720px，列宽调小后会被它的 min-width 反向压回去（66px 的列被压成 40 多），
    于是三字分类「储蓄卡」只剩「储蓄」。调过列宽就放开这个下限。 */
 table#summary-table.cols-custom { min-width: 0 !important; }
+/* ===== 分期表：边框 / 斑马纹跟流水表一致；「账户名称」列深紫填充 ===== */
+table.install-table th, table.install-table td { border-right: 1px solid var(--border-light) !important; }
+table.install-table thead th { border-bottom: 1px solid var(--border) !important; }
+table.install-table tbody tr:nth-child(odd) td:not(.col-name) { background: var(--bg-main) !important; }
+table.install-table tbody tr:nth-child(even) td:not(.col-name) { background: var(--bg-gray-light) !important; }
+/* 账户名称列：深紫填充（表头、本金/利息行、数据行一律统一） */
+table.install-table thead th.col-name,
+table.install-table tbody tr td.col-name,
+table.install-table tbody tr.inst-p td.col-name,
+table.install-table tbody tr.inst-i td.col-name { background: #4c3d80 !important; color: #ffffff !important; }
+table.install-table thead th.col-name,
+table.install-table tbody tr td.col-name input { color: #ffffff !important; background: transparent !important; }
+/* 深色下分期表也被自己的 dark 规则接管（--deep-blue / #0d0d0d），这里统一拉回来 */
+[data-theme="dark"] table.install-table th,
+[data-theme="dark"] table.install-table td { border-right: 1px solid var(--border-light) !important; }
+[data-theme="dark"] table.install-table tbody tr:nth-child(odd) td.col-name,
+[data-theme="dark"] table.install-table tbody tr:nth-child(even) td.col-name,
+[data-theme="dark"] table.install-table tbody tr.inst-p td.col-name,
+[data-theme="dark"] table.install-table tbody tr.inst-i td.col-name,
+[data-theme="dark"] table.install-table thead th.col-name { background: #4c3d80 !important; color: #ffffff !important; }
+[data-theme="dark"] table.install-table tbody tr td.col-name input { color: #ffffff !important; }
 /* 汇总表的输入框内边距也走全局变量（原来写死 4px !important） */
 table#summary-table td input {
   padding-left: var(--cell-pad-l, 0px) !important;
@@ -4280,7 +4301,69 @@ table#summary-table td input {
   .col-resizer { right: -7px !important; width: 14px !important; }
   .col-resizer::after { left: 6px !important; }
 }
-</style>
+/* ===== 锁屏 / 密码界面：紫色 + 毛玻璃 + 平面感 ===== */
+.lock-screen {
+  position: fixed; inset: 0; z-index: 99999;
+  display: flex; align-items: center; justify-content: center;
+  background:
+    radial-gradient(1100px 560px at 18% 8%, rgba(124, 92, 255, .42), transparent 62%),
+    radial-gradient(880px 500px at 88% 86%, rgba(76, 61, 128, .55), transparent 62%),
+    linear-gradient(160deg, #1b1233 0%, #0b0816 100%);
+  overflow: hidden;
+  animation: lockFade .25s ease;
+}
+@keyframes lockFade { from { opacity: 0 } to { opacity: 1 } }
+.lock-glow { position: absolute; border-radius: 50%; filter: blur(90px); opacity: .5; pointer-events: none; }
+.lock-glow.g1 { width: 460px; height: 460px; background: #7c5cff; left: -110px; top: -80px; }
+.lock-glow.g2 { width: 420px; height: 420px; background: #4c3d80; right: -90px; bottom: -110px; }
+.lock-card {
+  position: relative; width: min(92vw, 356px);
+  padding: 34px 26px 26px;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, .075);
+  backdrop-filter: blur(26px) saturate(160%);
+  -webkit-backdrop-filter: blur(26px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, .16);
+  box-shadow: 0 26px 64px rgba(0, 0, 0, .5), inset 0 1px 0 rgba(255, 255, 255, .18);
+  text-align: center;
+}
+.lock-logo {
+  width: 46px; height: 46px; margin: 0 auto 16px;
+  border-radius: 13px;
+  background: linear-gradient(135deg, #8b6cff, #4c3d80);
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-size: 18px; font-weight: 800; letter-spacing: .5px;
+  box-shadow: 0 8px 20px rgba(107, 91, 196, .45);
+}
+.lock-title { font-size: 20px; font-weight: 700; color: #fff; letter-spacing: .08em; }
+.lock-sub { margin-top: 7px; font-size: 12px; line-height: 1.6; color: rgba(255, 255, 255, .58); }
+.lock-field { position: relative; margin: 20px 0 4px; }
+.lock-field input {
+  width: 100%; height: 46px; padding: 0 14px; box-sizing: border-box;
+  border-radius: 12px; border: 1px solid rgba(255, 255, 255, .18);
+  background: rgba(255, 255, 255, .06); color: #fff; font-size: 16px;
+  outline: none; transition: border-color .18s, background .18s, box-shadow .18s;
+}
+.lock-field input::placeholder { color: rgba(255, 255, 255, .36); }
+.lock-field input:focus {
+  border-color: #8b6cff;
+  background: rgba(139, 108, 255, .13);
+  box-shadow: 0 0 0 3px rgba(139, 108, 255, .22);
+}
+.lock-field + .lock-field { margin-top: 10px; }
+.lock-err { min-height: 18px; margin-top: 12px; font-size: 12px; color: #ffb3b3; letter-spacing: .02em; }
+.lock-btn {
+  width: 100%; height: 46px; margin-top: 6px;
+  border: 0; border-radius: 12px; cursor: pointer;
+  background: linear-gradient(135deg, #8b6cff, #5b4ea8);
+  color: #fff; font-size: 15px; font-weight: 600; letter-spacing: .1em;
+  box-shadow: 0 10px 24px rgba(107, 91, 196, .42);
+  transition: transform .16s, box-shadow .16s, filter .16s;
+}
+.lock-btn:hover { transform: translateY(-1px); filter: brightness(1.06); box-shadow: 0 14px 30px rgba(107, 91, 196, .52); }
+.lock-btn:active { transform: translateY(0); }
+.lock-btn:disabled { opacity: .6; cursor: default; transform: none; }
+.lock-warn { margin-top: 12px; font-size: 11.5px; line-height: 1.6; color: rgba(255, 179, 179, .82); }</style>
 </head>
 <body>
 
@@ -4479,7 +4562,7 @@ async function encryptWithSession(text) {
 // 网站二维码（内嵌 base64，离线可显示），扫码打开 https://jefely.github.io/New-repository/
 const QR_DATA_URL = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAUoAAAFKCAIAAAD0S4FSAAAFCUlEQVR42u3dS3IUMRBF0VcE+9+y2QETIfKjc+YGd7VvqAYZqe/n5yfARr88ApA3IG9A3oC8AXkD8gZ5A/IG5A3IG5A3IG+QNyBvQN6AvAF5A/KGl/0++eHv+5Y9jr9vnjv5vD3/5Xub9nr+v/v+Jp3e4OUckDcgb0DegLwBeQPyBnkDeWpqLdembe7pOdV071nt+xZOPtFrf5NOb/ByDsgbkDcgb0DegLxB3oC8gTw1tZaiSZ2Jk0n3NrFVPcmTn636vPv+Jp3e4OUckDcgb0DegLwBeYO8AXkDMbUW94du2eI2cQ7P6Q3IG5A3IG9A3oC8Qd6AvAF5AzG1Nsi9Oa2qGzPNpTm9AXkD8gbkDcgbkDfIG5A3IG8gj0yt9bzHs+eutZP/t+qWz33fr9MbkDcgb0DegLxB3oC8AXkD8gbSfGpt37ate7vH/Gz+yxzeaxvgnN4gb0DegLwBeQPyBuQN8gbkDTT07dsvNXGmrWrWque3f+9JOr0BeQPyBuQNyBuQN8gbkDcgbyCjd63ZiZUGe+nu3Vta9S303MTW835Ypzd4OQfkDcgbkDcgb0DegLxB3kCemlq7N8djB9j0ezxTNNM2cRry3l+O0xu8nAPyBuQNyBuQNyBvkDcgbyDLbgidOAM0cU6ranbwtcnCqp91egPyBuQN8gbkDcgbkDcgb0DeELvWsne2rOd+uJ4zTz3vh616GhM/r9MbvJwD8gbkDcgbkDcgb5A3IG8gT02tnUzb3JtMujfTNnHyrGqLW9Wz2vcdOb3Byzkgb0DegLwBeQPyBuQN8gZiai29p4smburqOePVczNZ1ed1egPyBuQNyBvkDcgbkDcgb0DeQEZPraXlBNi+XVwZeIvra1OJTm9A3iBvQN6AvAF5A/IG5A3yBmJqLb3nw3rOD1VNU937vFUzbVX70ibOLDq9wcs5IG9A3oC8AXkD8gZ5A/IGGvp6zuJMvKux52ayqttFe86W7XuSTm/wcg7IG5A3IG9A3oC8AXmDvIE8NbVWtU/r3oRQ1bTcaxvReu482/f37PQGL+eAvAF5A/IG5A3IG+QNyBvIshtCM3BfWtUEWNZNcU18VlUzbVX/stMbvJwD8gbkDcgbkDcgb5A3IG8gT02t5bHpohTNllU9jbScw6uahzt5znatAfIG5A3yBuQNyBuQNyBvQN4QN4SWTwhNvNfy3u/sW9jN1Bogb0DeIG9A3oC8AXkD8gbkDTG1xpo7QHvuh/NbOb0BeQPyBnkD8gbkDcgbkDcgb4gbQjNniisDt16d7B6ruuVz4u2iE39npzcgb0DeIG9A3oC8AXkD8gbkDTG1lt4TYDFp136LW9W3XzV32HPSzukNXs4BeQPyBuQNyBuQN8gbkDeQp6bWUjQ99toOsJMnee9OzHvfb9Xc4ck3WDXh5/QGL+eAvAF5A/IG5A3IG+QNyBuIqbW8ures6g7Qe7NlPSfees4sVs20Ob3Byzkgb0DegLwBeQPyBnkD8gZiai2v3qe577eq2g+Xoj1tVbvlnN6AvEHegLwBeQPyBuQNyBvkDcTUWvZOgGXgRNTEaap7E289b2Kt+o6c3uDlHJA3IG9A3oC8AXmDvAF5Aw19EzdmpeVNjml5R2TVJFbcLur0BuQNyBuQN8gbkDcgb0DegLyB/OupNcDpDcgbkDcgb5A3IG9A3oC8AXkD8gbkDfIG5A3IG5A3IG9A3iBvQN5AU38AW3Unpg+CBHwAAAAASUVORK5CYII=';
 
-const APP_VER = 'v10.8';
+const APP_VER = 'v10.9';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -12374,26 +12457,30 @@ function showLockScreen(mode, payload) {
   return new Promise(resolve => {
     const isSetup = mode === 'setup';
     const mask = document.createElement('div');
-    mask.className = 'confirm-mask';
-  mask.dataset.lock = '1';   // Esc 不可关闭（见全局 keydown 处理器）
+    mask.className = 'lock-screen';
+    mask.dataset.lock = '1';   // Esc 不可关闭（见全局 keydown 处理器）
     mask.style.zIndex = '99999';
     mask.innerHTML = `
-      <div class="sync-box" style="max-width:min(92vw,380px)">
-        <div class="sync-title">${isSetup ? '设置账本密码' : '解锁账本'}</div>
-        <div class="sync-hint" style="text-align:left;line-height:1.7">
-          ${isSetup
-            ? '密码用于加密本机数据和同步文件。<br><b style="color:#dc2626">忘记密码 = 数据永久无法恢复</b>，请务必记住。'
-            : '输入你设置的密码。'}
+      <div class="lock-glow g1"></div>
+      <div class="lock-glow g2"></div>
+      <div class="lock-card">
+        <div class="lock-logo">NT</div>
+        <div class="lock-title">${isSetup ? '设置账本密码' : '解锁账本'}</div>
+        <div class="lock-sub">${isSetup ? '密码用于加密本机数据与同步文件' : '输入密码进入账本'}</div>
+        <div class="lock-field">
+          <input id="lock-pw" type="password" autocomplete="off" placeholder="${isSetup ? '设置密码（至少 1 个字符）' : '密码'}">
         </div>
-        <input id="lock-pw" type="password" autocomplete="off" placeholder="密码（至少 1 个字符）"
-          style="width:100%;height:40px;padding:0 10px;box-sizing:border-box;font-size:16px;border:1px solid var(--border);border-radius:6px;background:var(--bg-main);color:var(--text-main);margin:10px 0">
-        ${isSetup ? `<input id="lock-pw2" type="password" autocomplete="off" placeholder="再输一次确认"
-          style="width:100%;height:40px;padding:0 10px;box-sizing:border-box;font-size:16px;border:1px solid var(--border);border-radius:6px;background:var(--bg-main);color:var(--text-main);margin-bottom:10px">
-        <input id="lock-hint" type="text" autocomplete="off" maxlength="60" placeholder="密码提示（可选，解锁时会显示）"
-          style="width:100%;height:40px;padding:0 10px;box-sizing:border-box;font-size:16px;border:1px solid var(--border);border-radius:6px;background:var(--bg-main);color:var(--text-main);margin-bottom:10px">` : ''}
-        ${!isSetup ? `<div id="lock-hint-show" style="font-size:13px;color:var(--text-muted);min-height:18px;margin-bottom:8px"></div>` : ''}
-        <div id="lock-err" style="color:#dc2626;font-size:12px;min-height:16px;margin-bottom:6px"></div>
-        <button type="button" id="lock-go" style="width:100%">${isSetup ? '设置并进入' : '解锁'}</button>
+        ${isSetup ? `
+        <div class="lock-field">
+          <input id="lock-pw2" type="password" autocomplete="off" placeholder="再输一次确认">
+        </div>
+        <div class="lock-field">
+          <input id="lock-hint" type="text" autocomplete="off" maxlength="60" placeholder="密码提示（可选）">
+        </div>` : ''}
+        ${!isSetup ? `<div id="lock-hint-show" class="lock-sub" style="min-height:18px;margin-top:10px"></div>` : ''}
+        <div id="lock-err" class="lock-err"></div>
+        <button type="button" id="lock-go" class="lock-btn">${isSetup ? '设置并进入' : '解锁'}</button>
+        ${isSetup ? '<div class="lock-warn">忘记密码 = 数据永久无法恢复，请务必记住</div>' : ''}
       </div>`;
     document.body.appendChild(mask);
     const pw = mask.querySelector('#lock-pw');
