@@ -12,7 +12,8 @@
 <link rel="icon" type="image/png" sizes="32x32" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAD50lEQVR42sWXTWwVdRTFf/fOvC+xJAoEE4EKKmnSihgr0QBGaCgh1pVpgmIMCxKVlQsTXaJbWRhXRIkJJhAgblSSirHEoCJQQDFU8WFLKdgChVYobd/HzP+6mL73oNBv2p5kMi9vJnPPnHvuvXOF21CzYnt5Mj6wBQ3Wi+kisBj3BZI3ce04/2Aml9rZePy9C8UrhR+vrN32usvLJ4rNM6YGAjikS2P27reHtu0BUICqpfs3epbbLVMYHMAAweZ5lttdtXT/RgCprDix8LG5B06r2ENWEmRKIRjOpKftWt3T3vKKqvfj2ltreEwfBE+DVCrVPaBxvbnB2XQGj+DMI6G9G1Qsv4Bpkv4uS1pugYL4k3G1TIq7+DpozgkFLwg3CRI27NtbVDPDJseYKPU7cRcBEQEzDHht84uUL57P9wdO8VtTS/GeOXPLePOtGjoudbNv12GqX3iSNbXLyGbykcGcIRI9Sz2lvy9Da/oyPzT8PjoBAFFFQsfzqyooXzKffC4g/de/9N3KADCrLMnqtVW0pDvZt+swS554hFVrKnHOwCw6C2jEgsxAjtmzHxgHAQFRwfMU31deWvcURw7/ybGf/wZAVYjFPBKJaFRcOH+VE0fP0d+XZc7cMiqXlZMPAo7+kkYE+vuynDvbMbYUFPKvKjjnBhURNr+9jrbWq1zp+A+s5IxkKk7TkTRNv54DoHLZIj74qJ7+/iwff/hVySZ2b8Pove1lRT+EoaO3d4BHF86h9uVnEKFIDClVgDnDnEV5V8VTxfc9XGi40A0X/24CZoMUzIjFfDL9Ob7ed5T2tqvUv7GaxY/PJ5sN7p02ubMki+RGqBYdvsbAmWNWWZLTJ1v57puTOOfY/M46kqlYqREhiJSOoYVbqIbxEcAiJQaJxBMxGhv+oCXdyfLqJdS9ugIb8loF1W5vDoVbRmpUOpZmkUzGyAxk2fPFjwRBOOgFGXSLRYEL0cbZnHTYLnjbk0QVMzh1vIWfGptR1WIwG3KMYvqxK2AGvh+Nac+T4n9ffn6IGz19xX5Qym+kh+cr6gnJZGxMQ2LESXj65Hkud/RwresmZlF7vd51g88+baC27lkuXugiDIKiZwB6um9x6tg/ZLMBLnSjD7W61duuAw8zM+hWZhjKzHwOlfwNFsxcfAsUiV26L18WE9kSJH5JM2FZg0o4/bmXkIx7sEE7r6/c4czvkWlUIVpM/J7Oayt3aPPZ6ottVyq3en5+2gh4fp62K5Vbm89WX1SAM+n6vaEkNhnaJVO7CWBoVyiJTWfS9XsZWoI1z20vTyYGtpjm1qv593U9dxK0i4sfzGRTOxubSuv5/0k+rEJrtFimAAAAAElFTkSuQmCC">
 <link rel="icon" type="image/png" sizes="192x192" href="nt-192.png">
 <!-- iOS 主屏图标：白底紫字，放在任何壁纸上都清楚；主屏图标本身没有「按深浅色切换」的接口 -->
-<link rel="apple-touch-icon" sizes="512x512" href="nt-light-512.png">
+<link rel="apple-touch-icon" sizes="1024x1024" href="nt-1024.png">
+<link rel="apple-touch-icon" sizes="512x512" href="nt-512.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -5154,7 +5155,7 @@ async function encryptWithSession(text) {
 // 网站二维码（内嵌 base64，离线可显示），扫码打开 https://jefely.github.io/New-repository/
 const QR_DATA_URL = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAUoAAAFKCAIAAAD0S4FSAAAFCUlEQVR42u3dS3IUMRBF0VcE+9+y2QETIfKjc+YGd7VvqAYZqe/n5yfARr88ApA3IG9A3oC8AXkD8gZ5A/IG5A3IG5A3IG+QNyBvQN6AvAF5A/KGl/0++eHv+5Y9jr9vnjv5vD3/5Xub9nr+v/v+Jp3e4OUckDcgb0DegLwBeQPyBnkDeWpqLdembe7pOdV071nt+xZOPtFrf5NOb/ByDsgbkDcgb0DegLxB3oC8gTw1tZaiSZ2Jk0n3NrFVPcmTn636vPv+Jp3e4OUckDcgb0DegLwBeYO8AXkDMbUW94du2eI2cQ7P6Q3IG5A3IG9A3oC8Qd6AvAF5AzG1Nsi9Oa2qGzPNpTm9AXkD8gbkDcgbkDfIG5A3IG8gj0yt9bzHs+eutZP/t+qWz33fr9MbkDcgb0DegLxB3oC8AXkD8gbSfGpt37ate7vH/Gz+yxzeaxvgnN4gb0DegLwBeQPyBuQN8gbkDTT07dsvNXGmrWrWque3f+9JOr0BeQPyBuQNyBuQN8gbkDcgbyCjd63ZiZUGe+nu3Vta9S303MTW835Ypzd4OQfkDcgbkDcgb0DegLxB3kCemlq7N8djB9j0ezxTNNM2cRry3l+O0xu8nAPyBuQNyBuQNyBvkDcgbyDLbgidOAM0cU6ranbwtcnCqp91egPyBuQN8gbkDcgbkDcgb0DeELvWsne2rOd+uJ4zTz3vh616GhM/r9MbvJwD8gbkDcgbkDcgb5A3IG8gT02tnUzb3JtMujfTNnHyrGqLW9Wz2vcdOb3Byzkgb0DegLwBeQPyBuQN8gZiai29p4smburqOePVczNZ1ed1egPyBuQNyBvkDcgbkDcgb0DeQEZPraXlBNi+XVwZeIvra1OJTm9A3iBvQN6AvAF5A/IG5A3yBmJqLb3nw3rOD1VNU937vFUzbVX70ibOLDq9wcs5IG9A3oC8AXkD8gZ5A/IGGvp6zuJMvKux52ayqttFe86W7XuSTm/wcg7IG5A3IG9A3oC8AXmDvIE8NbVWtU/r3oRQ1bTcaxvReu482/f37PQGL+eAvAF5A/IG5A3IG+QNyBvIshtCM3BfWtUEWNZNcU18VlUzbVX/stMbvJwD8gbkDcgbkDcgb5A3IG8gT02t5bHpohTNllU9jbScw6uahzt5znatAfIG5A3yBuQNyBuQNyBvQN4QN4SWTwhNvNfy3u/sW9jN1Bogb0DeIG9A3oC8AXkD8gbkDTG1xpo7QHvuh/NbOb0BeQPyBnkD8gbkDcgbkDcgb4gbQjNniisDt16d7B6ruuVz4u2iE39npzcgb0DeIG9A3oC8AXkD8gbkDTG1lt4TYDFp136LW9W3XzV32HPSzukNXs4BeQPyBuQNyBuQN8gbkDeQp6bWUjQ99toOsJMnee9OzHvfb9Xc4ck3WDXh5/QGL+eAvAF5A/IG5A3IG+QNyBuIqbW8ures6g7Qe7NlPSfees4sVs20Ob3Byzkgb0DegLwBeQPyBnkD8gZiai2v3qe577eq2g+Xoj1tVbvlnN6AvEHegLwBeQPyBuQNyBvkDcTUWvZOgGXgRNTEaap7E289b2Kt+o6c3uDlHJA3IG9A3oC8AXmDvAF5Aw19EzdmpeVNjml5R2TVJFbcLur0BuQNyBuQN8gbkDcgb0DegLyB/OupNcDpDcgbkDcgb5A3IG9A3oC8AXkD8gbkDfIG5A3IG5A3IG9A3iBvQN5AU38AW3Unpg+CBHwAAAAASUVORK5CYII=';
 
-const APP_VER = 'v16.2';
+const APP_VER = 'v16.7';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -5462,7 +5463,81 @@ function attachFixedCheckbox(tr) {
      ② 会计恒等式：资产 = 负债 + 权益 + (收入 - 费用)
      ③ 数据完整性：账户表里找不到的往来名称、只有单边的流水
    ============================================================ */
+/* 手动检查更新：只在「校验」页点按钮时联网，启动一律用本地缓存。
+   拿到新 SW → 让它 skipWaiting → 收到 controllerchange 再刷新，刷新后弹版本提示。 */
+async function checkForUpdate() {
+  if (!('serviceWorker' in navigator)) {
+    const msg = '当前不是 PWA 环境，无法在线更新（本地版本 ' + APP_VER + '）';
+    toast(msg);
+    return { updated: false, message: msg };
+  }
+  const reg = await navigator.serviceWorker.getRegistration();
+  if (!reg) {
+    const msg = '尚未注册离线缓存，请从主屏图标启动后再试（本地版本 ' + APP_VER + '）';
+    toast(msg);
+    return { updated: false, message: msg };
+  }
+  await reg.update();
+
+  const pick = () => reg.waiting || reg.installing;
+  let sw = pick();
+  if (sw) {
+    // 等它装好
+    await new Promise(res => {
+      if (sw.state === 'installed' || sw.state === 'activated') return res();
+      const t = setTimeout(res, 8000);
+      sw.addEventListener('statechange', function h() {
+        if (sw.state === 'installed' || sw.state === 'activated') {
+          sw.removeEventListener('statechange', h); clearTimeout(t); res();
+        }
+      });
+    });
+  }
+
+  if (reg.waiting) {
+    // 有新版本在等 → 让它接管，然后刷新（带上标记，刷新后由 boot 弹提示）
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      try { sessionStorage.setItem('nt_updated', '1'); } catch (e) {}
+      location.reload();
+    }, { once: true });
+    reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+    toast('发现新版本，正在更新…');
+    return { updated: true };
+  }
+
+  const msg = '已是最新版本 ' + APP_VER;
+  toast(msg);
+  return { updated: false, message: msg };
+}
+
 function renderAudit(main, footer) {
+  // 顶部工具条：软件更新入口（v16.7 起启动不再联网取新版，只在这里手动更新）
+  {
+    const ubar = document.createElement('div');
+    ubar.className = 'toolbar flow-bar';
+    ubar.innerHTML = `
+      <span class="flow-title">版本</span>
+      <button class="ghost" id="chk-update">检查更新</button>
+      <span class="chk-ver">当前 ${APP_VER}</span>
+    `;
+    main.appendChild(ubar);
+    const btn = ubar.querySelector('#chk-update');
+    const verEl = ubar.querySelector('.chk-ver');
+    btn.onclick = async () => {
+      if (btn.disabled) return;
+      btn.disabled = true; btn.textContent = '检查中…';
+      try {
+        const r = await checkForUpdate();
+        verEl.textContent = '当前 ' + APP_VER;
+        btn.textContent = r.updated ? '已更新' : '已是最新';
+        setTimeout(() => { btn.textContent = '检查更新'; btn.disabled = false; }, 1800);
+        return;
+      } catch (e) {
+        toast('更新失败：' + (e && e.message ? e.message : e), { type: 'error' });
+        btn.textContent = '检查更新'; btn.disabled = false;
+      }
+    };
+  }
   const CATS = ['资产类', '负债类', '收入类', '权益类', '费用类'];
   const accByName = new Map();
   for (const a of state.accounts) {
@@ -12454,6 +12529,14 @@ try { document.getElementById('footer').dataset.ver = APP_VER; } catch (e) {}
 
 // —— 启动：先过锁，再渲染 ——
 bootWithLock();
+
+// 「检查更新」刷新后弹出新版本号
+try {
+  if (sessionStorage.getItem('nt_updated')) {
+    sessionStorage.removeItem('nt_updated');
+    setTimeout(() => toast('已更新到 ' + APP_VER), 600);
+  }
+} catch (e) {}
 
 async function bootWithLock() {
   let stored = null;

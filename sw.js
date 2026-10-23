@@ -1,7 +1,7 @@
 ﻿/* NT账本 · Service Worker
-   策略：网络优先（在线时永远拿最新版本），失败再回退缓存 —— 断网也能打开。
-   改了 index.html 只需重新上传，用户下次联网打开就会自动更新。 */
-const CACHE = 'ledger-v273';
+   策略：**缓存优先**（用本地版本启动，快且离线可用）。
+   想换新版时，去「校验」页点「检查更新」，由页面发 SKIP_WAITING 让新 SW 接管。 */
+const CACHE = 'ledger-v274';
 const ASSETS = ['./', './index.html', './manifest.json',
   './nt-splash-512.png', './nt-192.png', './nt-512.png',
   './nt-maskable-192.png', './nt-maskable-512.png',
@@ -28,18 +28,21 @@ self.addEventListener('fetch', e => {
   const req = e.request;
   if (req.method !== 'GET' || new URL(req.url).origin !== self.location.origin) return;
   e.respondWith(
-    // cache: 'no-store' —— GitHub Pages 给 index.html 的 Cache-Control 是 max-age=600，
-    // 不加这句，SW 的「网络优先」拿到的仍是 CDN 里最多 10 分钟前的旧页面。
-    fetch(req, { cache: 'no-store' })
-      .then(res => {
+    // 先看本地：命中就直接用，秒开，也不再每次启动去拉网络
+    caches.match(req).then(hit => {
+      if (hit) return hit;
+      return fetch(req, { cache: 'no-store' }).then(res => {
         if (res && res.status === 200) {
           const copy = res.clone();
           caches.open(CACHE).then(c => c.put(req, copy)).catch(() => {});
         }
         return res;
-      })
-      .catch(() =>
-        caches.match(req).then(hit => hit || caches.match('./index.html'))
-      )
+      }).catch(() => caches.match('./index.html'));
+    })
   );
+});
+
+// 页面点「检查更新」时会发这条消息，让新 SW 立刻接管
+self.addEventListener('message', e => {
+  if (e.data && e.data.type === 'SKIP_WAITING') self.skipWaiting();
 });
