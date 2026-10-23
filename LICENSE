@@ -1,21 +1,33 @@
-MIT License
+NT账本 (NT Ledger)
 
 Copyright (c) 2026 jefely
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Affero General Public License for more details.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+You should have received a copy of the GNU Affero General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+SPDX-License-Identifier: AGPL-3.0-or-later
+
+许可证全文（官方）：
+https://www.gnu.org/licenses/agpl-3.0.txt
+
+------------------------------------------------------------------------------
+要点（以下不是法律文本，只是让人快速看懂的摘要；以官方全文为准）
+
+1. 你可以自由使用、修改、分发本软件，**包括商业使用**。
+2. 但只要你把修改后的版本**对外提供**（包括部署成网站、或通过网络提供服务），
+   就必须同样以 AGPL-3.0 公开修改后的**完整源代码**。
+   —— 这条是它和 MIT 的关键区别：闭源套壳收费行不通。
+3. 必须保留版权声明与许可证声明，且不得附加额外限制。
+4. 本软件不提供任何担保，作者不对使用后果负责。
+5. 你的账本数据不属于本软件的一部分，始终归你自己所有。
+------------------------------------------------------------------------------
