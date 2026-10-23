@@ -5327,7 +5327,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v19.6';
+const APP_VER = 'v19.7';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -6143,7 +6143,10 @@ function renderAudit(main, footer) {
     main.appendChild(ubar);
     auditTabBar = ubar;
     auditTabBar.querySelectorAll('.audit-tab').forEach(btn => {
-      btn.onclick = () => switchAuditTab(btn.dataset.tab);
+      btn.onclick = () => {
+        switchAuditTab(btn.dataset.tab);
+        if (btn.dataset.tab === 'thanks') loadThanksWall();
+      };
     });
   }
   const CATS = ['资产类', '负债类', '收入类', '权益类', '费用类'];
