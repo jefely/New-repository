@@ -5376,7 +5376,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v21.2';
+const APP_VER = 'v21.3';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -12773,7 +12773,29 @@ async function saveBlobToDevice(blob, filename, opts) {
 
   if (opts && opts.shareOnly) return { via: 'nosupport' };
 
-  // ② 桌面 / 不支持分享：普通下载
+  // ② 文件选择器（File System Access API）：让用户自己选目录，真正「另存为」。
+  //    Android Chrome / 部分国产内核浏览器支持；不支持就跳过。
+  if (window.showSaveFilePicker) {
+    try {
+      const dot = (filename.match(/\.[^.]+$/) || ['.txt'])[0];
+      const mime = blob.type || 'application/octet-stream';
+      const acc = {};
+      acc[mime] = [dot];
+      const handle = await window.showSaveFilePicker({
+        suggestedName: filename,
+        types: [{ description: '文件', accept: acc }]
+      });
+      const w = await handle.createWritable();
+      await w.write(blob);
+      await w.close();
+      return { via: 'picker', name: handle.name };
+    } catch (e) {
+      if (e && e.name === 'AbortError') return { via: 'cancel' };
+      // 其它错误继续走下载
+    }
+  }
+
+  // ③ 普通下载
   try {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -12788,7 +12810,8 @@ async function saveBlobToDevice(blob, filename, opts) {
 
 function saveResultToast(r, filename, size) {
   const kb = Math.round(size / 1024) + ' KB';
-  if (r.via === 'share') toast('已通过系统分享保存：' + filename + '（' + kb + '）', { duration: 5000 });
+  if (r.via === 'picker') toast('已保存到你选的目录：' + (r.name || filename) + '（' + kb + '）', { duration: 6000 });
+  else if (r.via === 'share') toast('已通过系统分享保存：' + filename + '（' + kb + '）', { duration: 5000 });
   else if (r.via === 'cancel') toast('已取消保存', { duration: 2500 });
   else if (r.via === 'download') toast('已发起下载：' + filename + '（' + kb + '）\n如果没看到文件，请到浏览器的下载列表里找，或改用「分享」方式保存', { duration: 8000 });
   else toast('保存失败：' + (r.error && r.error.message ? r.error.message : '浏览器不允许下载'), { type: 'error', duration: 7000 });
