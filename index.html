@@ -5103,6 +5103,20 @@ table#summary-table thead th.col-move { border-right: none !important; }
 [data-theme="dark"] .pin-btn { color: #5a5470 !important; }
 .pin-btn:hover { color: var(--primary) !important; }
 .pin-btn:active { color: var(--primary-dark) !important; }
+
+/* ===== 校验页：每个功能区各一块圆角卡片，四边等距（v19.3）===== */
+.audit-cards { display: flex; flex-direction: column; gap: 12px; padding: 12px; box-sizing: border-box; }
+.audit-cards .audit-card { margin: 0; }
+/* 「账本校验」那页的卡片：左右上下也统一成 12px */
+.audit-wrap { padding: 12px 12px 16px; box-sizing: border-box; }
+.audit-wrap .audit-card + .audit-card { margin-top: 12px; }
+/* 「账本说明」与「赞助感谢」也按卡片排，四边等距 */
+.audit-pane.audit-intro { margin: 12px; }
+@media (max-width: 767px) {
+  .audit-cards { padding: 8px; gap: 10px; }
+  .audit-wrap { padding: 8px 8px 12px; }
+  .audit-pane.audit-intro { margin: 8px; }
+}
 </style>
 </head>
 <body>
@@ -5313,7 +5327,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v19.2';
+const APP_VER = 'v19.3';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -5753,6 +5767,64 @@ function pinAccountToTop(id) {
   toast('已置顶：' + (item.name || '这一行') + ' → 「' + (cat || '未分类') + '」最前面', { duration: 2500 });
 }
 
+/* 修改账本密码：先用旧密码把当前密文解开（验证），再换新 salt + 新 key 重新加密写盘 */
+function openChangePasswordDialog() {
+  mkDialog(`
+    <div class="sync-title">修改密码</div>
+    <div class="sync-hint" style="text-align:left;line-height:1.7">
+      会用新密码重新加密整本账本。旧密码一旦忘记，数据无法恢复，改完请自己记牢。
+    </div>
+    <input id="cp-old" type="password" autocomplete="off" placeholder="当前密码"
+      style="width:100%;height:38px;margin:10px 0;padding:0 10px;box-sizing:border-box;border-radius:9px;border:1px solid var(--border-light);background:var(--bg-main);color:var(--text-main);font-size:15px">
+    <input id="cp-new" type="password" autocomplete="off" placeholder="新密码（至少 1 个字符）"
+      style="width:100%;height:38px;margin-bottom:10px;padding:0 10px;box-sizing:border-box;border-radius:9px;border:1px solid var(--border-light);background:var(--bg-main);color:var(--text-main);font-size:15px">
+    <input id="cp-new2" type="password" autocomplete="off" placeholder="再输一次新密码"
+      style="width:100%;height:38px;margin-bottom:10px;padding:0 10px;box-sizing:border-box;border-radius:9px;border:1px solid var(--border-light);background:var(--bg-main);color:var(--text-main);font-size:15px">
+    <div id="cp-err" style="min-height:18px;color:#dc2626;font-size:12px"></div>
+    <div class="sync-actions">
+      <button type="button" id="cp-go">确定修改</button>
+      <button type="button" class="ghost" data-act="close">取消</button>
+    </div>
+  `);
+  const mask = [...document.querySelectorAll('.confirm-mask')].pop();
+  const oldI = mask.querySelector('#cp-old');
+  const newI = mask.querySelector('#cp-new');
+  const newI2 = mask.querySelector('#cp-new2');
+  const err = mask.querySelector('#cp-err');
+  const go = mask.querySelector('#cp-go');
+  setTimeout(() => { try { oldI.focus(); } catch (e) {} }, 80);
+
+  go.onclick = async () => {
+    const o = oldI.value, n1 = newI.value, n2 = newI2.value;
+    if (!o) return (err.textContent = '请输入当前密码');
+    if (!n1) return (err.textContent = '新密码不能为空');
+    if (n1 !== n2) return (err.textContent = '两次输入的新密码不一致');
+    if (n1 === o) return (err.textContent = '新密码和旧密码一样');
+    go.disabled = true; go.textContent = '处理中…'; err.textContent = '';
+    try {
+      // 1) 用旧密码验证：能解开当前磁盘密文才算对
+      let raw = null;
+      try { raw = localStorage.getItem(lsKey()); } catch (e) {}
+      if (!raw || !/^ENC1:/.test(raw)) throw new Error('当前数据不是加密格式，无法改密码');
+      const json = await decryptText(raw.slice(5), o);   // 解不开会抛错
+      if (!json) throw new Error('旧密码不对');
+
+      // 2) 换新 salt + 新 key
+      _sessionSalt = randBytes(16);
+      _sessionKey = await deriveKey(n1, _sessionSalt);
+      // 立刻用新密钥写一次盘，不等 150ms 防抖
+      _lastSaved = JSON.stringify(state);
+      _savePending = true;
+      await flushDiskWrite();
+      mask.remove();
+      toast('密码已修改，下次用新密码解锁', { duration: 6000 });
+    } catch (e) {
+      err.textContent = '修改失败：' + (e && e.message ? e.message : e);
+      go.disabled = false; go.textContent = '确定修改';
+    }
+  };
+}
+
 /* ============================================================
    账户设置框架：导出成文本（可直接复制）/ 从文本导入
    格式与「添加」弹窗保持一致：
@@ -6046,7 +6118,7 @@ function renderAudit(main, footer) {
     const TABS = [
       ['verify', '账本校验'],
       ['help', '账本说明'],
-      ['version', '版本校验'],
+      ['version', '账本配置'],
       ['thanks', '赞助感谢']
     ];
     ubar.innerHTML = TABS.map(([k, label]) =>
@@ -6269,13 +6341,13 @@ function renderAudit(main, footer) {
   `;
   main.appendChild(intro);
 
-  // ── 版本校验 pane ──
+  // ── 账本配置 pane：每块功能各一个圆角卡片 ──
   const vpane = document.createElement('div');
-  vpane.className = 'audit-pane';
+  vpane.className = 'audit-pane audit-cards';
   vpane.dataset.pane = 'version';
   vpane.innerHTML = `
     <div class="audit-card">
-      <div class="audit-title">版本校验</div>
+      <div class="audit-title">版本</div>
       <div class="chk-list">
         <div class="chk-row"><span class="chk-name">当前版本</span><span class="chk-val">${APP_VER}</span></div>
         <div class="chk-row"><span class="chk-name">远端版本</span><span class="chk-val" id="ver-remote">检查中…</span></div>
@@ -6285,17 +6357,28 @@ function renderAudit(main, footer) {
         启动一律用本地版本，只有点下面的按钮才会联网取新版。更新只替换程序，不碰账本数据。
       </div>
       <div style="margin-top:12px"><button type="button" id="ver-update">检查更新</button></div>
+    </div>
 
+    <div class="audit-card">
+      <div class="audit-title">账本密码</div>
+      <div class="sync-hint small" style="margin-top:8px">
+        改密码会用新密码重新加密整本账本。<b style="color:#dc2626">旧密码一旦忘记，数据无法恢复</b>，
+        改完请自己记牢。
+      </div>
+      <div style="margin-top:12px"><button type="button" id="pw-change">修改密码</button></div>
+    </div>
 
-      <div class="audit-sep"></div>
-      <div class="audit-title" style="margin-top:18px">提取流水账户</div>
+    <div class="audit-card">
+      <div class="audit-title">提取流水账户</div>
       <div class="sync-hint small" style="margin-top:8px">
         把流水里出现过、但账户表里还没有的名字，自动追加到账户表<b>末尾</b>，
         简码自动给（X1、X2…）。之后请到汇总页设置类型/分类、校对简码，不要的可以删掉。
       </div>
-      <div style="margin-top:10px"><button type="button" id="acc-extract">提取流水账户</button></div>
-      <div class="audit-sep"></div>
-      <div class="audit-title" style="margin-top:18px">重置账本</div>
+      <div style="margin-top:12px"><button type="button" id="acc-extract">提取流水账户</button></div>
+    </div>
+
+    <div class="audit-card">
+      <div class="audit-title">重置账本</div>
       <div class="sync-hint small" style="margin-top:8px">
         <b>重置账户（保留数据）</b>：只把账户表恢复成内置默认，流水/分期/固定都留着；
         之后流水里的账户名可能对不上，需要你手动改账户名或流水来修正。<br>
@@ -6306,9 +6389,10 @@ function renderAudit(main, footer) {
         <button type="button" id="ver-reset-keep" class="danger-btn">重置账户（保留数据）</button>
         <button type="button" id="ver-reset" class="danger-btn">重置账本（清空数据）</button>
       </div>
+    </div>
 
-      <div class="audit-sep"></div>
-      <div class="audit-title" style="margin-top:18px">账户设置框架</div>
+    <div class="audit-card">
+      <div class="audit-title">账户设置框架</div>
       <div class="sync-hint small" style="margin-top:8px">
         把当前账户表（类型 / 分类 / 简码 / 名称 / 期初）导出成一段文本，
         存着下次用、或发给别的设备。<b>导出＝复制到剪贴板</b>，粘贴到记事本即可保存。
@@ -6317,7 +6401,6 @@ function renderAudit(main, footer) {
         <button type="button" id="acc-export">复制账户设置</button>
         <button type="button" class="ghost" id="acc-import">导入账户设置</button>
       </div>
-
     </div>`;
   main.appendChild(vpane);
 
@@ -6369,6 +6452,8 @@ function renderAudit(main, footer) {
     if ($ai) $ai.onclick = () => openImportAccountsDialog();
     const $ae = vpane.querySelector('#acc-extract');
     if ($ae) $ae.onclick = () => openExtractAccountsDialog();
+    const $pc = vpane.querySelector('#pw-change');
+    if ($pc) $pc.onclick = () => openChangePasswordDialog();
     $b.onclick = async () => {
       if ($b.disabled) return;
       $b.disabled = true; $b.textContent = '检查中…';
