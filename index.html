@@ -5418,7 +5418,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v10.16';
+const APP_VER = 'v10.17';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -12997,36 +12997,6 @@ function openSyncDialog() {
     }
   };
 
-  // 从文件导入：覆盖 或 合并
-  const fileInp = mask.querySelector('#sync-file');
-  let importMode = 'replace';
-  mask.querySelector('#sync-load-file').onclick = () => { importMode = 'replace'; fileInp.click(); };
-  mask.querySelector('#sync-merge-file').onclick = () => { importMode = 'merge'; fileInp.click(); };
-  fileInp.onchange = async () => {
-    const f = fileInp.files && fileInp.files[0];
-    if (!f) return;
-    try {
-      const text = await f.text();
-      const code = text.trim();
-      if (!/^LZ[0-2][:：]/i.test(code)) throw new Error('这不是本程序的同步文件');
-      const merge = importMode === 'merge';
-      const msg = merge
-        ? '把「' + f.name + '」里本机没有的记录合并进来？\n\n本机已有的数据不会被删除，重复的记录会自动跳过。'
-        : '用「' + f.name + '」的数据覆盖本机？\n\n本机当前的账户、流水、分期都会被替换。';
-      if (confirm(msg)) {
-        const r = await applySyncCode(code, { merge });
-        if (merge) {
-          toast('已合并：新增 ' + r.added + ' 笔流水 · ' + r.instAdded + ' 个分期 · '
-            + r.accAdded + ' 个账户（更新 ' + r.updated + ' 笔，重复跳过 ' + r.duplicated + ' 笔）',
-            { duration: 7000 });
-        } else {
-          toast('已导入：账户 ' + r.accounts + ' · 流水 ' + r.transactions
-            + ' · 分期 ' + r.installments + ' · 固定 ' + r.fixed, { duration: 6000 });
-        }
-      }
-    } catch (e) { toast('读取失败：' + e.message, { type: 'error', duration: 6000 }); }
-    finally { fileInp.value = ''; }
-  };
 
   /* ---------- 识别二维码：选一张图 → 解码 → 合并 ---------- */
   const pickBtn = mask.querySelector('#sync-qr-pick');
