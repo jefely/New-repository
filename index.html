@@ -5374,7 +5374,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v10.06';
+const APP_VER = 'v10.07';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -13304,6 +13304,9 @@ function initColResize(table, key) {
       grip.classList.add('dragging');
       try { grip.setPointerCapture(e.pointerId); } catch (err) {}
 
+      // 开始拖之前先对齐一次，避免第一帧就错位
+      if (key === 'summary') { try { applySummarySticky(); } catch (e) {} }
+
       const onMove = me => {
         const delta = me.clientX - startX;
         const next = base.slice();
@@ -13335,6 +13338,8 @@ function initColResize(table, key) {
           _widthRaf = requestAnimationFrame(() => {
             _widthRaf = 0;
             if (_pendingWidths) { paintWidths(key, _pendingWidths); _pendingWidths = null; }
+            // 列宽一变，冻结列的 left 必须同一帧跟着重算，否则拖动时「撕裂」
+            if (key === 'summary') { try { applySummarySticky(); } catch (e) {} }
           });
         }
       };
