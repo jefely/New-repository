@@ -1,7 +1,7 @@
 ﻿/* NT账本 · Service Worker
    策略：**缓存优先**（用本地版本启动，快且离线可用）。
    想换新版时，去「校验」页点「检查更新」，由页面发 SKIP_WAITING 让新 SW 接管。 */
-const CACHE = 'ledger-v322';
+const CACHE = 'ledger-v323';
 const ASSETS = ['./', './index.html', './manifest.json', 
   './nt-splash-512.png', './nt-192.png', './nt-512.png',
   './nt-maskable-192.png', './nt-maskable-512.png',

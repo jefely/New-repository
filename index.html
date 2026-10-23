@@ -5166,6 +5166,22 @@ table#summary-table tbody td.col-code { background: var(--bg-main); }
 table#summary-table tbody tr:nth-child(even) td.col-cat,
 table#summary-table tbody tr:nth-child(even) td.col-sub,
 table#summary-table tbody tr:nth-child(even) td.col-code { background: var(--bg-gray-light); }
+
+/* 账本说明里的「功能与文件类型」对照表 */
+.modtable { border: 1px solid var(--border-light); border-radius: 10px; overflow: hidden; margin-bottom: 4px; }
+.modrow {
+  display: grid; grid-template-columns: 58px 1fr auto; gap: 8px; align-items: center;
+  padding: 8px 11px; font-size: 13px; border-top: 1px solid var(--border-light);
+}
+.modrow:first-child { border-top: none; }
+.modhead { background: var(--bg-gray); font-weight: 700; font-size: 12px; color: var(--text-muted); }
+.modname { font-weight: 700; color: var(--primary); }
+.modrow small { font-weight: 400; opacity: .75; }
+.modtypes { font-size: 12px; color: var(--text-muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+@media (max-width: 560px) {
+  .modrow { grid-template-columns: 46px 1fr auto; padding: 7px 9px; font-size: 12.5px; }
+  .modtypes { font-size: 11px; }
+}
 </style>
 </head>
 <body>
@@ -5376,7 +5392,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v21.5';
+const APP_VER = 'v21.6';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -6000,7 +6016,29 @@ function openHelpDialog() {
       <div class="intro-lead">每一笔钱，都从一个账户<b>转出</b>，进入另一个账户<b>转入</b>。<br>
         不用记「借 / 贷」，只回答一个问题：<b>这笔钱从哪来，到哪去。</b></div>
 
-      <div class="intro-sec">简单开始</div>
+      <div class="intro-sec">功能与文件类型</div>
+    <div class="intro-lead" style="margin-bottom:8px">
+      工具栏四个按钮都是两级菜单，点开先选子功能：
+    </div>
+    <div class="modtable">
+      <div class="modrow modhead">
+        <div>模块</div><div>子功能</div><div>支持的文件</div>
+      </div>
+      <div class="modrow"><div class="modname">添加</div><div>新账本</div><div class="modtypes">—</div></div>
+      <div class="modrow"><div class="modname"></div><div>添加更新 txt 文本</div><div class="modtypes">.txt</div></div>
+      <div class="modrow"><div class="modname">同步</div><div>生成二维码</div><div class="modtypes">—</div></div>
+      <div class="modrow"><div class="modname"></div><div>识别二维码</div><div class="modtypes">—</div></div>
+      <div class="modrow"><div class="modname">导出</div><div>导出文件<small>（仅支持电脑端）</small></div><div class="modtypes">.lz　.xlsx</div></div>
+      <div class="modrow"><div class="modname"></div><div>复制内容</div><div class="modtypes">.csv　.txt</div></div>
+      <div class="modrow"><div class="modname">导入</div><div>导入覆盖文件</div><div class="modtypes">.lz　.xlsx</div></div>
+      <div class="modrow"><div class="modname"></div><div>导入覆盖账单</div><div class="modtypes">.csv　.txt　.xlsx</div></div>
+    </div>
+    <div class="intro-lead" style="margin-top:8px;font-size:12px;opacity:.8">
+      说明：手机浏览器普遍存不下文件，「导出文件」只在电脑端可靠；
+      手机上请用「复制内容」，纯文本粘到记事本或 Excel 里都能用。
+    </div>
+
+    <div class="intro-sec">简单开始</div>
       <div class="intro-steps">
         <div class="step"><span class="sn">1</span><div>先去<b>汇总</b>表查看账户及简码，简码可直接修改。</div></div>
         <div class="step"><span class="sn">2</span><div>到<b>流水记录</b>表，日期栏输入 <code>:</code> 插入今天。</div></div>
@@ -8837,7 +8875,6 @@ function openColWidthsDialog() {
         </div>
         <button type="button" id="cw-copy" style="width:100%">导出布局参数（文本）</button>
         <button type="button" class="ghost" id="cw-paste" style="width:100%">导入布局参数（文本）</button>
-        <button type="button" class="ghost" id="cw-autofit" style="width:100%">列宽按内容收紧（像分期表那样）</button>
         <button type="button" class="ghost" id="cw-reset" style="width:100%">恢复默认布局</button>
       </div>
       <div id="cw-area" style="display:none;margin-top:8px">
@@ -8860,23 +8897,6 @@ function openColWidthsDialog() {
 
   // 手柄位置 / 文字距边框 / 账户列对齐 不再单独做控件 —— 全部写进「导出布局参数」那段文本里改。
 
-  // 一键把当前页所有表的列宽收到「刚好装下内容」（fitWidth 就是分期表那种按文字量的逻辑）
-  const autoFitBtn = mask.querySelector('#cw-autofit');
-  if (autoFitBtn) autoFitBtn.onclick = () => {
-    let n = 0;
-    document.querySelectorAll('table[data-colkey]').forEach(t => {
-      const key = t.dataset.colkey;
-      const ths = [...t.querySelectorAll('thead th')];
-      if (!ths.length) return;
-      const ws = ths.map((_, i) => Math.max(COL_MIN, fitWidth(t, i)));
-      applyWidths(t, key, ws);
-      n++;
-    });
-    saveColWidths();
-    close();
-    render();
-    toast('已把 ' + n + ' 张表的列宽按内容收紧', { duration: 4000 });
-  };
   mask.querySelector('#cw-reset').onclick = () => {
     colWidths = JSON.parse(JSON.stringify(DEFAULT_COL_WIDTHS));
     saveColWidths();
@@ -9599,9 +9619,9 @@ function renderFlow(main, footer) {
   bar.className = 'toolbar flow-bar';
   bar.innerHTML = `
     <span class="flow-title">流水记录</span>
-    <button class="ghost" id="f-add" title="批量添加账户与流水（文本 / TXT）">添加</button>
+    <button class="ghost" id="f-add" title="新账本 / 添加更新 txt 文本">添加</button>
     <button class="ghost" id="f-sync">同步</button>
-    <button class="ghost" id="f-import" title="导入 Excel 或文本">导入</button>
+    <button class="ghost" id="f-import" title="导入覆盖文件（.lz .xlsx）/ 导入覆盖账单（.csv .txt .xlsx）">导入</button>
     <button class="ghost" id="f-exp">导出</button>
     <button class="ghost" id="f-theme" title="切换反色主题">主题</button>
     <button class="ghost" id="f-cols" title="布局设置：列宽 / 行高 / 字号">布局</button>
@@ -9609,19 +9629,16 @@ function renderFlow(main, footer) {
   main.appendChild(bar);
 
   // 「添加」= 批量添加（文本 / TXT）
-  document.getElementById('f-add').onclick = () => openImportTextDialog();
-  document.getElementById('f-sync').onclick = () => openSyncDialog();
-  // 导出：直接生成 xlsx（原来那层对话框里只有一个「从 Excel 添加流水」，
-  // 和工具栏的「导入」功能重复，已删掉整层对话框）
-  document.getElementById('f-exp').onclick = async () => {
-    try { await exportXLSX(); }
-    catch (err) { toast('导出失败：' + (err && err.message ? err.message : err), { type: 'error', duration: 6000 }); }
-  };
+  document.getElementById('f-add').onclick = () => openAddMenu();
+  document.getElementById('f-sync').onclick = () => openSyncMenu();
+  // 导出：两级菜单 —— 导出文件（仅电脑端）/ 复制内容
+  document.getElementById('f-exp').onclick = () => openExportMenu();
   document.getElementById('f-theme').onclick = () => toggleTheme();
   const colsBtn = document.getElementById('f-cols');
   if (colsBtn) colsBtn.onclick = () => openColWidthsDialog();
+  // 导入：两级菜单 —— 导入覆盖文件 / 导入覆盖账单
   const impBtn = document.getElementById('f-import');
-  if (impBtn) impBtn.onclick = () => openImportHub();
+  if (impBtn) impBtn.onclick = () => openImportMenu();
 
   // 3. 表格主体
   const wrap = document.createElement('div');
@@ -13058,7 +13075,65 @@ function showExportDone(name, size, url, dataUrl, info) {
 
 try { watchOtherTabs(); } catch (e) {}
 
-function openSyncDialog() {
+/* ============================================================
+   四个功能模块统一做成「两级菜单」（账本说明里有一张对照表）：
+     添加 → 新账本 / 添加更新txt文本          .txt
+     同步 → 生成二维码 / 识别二维码
+     导出 → 导出文件（仅电脑端）/ 复制内容     .lz .xlsx / .csv .txt
+     导入 → 导入覆盖文件 / 导入覆盖账单        .lz .xlsx / .csv .txt .xlsx
+   菜单只负责分流，具体实现仍复用原来的弹窗。
+   ============================================================ */
+function openModuleMenu(title, items) {
+  const dlg = mkDialog(`
+    <div class="sync-title">${esc(title)}</div>
+    <div style="display:flex;flex-direction:column;gap:10px;margin-top:14px">
+      ${items.map((it, i) => `
+        <button type="button" class="mod-btn" data-idx="${i}" style="text-align:left;padding:11px 13px;line-height:1.45">
+          <div style="font-weight:700;font-size:14px">${esc(it.label)}</div>
+          ${it.note ? `<div style="font-weight:400;font-size:12px;opacity:.75;margin-top:3px">${esc(it.note)}</div>` : ''}
+          ${it.types ? `<div style="font-weight:600;font-size:11.5px;margin-top:4px;color:#6b5bc4">${esc(it.types)}</div>` : ''}
+        </button>`).join('')}
+    </div>
+    <div class="sync-actions"><button type="button" class="ghost" data-act="close">取消</button></div>
+  `);
+  dlg.querySelectorAll('.mod-btn').forEach(b => {
+    b.onclick = () => {
+      const it = items[Number(b.dataset.idx)];
+      dlg.remove();
+      try { it.run(); } catch (e) { toast('打开失败：' + e.message, { type: 'error' }); }
+    };
+  });
+}
+
+function openAddMenu() {
+  openModuleMenu('添加', [
+    { label: '新账本', note: '从空白开始录入账户与流水', run: () => openImportTextDialog() },
+    { label: '添加更新txt文本', note: '粘贴文本，追加或更新已有账户 / 流水', types: '.txt', run: () => openImportTextDialog() }
+  ]);
+}
+
+function openSyncMenu() {
+  openModuleMenu('同步', [
+    { label: '生成二维码', note: '把数据做成二维码，另一台设备扫过去', run: () => openSyncDialog('qr') },
+    { label: '识别二维码', note: '扫另一台设备的码，识别后合并进来', run: () => openSyncDialog('qr') }
+  ]);
+}
+
+function openExportMenu() {
+  openModuleMenu('导出', [
+    { label: '导出文件（仅支持电脑端）', note: '手机浏览器普遍存不下文件，这条只在电脑上可靠', types: '.lz  .xlsx', run: () => exportXLSX() },
+    { label: '复制内容', note: '纯文本复制，手机上一定可用，粘到记事本 / Excel 都行', types: '.csv  .txt', run: () => openCsvFallbackDialog() }
+  ]);
+}
+
+function openImportMenu() {
+  openModuleMenu('导入', [
+    { label: '导入覆盖文件', note: '整本替换成文件里的数据（换手机 / 恢复备份）', types: '.lz  .xlsx', run: () => openSyncDialog('file', true) },
+    { label: '导入覆盖账单', note: '把表格或文本里的账单铺进当前账本', types: '.csv  .txt  .xlsx', run: () => openImportHub() }
+  ]);
+}
+
+function openSyncDialog(initialTab, focusImport) {
   const mask = document.createElement('div');
   mask.className = 'confirm-mask';
   mask.innerHTML = `
@@ -13160,13 +13235,16 @@ function openSyncDialog() {
   // 两个标签页：备份 / 换设备 · 扫码合并
   const syncTabs = [...mask.querySelectorAll('.sync-tab')];
   const panes = { file: mask.querySelector('#sync-pane-file'), qr: mask.querySelector('#sync-pane-qr') };
+  const activateSyncTab = (key) => {
+    syncTabs.forEach(x => x.classList.toggle('active', x.dataset.syncTab === key));
+    Object.keys(panes).forEach(k => { if (panes[k]) panes[k].hidden = (k !== key); });
+    try { mask.querySelector('.sync-box').scrollTop = 0; } catch (e) {}
+  };
   syncTabs.forEach(tab => {
-    tab.onclick = () => {
-      syncTabs.forEach(x => x.classList.toggle('active', x === tab));
-      Object.keys(panes).forEach(k => { if (panes[k]) panes[k].hidden = (k !== tab.dataset.syncTab); });
-      try { mask.querySelector('.sync-box').scrollTop = 0; } catch (e) {}
-    };
+    tab.onclick = () => activateSyncTab(tab.dataset.syncTab);
   });
+  // 从「同步 / 导入」两级菜单进来时，直接落到对应标签页
+  if (initialTab === 'qr' || initialTab === 'file') activateSyncTab(initialTab);
 
   // 存成同步文件
   mask.querySelector('#sync-save-file').onclick = async () => {
