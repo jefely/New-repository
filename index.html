@@ -5376,7 +5376,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v21.0';
+const APP_VER = 'v21.1';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -12770,41 +12770,59 @@ function saveResultToast(r, filename, size) {
 /* Excel 在手机上给一条百分百可行的退路：导出 CSV 纯文本，让用户复制。
    （XLSX 是二进制，剪贴板 API 不支持这个 MIME，复制注定失败） */
 function openCsvFallbackDialog() {
+  /* 用「制表符」分隔而不是逗号：备注里出现逗号/引号也不会串列。
+     换行一律换成空格 —— 否则一条流水会被拆成两行，表格直接错位。 */
+  const clean = v => String(v == null ? '' : v).replace(/[\r\n\t]+/g, ' ').trim();
   const rows = [];
-  rows.push(['日期', '转出', '转入', '金额', '备注'].join(','));
+  rows.push(['日期', '转出', '转入', '金额', '备注'].join('\t'));
   for (const t of state.transactions) {
-    const esc2 = v => {
-      const s2 = String(v == null ? '' : v);
-      return /[",\n]/.test(s2) ? '"' + s2.replace(/"/g, '""') + '"' : s2;
-    };
-    rows.push([toYYMMDD(t.date), t.from || '', t.to || '', (Number(t.amount) || 0).toFixed(2), t.note || ''].map(esc2).join(','));
+    rows.push([
+      toYYMMDD(t.date),
+      clean(t.from),
+      clean(t.to),
+      (Number(t.amount) || 0).toFixed(2),
+      clean(t.note)
+    ].join('\t'));
   }
-  const csv = '\ufeff' + rows.join('\n');
+  // BOM：没有它 Excel 会把中文读成乱码
+  const csv = '\ufeff' + rows.join('\r\n');
+  const fname = 'NT账本_' + todayISO() + '.csv';
+
   const dlg = mkDialog(`
-    <div class="sync-title">复制为 CSV</div>
+    <div class="sync-title">复制为表格文本</div>
     <div class="sync-hint small" style="text-align:left;line-height:1.7">
-      XLSX 是二进制文件，手机浏览器如果存不下来，就用这个：
-      下面 ${state.transactions.length} 笔流水的 CSV 文本，全选复制 → 粘到记事本存成 <b>NT账本_${todayISO()}.csv</b>，
-      用 Excel / WPS 打开就是一张表。
+      XLSX 是二进制文件，手机浏览器如果存不下来，就用这个：<br>
+      下面 ${state.transactions.length} 笔流水（<b>制表符分隔</b>，Excel / WPS 直接认），
+      全选复制 → 粘到记事本存成 <b>${esc(fname)}</b>。
     </div>
     <textarea id="csv-text" readonly style="width:100%;height:200px;margin-top:12px;font-family:ui-monospace,Consolas,monospace;font-size:11px;line-height:1.5;padding:8px;border-radius:9px;border:1px solid var(--border-light);background:var(--bg-main);color:var(--text-main)">${esc(csv)}</textarea>
     <div class="sync-actions">
-      <button type="button" id="csv-copy">复制 CSV 全文</button>
+      <button type="button" id="csv-copy">复制全文</button>
+      <button type="button" class="ghost" id="csv-share">系统分享 / 存成文件</button>
       <button type="button" class="ghost" data-act="close">关闭</button>
     </div>
   `);
   const ta = dlg.querySelector('#csv-text');
   setTimeout(() => { try { ta.focus(); ta.setSelectionRange(0, ta.value.length); } catch (e) {} }, 100);
+
   dlg.querySelector('#csv-copy').onclick = async () => {
     let ok = false;
     try {
       if (navigator.clipboard && navigator.clipboard.writeText) { await navigator.clipboard.writeText(csv); ok = true; }
     } catch (e) {}
     if (!ok) { try { ta.focus(); ta.select(); ok = document.execCommand('copy'); } catch (e) {} }
-    toast(ok ? '已复制 CSV 全文 —— 粘到记事本存成 .csv 即可' : '复制失败，请长按上面的文本全选复制',
+    toast(ok ? ('已复制 ' + state.transactions.length + ' 笔流水 —— 粘到记事本存成 ' + fname) : '复制失败，请长按上面的文本全选复制',
       ok ? { duration: 6000 } : { type: 'error', duration: 6000 });
   };
+
+  dlg.querySelector('#csv-share').onclick = async () => {
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+    const r = await saveBlobToDevice(blob, fname, { shareOnly: true });
+    if (r.via === 'nosupport') { toast('这个浏览器不支持系统分享，请用「复制全文」', { duration: 5000 }); return; }
+    saveResultToast(r, fname, blob.size);
+  };
 }
+
 
 async function exportXLSX() {
   // 直接用手写的生成器：表头/日期格式/列宽/冻结都由它保证，
