@@ -5448,7 +5448,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v10.24';
+const APP_VER = 'v10.26';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -13158,7 +13158,8 @@ function openSyncDialog() {
     else if (qr.size <= 65) info += ' · 手机好扫';
     if (qrParts.length > 1) info += ' · 依次扫完 ' + qrParts.length + ' 张';
     mask.querySelector('#sync-qr-info').textContent = info;
-    mask.querySelector('#sync-qr-text').value = p.url;
+    const txEl = mask.querySelector('#sync-qr-text');
+    if (txEl) txEl.value = p.url;
     if (qrIdxEl) qrIdxEl.textContent = '第 ' + (qrIdx + 1) + ' / ' + qrParts.length + ' 张';
     if (qrNav) qrNav.style.display = qrParts.length > 1 ? 'flex' : 'none';
   };
