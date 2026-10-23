@@ -5448,7 +5448,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v10.22';
+const APP_VER = 'v10.23';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -8099,7 +8099,7 @@ function ensurePendingAccount() {
   return acc;
 }
 
-function openBillImportDialog() {
+function openBillImportDialog(preFile) {
   const mask = document.createElement('div');
   mask.className = 'confirm-mask';
   mask.innerHTML = `
@@ -8151,6 +8151,15 @@ function openBillImportDialog() {
   bindMaskClose(mask, close);
 
   const fileInp = mask.querySelector('#bi-file');
+  // 从「导入」菜单直接带文件进来：自动灌入并触发读取
+  if (preFile) {
+    try {
+      const dt = new DataTransfer();
+      dt.items.add(preFile);
+      fileInp.files = dt.files;
+      setTimeout(() => { try { fileInp.onchange(); } catch (e) {} }, 40);
+    } catch (e) {}
+  }
   const srcEl = mask.querySelector('#bi-src');
   const prev = mask.querySelector('#bi-prev');
   const listEl = mask.querySelector('#bi-list');
@@ -8470,7 +8479,7 @@ function openBillImportDialog() {
   };
 }
 
-function openImportXlsxDialog() {
+function openImportXlsxDialog(preFile) {
   const mask = document.createElement('div');
   mask.className = 'confirm-mask';
   mask.innerHTML = `
@@ -8496,6 +8505,15 @@ function openImportXlsxDialog() {
   const close = () => mask.remove();
   bindMaskClose(mask, close);
   const fileInp = mask.querySelector('#xi-file');
+  // 同上：从菜单带文件进来直接读
+  if (preFile) {
+    try {
+      const dt = new DataTransfer();
+      dt.items.add(preFile);
+      fileInp.files = dt.files;
+      setTimeout(() => { try { fileInp.onchange(); } catch (e) {} }, 40);
+    } catch (e) {}
+  }
   const info = mask.querySelector('#xi-info');
   const listEl = mask.querySelector('#xi-list');
   const goBtn = mask.querySelector('#xi-go');
@@ -13009,67 +13027,63 @@ function openImportMenu() {
 
     <div class="sync-sec">
       <div class="add-sec-head">
-        <span class="add-sec-title">导入覆盖文件</span>
-        <span class="add-sec-btns">
-          <button type="button" class="ghost add-sec-btn" id="im-lz">导入.lz文件</button>
-          <button type="button" class="ghost add-sec-btn" id="im-xlsx">导入.xlsx文件</button>
-        </span>
+        <span class="add-sec-title">导入备份文件</span>
       </div>
-      <div class="sync-hint small" style="text-align:left;margin-top:8px;line-height:1.6">
-        整本替换成文件里的数据（换手机 / 恢复备份）。<b>覆盖会清掉本机现有账户与流水</b>，
-        建议先「导出.lz文件」备份一份。
+      <div class="add-sec-btns" style="justify-content:flex-start;gap:8px;margin-top:2px">
+        <button type="button" class="ghost add-sec-btn" id="im-lz">选择.lz文件</button>
+        <button type="button" class="ghost add-sec-btn" id="im-xlsx">选择.xlsx文件</button>
+      </div>
+      <div class="sync-hint small" style="text-align:left;margin-top:9px;line-height:1.65">
+        <b>整本替换成文件里的数据</b>（换手机 / 恢复备份）。覆盖会清掉本机现有账户与流水，
+        建议先导出当前流水记录备份一次。
       </div>
     </div>
 
     <div class="sync-sec">
       <div class="add-sec-head">
-        <span class="add-sec-title">导入覆盖账单</span>
-        <span class="add-sec-btns">
-          <button type="button" class="ghost add-sec-btn" id="im-csv">导入.csv</button>
-          <button type="button" class="ghost add-sec-btn" id="im-txt">导入.txt</button>
-          <button type="button" class="ghost add-sec-btn" id="im-xlsx2">导入.xlsx</button>
-        </span>
+        <span class="add-sec-title">导入账单流水</span>
       </div>
-      <div class="sync-hint small" style="text-align:left;margin-top:8px;line-height:1.6">
-        把表格或文本里的账单铺进当前账本：<b>只追加</b>新记录，重复的自动跳过，
-        导入前会逐笔预览。
+      <div style="margin-top:2px">
+        <button type="button" class="ghost add-sec-btn" id="im-bill" style="width:100%">选择文件　支持 .csv　.txt　.xlsx</button>
+      </div>
+      <div class="sync-hint small" style="text-align:left;margin-top:9px;line-height:1.65">
+        把表格或文本里的账单铺进当前账本的流水记录，按照记录发生日期时间排序；
+        导入前会逐笔预览，重复的可以人工删除。
       </div>
     </div>
 
     <div class="sync-actions"><button type="button" class="ghost" data-act="close">关闭</button></div>
   `);
 
-  // ① .lz：直接选文件 → 确认 → 整本替换
-  dlg.querySelector('#im-lz').onclick = () => {
+  /* 所有按钮都直接弹系统文件选择器，选完立刻进下一步，不再套一层菜单 */
+  const pick = (accept, cb) => {
     const inp = document.createElement('input');
     inp.type = 'file';
-    inp.accept = '.lz,text/plain';
-    inp.onchange = async () => {
+    inp.accept = accept;
+    inp.onchange = () => {
       const f = inp.files && inp.files[0];
       if (!f) return;
-      try {
-        const text = (await f.text()).trim();
-        if (!/^LZ[0-2][:：]/i.test(text)) throw new Error('这不是本程序的同步文件');
-        if (!confirm('用「' + f.name + '」的数据覆盖本机？\n\n本机当前的账户、流水、分期都会被替换。')) return;
-        const r = await applySyncCode(text, { merge: false });
-        dlg.remove();
-        toast('已导入：账户 ' + r.accounts + ' · 流水 ' + r.transactions
-          + ' · 分期 ' + r.installments + ' · 固定 ' + r.fixed, { duration: 6000 });
-      } catch (e) {
-        toast('导入失败：' + (e && e.message ? e.message : e), { type: 'error', duration: 6000 });
-      }
+      dlg.remove();
+      cb(f);
     };
     inp.click();
   };
 
-  // ② .xlsx 覆盖：交给原来的 Excel 重建流程（它需要逐列预览）
-  dlg.querySelector('#im-xlsx').onclick = () => { dlg.remove(); openImportXlsxDialog(); };
+  dlg.querySelector('#im-lz').onclick = () => pick('.lz,text/plain', async (f) => {
+    try {
+      const text = (await f.text()).trim();
+      if (!/^LZ[0-2][:：]/i.test(text)) throw new Error('这不是本程序的同步文件');
+      if (!confirm('用「' + f.name + '」的数据覆盖本机？\n\n本机当前的账户、流水、分期都会被替换。')) return;
+      const r = await applySyncCode(text, { merge: false });
+      toast('已导入：账户 ' + r.accounts + ' · 流水 ' + r.transactions
+        + ' · 分期 ' + r.installments + ' · 固定 ' + r.fixed, { duration: 6000 });
+    } catch (e) {
+      toast('导入失败：' + (e && e.message ? e.message : e), { type: 'error', duration: 6000 });
+    }
+  });
 
-  // ③④⑤ 账单：统一走账单导入（含预览与逐笔勾选）
-  const bill = () => { dlg.remove(); openBillImportDialog(); };
-  dlg.querySelector('#im-csv').onclick = bill;
-  dlg.querySelector('#im-txt').onclick = bill;
-  dlg.querySelector('#im-xlsx2').onclick = bill;
+  dlg.querySelector('#im-xlsx').onclick = () => pick('.xlsx', (f) => openImportXlsxDialog(f));
+  dlg.querySelector('#im-bill').onclick = () => pick('.csv,.txt,.xlsx', (f) => openBillImportDialog(f));
 }
 
 function openSyncDialog() {
