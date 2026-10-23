@@ -1,8 +1,8 @@
 ﻿/* NT账本 · Service Worker
    策略：**缓存优先**（用本地版本启动，快且离线可用）。
    想换新版时，去「校验」页点「检查更新」，由页面发 SKIP_WAITING 让新 SW 接管。 */
-const CACHE = 'ledger-v301';
-const ASSETS = ['./', './index.html', './manifest.json', './thanks.json', './thanks-qr.png',
+const CACHE = 'ledger-v302';
+const ASSETS = ['./', './index.html', './manifest.json', 
   './nt-splash-512.png', './nt-192.png', './nt-512.png',
   './nt-maskable-192.png', './nt-maskable-512.png',
   './nt-light-192.png', './nt-light-512.png',
@@ -29,6 +29,8 @@ self.addEventListener('fetch', e => {
   const req = e.request;
   if (req.method !== 'GET' || new URL(req.url).origin !== self.location.origin) return;
   const url = new URL(req.url);
+  // 感谢墙与赞助码要能随时更新：直接放行给浏览器，不经过 SW 缓存
+  if (url.pathname.endsWith('/thanks.json') || url.pathname.endsWith('/thanks-qr.png')) return;
   const isPage = req.mode === 'navigate' || url.pathname.endsWith('/')
     || url.pathname.endsWith('/index.html');
 
