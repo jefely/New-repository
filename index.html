@@ -1488,7 +1488,10 @@ table#summary-table { min-width: 800px !important; }
   white-space: nowrap !important;
 }
 /* 工具栏按表格宽度定宽后，超出视口时整页横向滚动即可 */
-#main { overflow-x: auto !important; }
+/* 横向滚动必须发生在 .grid-wrap 上：sticky 只认「最近的滚动祖先」。
+   如果滑块属于 #main，冻结列就跟不上，拖的时候照样被甩出去。 */
+#main { overflow-x: hidden !important; }
+.grid-wrap { overflow-x: auto !important; }
 .toolbar.flow-bar > button,
 .toolbar.bar1 > button,
 .toolbar.bar2 > button,
@@ -3777,7 +3780,7 @@ table#fixed-table input:disabled { color: var(--text-light); }
 [data-theme="dark"] .intro-warn { color: #ff8a8a; }
 [data-theme="dark"] .intro-foot { color: #ffffff; border-top-color: #2a2a2a; }
 /* ===== 主区域内滚动：校验页/固定页这类非表格内容要能整页滚动 ===== */
-#main { overflow-x: auto !important; overflow-y: auto !important; -webkit-overflow-scrolling: touch; }
+#main { overflow-x: hidden !important; overflow-y: auto !important; -webkit-overflow-scrolling: touch; }
 /* 表格页自己的 .grid-wrap 已经在内部滚，别再让父级抢滚动条 */
 #main > .grid-wrap { flex: 1 1 auto; min-height: 0; }
 /* 校验页内容不要被 flex 压扁 */
@@ -4211,11 +4214,9 @@ table#fixed-table tbody td.col-amount input { text-align: right; }
 table#fixed-table tbody td.col-note input { text-align: left; }
 table#fixed-table tbody td select { text-align: center; text-align-last: center; }
 
-/* ⑭ 汇总表冻结列：left 由 --summary-seq-w 决定，JS 只写一次变量，不再逐格写 style */
-table#summary-table thead th.col-seq,
-table#summary-table tbody td.col-seq { left: 0 !important; }
-table#summary-table thead th.col-name,
-table#summary-table tbody td.col-name { left: var(--summary-seq-w, 54px) !important; }
+/* ⑭ 汇总表冻结列：序 / 类型 / 分类 / 简码 / 账户名称 五列的 left 全部由
+   applySummarySticky() 逐格写入（累加偏移）。这里不要再写 !important 的 left，
+   否则会把内联值压掉 —— 之前就是这条把「账户名称」锁死在序号列宽上。 */
 
 /* ⑬ 深色主题：序号列表头与其它表头同色（原来它是 #0d0d0d，旁边是 #141414，看着更黑） */
 html[data-theme="dark"] table.grid thead th.col-seq,
@@ -5135,6 +5136,34 @@ table#summary-table thead th.col-move { border-right: none !important; }
   .thanks-row .thanks-qr { flex: none; width: 156px; height: auto; }
   .thanks-qr-miss { flex: none; width: 156px; height: 156px; }
 }
+
+/* ===== 汇总表冻结五列：序 / 类型 / 分类 / 简码 / 账户名称 =====
+   横向滑块只滚动右边的金额区，这五列一律不动。
+   收起状态下前三列宽度是 0，sticky 自然不占位置。 */
+table#summary-table thead th.col-seq,
+table#summary-table tbody td.col-seq,
+table#summary-table thead th.col-cat,
+table#summary-table tbody td.col-cat,
+table#summary-table thead th.col-sub,
+table#summary-table tbody td.col-sub,
+table#summary-table thead th.col-code,
+table#summary-table tbody td.col-code,
+table#summary-table thead th.col-name,
+table#summary-table tbody td.col-name {
+  position: sticky;
+  background-clip: padding-box;
+}
+/* 逐级抬高，否则后渲染的列会把前面的盖住 */
+table#summary-table thead th.col-seq  { z-index: 5; }
+table#summary-table thead th.col-cat  { z-index: 6; }
+table#summary-table thead th.col-sub  { z-index: 7; }
+table#summary-table thead th.col-code { z-index: 8; }
+table#summary-table thead th.col-name { z-index: 9; }
+table#summary-table tbody td.col-seq  { z-index: 2; }
+table#summary-table tbody td.col-cat  { z-index: 3; }
+table#summary-table tbody td.col-sub  { z-index: 4; }
+table#summary-table tbody td.col-code { z-index: 5; }
+table#summary-table tbody td.col-name { z-index: 6; }
 </style>
 </head>
 <body>
@@ -5345,7 +5374,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v10.04';
+const APP_VER = 'v10.05';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -10514,8 +10543,30 @@ function setSummaryFold(on) {
 function applySummarySticky() {
   const table = document.getElementById('summary-table');
   if (!table) return;
-  const w = Math.round((Array.isArray(colWidths.summary) && colWidths.summary[0]) || 54);
-  table.style.setProperty('--summary-seq-w', w + 'px');
+  const seqW = Math.round((Array.isArray(colWidths.summary) && colWidths.summary[0]) || 54);
+  table.style.setProperty('--summary-seq-w', seqW + 'px');
+
+  // 宽度用 summaryBaseWidths()：它总能给出「展开时的真实宽度」。
+  // 收起状态前三列渲染宽度是 0，偏移也必须按 0 算，否则名称列会被推到 260px、左边空一块。
+  const real = summaryBaseWidths();
+  const idxOf = { 'col-seq': 0, 'col-cat': 1, 'col-sub': 2, 'col-code': 3, 'col-name': 4 };
+  const effW = (i) => (summaryFold && i >= 1 && i <= 3) ? 0 : Math.round(real[i] || 0);
+
+  const offs = {};
+  let acc = 0;
+  for (const cls in idxOf) {
+    offs[cls] = acc;
+    let w = effW(idxOf[cls]);
+    if (cls === 'col-seq' && !w) w = seqW;
+    acc += w;
+  }
+  const apply = (cell) => {
+    for (const cls in offs) {
+      if (cell.classList.contains(cls)) { cell.style.left = offs[cls] + 'px'; return; }
+    }
+  };
+  table.querySelectorAll('thead th').forEach(apply);
+  table.querySelectorAll('tbody td').forEach(apply);
 }
 
 // 汇总页两条工具栏的右边界：都对齐表格「期初」列的右边框。
