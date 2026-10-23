@@ -5327,7 +5327,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v19.3';
+const APP_VER = 'v19.4';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -6404,20 +6404,26 @@ function renderAudit(main, footer) {
     </div>`;
   main.appendChild(vpane);
 
-  // ── 赞助感谢 pane ──
+  // ── 赞助感谢 pane：二维码一块、感谢墙单独一块 ──
   const tpane = document.createElement('div');
-  tpane.className = 'audit-pane';
+  tpane.className = 'audit-pane audit-cards';
   tpane.dataset.pane = 'thanks';
   tpane.innerHTML = `
     <div class="audit-card">
       <div class="audit-title">赞助感谢</div>
       <div class="thanks-qr-wrap"><img class="thanks-qr" src="thanks-qr.png" alt="赞助二维码"></div>
       <div class="thanks-tip">
-        <b>想出现在下面的感谢墙？</b><br>
+        <b>想出现在感谢墙上？</b><br>
         转账时把昵称填进<b>「转账备注」</b>里就行（最多 16 个英文字符，也可以留空保持匿名）。<br>
         我看到备注后会把它写进感谢墙，只显示昵称，<b>不显示金额、不显示时间</b>。
       </div>
-      <div class="sync-sec-title" style="margin-top:16px">感谢墙</div>
+    </div>
+
+    <div class="audit-card">
+      <div class="audit-title">感谢墙</div>
+      <div class="sync-hint small" style="margin-top:8px">
+        名单由作者手动维护（<code>thanks.json</code>），这里只显示愿意公开的昵称。
+      </div>
       <div class="thanks-wall" id="thanks-wall">加载中…</div>
     </div>`;
   main.appendChild(tpane);
