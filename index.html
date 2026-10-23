@@ -5370,7 +5370,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v20.1';
+const APP_VER = 'v20.2';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -10558,18 +10558,18 @@ function applySummarySticky() {
   const seqW = Math.round(cols[0] || 54);
   table.style.setProperty('--summary-seq-w', seqW + 'px');
 
-  // 依次累加「序号 → 类型 → 分类 → 简码 → 账户名称」的 left 偏移，
-  // 让这几列横向滚动时整体钉在左边。收起状态前三列宽度为 0，偏移自然重合。
+  // 依次累加「序号 → 类型 → 分类 → 简码 → 账户名称」的 left 偏移。
+  // 宽度直接量表头的实际渲染宽度：colWidths 里前三列在「收起」视图下是 0，
+  // 用它算会把名称列错算到序号列后面（之前踩过的坑）。只量 5 个 th，开销可忽略。
   const offs = {};
   let acc = 0;
-  const parts = [
-    ['col-seq', seqW],
-    ['col-cat', Math.round(cols[1] || 0)],
-    ['col-sub', Math.round(cols[2] || 0)],
-    ['col-code', Math.round(cols[3] || 0)],
-    ['col-name', Math.round(cols[4] || 0)]
-  ];
-  for (const [cls, w] of parts) {
+  const headCells = table.querySelectorAll('thead th');
+  for (const cls of ['col-seq', 'col-cat', 'col-sub', 'col-code', 'col-name']) {
+    let w = 0;
+    for (const th of headCells) {
+      if (th.classList.contains(cls)) { w = Math.round(th.getBoundingClientRect().width); break; }
+    }
+    if (cls === 'col-seq' && !w) w = seqW;
     offs[cls] = acc;
     acc += w;
   }
