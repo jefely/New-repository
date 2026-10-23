@@ -5086,15 +5086,16 @@ table.install-table thead th.col-month {
 [data-theme="dark"] .danger-btn { background: rgba(220, 38, 38, .12); border-color: rgba(220, 38, 38, .45); color: #ff9b9b; }
 .audit-sep { height: 1px; margin: 20px 0 4px; background: var(--border-light); }
 
-/* 汇总页「移动到」列：填行号，下次启动时生效 */
+/* 汇总页「置顶」列：一个 ▲ 按钮 */
 table#summary-table th.col-move,
-table#summary-table td.col-move { width: 52px; min-width: 52px; padding: 0 2px; text-align: center; }
-table#summary-table td.col-move input {
-  width: 100%; height: 26px; padding: 0 2px; box-sizing: border-box;
-  text-align: center; font-size: 12px; font-variant-numeric: tabular-nums;
-  border: none; background: transparent; color: var(--primary); outline: none;
+table#summary-table td.col-move { width: 34px; min-width: 34px; padding: 0; text-align: center; }
+.pin-btn {
+  width: 24px; height: 24px; padding: 0; line-height: 22px;
+  font-size: 11px; border: none; background: transparent;
+  color: var(--text-light); cursor: pointer; border-radius: 4px;
 }
-table#summary-table td.col-move input::placeholder { color: var(--text-light); opacity: .5; }
+.pin-btn:hover { background: rgba(139,108,255,.16); color: var(--primary); }
+.pin-btn:active { background: rgba(139,108,255,.3); color: #fff; }
 </style>
 </head>
 <body>
@@ -5305,7 +5306,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v18.8';
+const APP_VER = 'v18.9';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -5731,25 +5732,18 @@ function openExtractAccountsDialog() {
   };
 }
 
-/* 把「移动到」的请求落地：按账户在列表里的顺序从上往下依次处理。
-   每次都取当时列表里的第一个还带着 moveTo 的行，取出后插到「当前第 N 行」之前，
-   所以多个请求会按顺序叠加，不会因为前面的插入而整体错位。 */
-function applyMoveRequests() {
-  let guard = 0, moved = 0;
-  while (guard++ < state.accounts.length + 10) {
-    const idx = state.accounts.findIndex(a => Number(a.moveTo) > 0);
-    if (idx < 0) break;
-    const item = state.accounts[idx];
-    const target = Math.max(1, Math.min(state.accounts.length, Math.floor(Number(item.moveTo))));
-    state.accounts.splice(idx, 1);
-    let insertAt = target - 1;
-    if (idx < insertAt) insertAt -= 1;          // 自己先被摘掉了，后面的位置整体前移一位
-    insertAt = Math.max(0, Math.min(state.accounts.length, insertAt));
-    state.accounts.splice(insertAt, 0, item);
-    delete item.moveTo;
-    moved++;
-  }
-  return moved;
+/* 置顶：把某个账户挪到「它所属类型」的第一位。
+   反复对不同的行点 ▲，就能排出自己想要的顺序（后点的排在最上）。 */
+function pinAccountToTop(id) {
+  const i = state.accounts.findIndex(a => a.id === id);
+  if (i < 0) return;
+  const cat = state.accounts[i].cat || '';
+  const j = state.accounts.findIndex(a => (a.cat || '') === cat);
+  if (j < 0 || j === i) { toast('已经在最前面了', { duration: 1200 }); return; }
+  const [item] = state.accounts.splice(i, 1);
+  state.accounts.splice(j, 0, item);
+  save(); render();
+  toast('已置顶：' + (item.name || '这一行') + ' → 「' + (cat || '未分类') + '」最前面', { duration: 2500 });
 }
 
 /* ============================================================
@@ -10220,19 +10214,6 @@ function renderSummary(main, footer) {
     if (firstBtn) bar1.insertBefore(balBtn, firstBtn);
     else bar1.appendChild(balBtn);
 
-    // 「应用调序」：把「移动到」列填的行号立刻落地（不用等下次打开）
-    const mvBtn = document.createElement('button');
-    mvBtn.type = 'button';
-    mvBtn.className = 'bal-btn';
-    mvBtn.textContent = '应用调序';
-    mvBtn.title = '把「移动到」列填的行号立即执行（从上往下依次落地）';
-    mvBtn.onclick = () => {
-      const n = applyMoveRequests();
-      if (n) { save(); render(); toast('已调整 ' + n + ' 行', { duration: 3000 }); }
-      else toast('没有待执行的调序：先在「移动到」列填行号', { duration: 3500 });
-    };
-    if (firstBtn) bar1.insertBefore(mvBtn, firstBtn.nextSibling);
-    else bar1.appendChild(mvBtn);
   } catch (e) {}
 
   main.appendChild(bar1);
@@ -10256,7 +10237,7 @@ function renderSummary(main, footer) {
       <th class="col-hout">转出历史</th>
       <th class="col-hin">转入历史</th>
       <th class="col-open">期初</th>
-      <th class="col-move">移动到</th>
+      <th class="col-move" title="点 ▲ 立刻把该行移到所属类型最前面">置顶</th>
       <th class="col-del"></th>
       <th class="col-bill"></th>
       <th class="col-repay"></th>
@@ -10604,29 +10585,17 @@ function makeSummaryRow(acc, idx, range) {
   const tdOpen = mkInputCell('opening', 'text', 'col-open');
   tdOpen.querySelector('input').style.textAlign = 'right'; tr.appendChild(tdOpen);
 
-  // 「移动到」：填一个行号，下次打开软件时把这一行挪到该行前面
+  // 「置顶」：点一下立刻移到所属类型的最前面；反复点不同行就能排出想要的顺序
   const tdMove = document.createElement('td');
   tdMove.className = 'col-move';
   if (!isNew) {
-    const mi = document.createElement('input');
-    mi.type = 'text';
-    mi.inputMode = 'numeric';
-    mi.dataset.field = 'moveTo';
-    mi.placeholder = String(idx);
-    mi.title = '填行号，例如 65 = 下次打开时排到第 65 行前面';
-    mi.value = acc.moveTo ? String(acc.moveTo) : '';
-    mi.addEventListener('input', () => {
-      const v = String(mi.value).replace(/[^0-9]/g, '').slice(0, 4);
-      if (v !== mi.value) mi.value = v;
-    });
-    mi.addEventListener('blur', () => {
-      const v = Number(mi.value);
-      if (!v || v < 1) { delete acc.moveTo; }
-      else { acc.moveTo = v; }
-      save();
-      if (v) toast('已记录：下次打开软件时把「' + (acc.name || '这一行') + '」排到第 ' + v + ' 行前面', { duration: 4000 });
-    });
-    tdMove.appendChild(mi);
+    const pin = document.createElement('button');
+    pin.type = 'button';
+    pin.className = 'pin-btn';
+    pin.textContent = '▲';
+    pin.title = '置顶：移到「' + (acc.cat || '当前类型') + '」的最前面';
+    pin.onclick = (ev) => { ev.stopPropagation(); pinAccountToTop(acc.id); };
+    tdMove.appendChild(pin);
   }
   tr.appendChild(tdMove);
 
@@ -13276,12 +13245,6 @@ document.addEventListener('keydown', ev => {
 applyTheme();
 try { applyLayout(); } catch (e) {}
 try { document.getElementById('footer').dataset.ver = APP_VER; } catch (e) {}
-
-// 启动时先把「移动到」的调序请求落地，再渲染
-try {
-  const moved = applyMoveRequests();
-  if (moved) save();
-} catch (e) {}
 
 // —— 启动：先过锁，再渲染 ——
 bootWithLock();
