@@ -5085,6 +5085,17 @@ table.install-table thead th.col-month {
 .danger-btn:hover { background: #fff5f5; border-color: #d98b8b; }
 [data-theme="dark"] .danger-btn { background: rgba(220, 38, 38, .12); border-color: rgba(220, 38, 38, .45); color: #ff9b9b; }
 .audit-sep { height: 1px; margin: 20px 0 4px; background: var(--border-light); }
+
+/* 汇总页「上移 / 下移」列 */
+table#summary-table th.col-move,
+table#summary-table td.col-move { width: 40px; min-width: 40px; padding: 0; text-align: center; }
+.mv-btn {
+  width: 18px; height: 15px; padding: 0; margin: 0; line-height: 13px;
+  font-size: 9px; border: none; background: transparent; color: var(--text-light);
+  cursor: pointer; border-radius: 3px;
+}
+.mv-btn:hover { background: rgba(139,108,255,.16); color: var(--primary); }
+.mv-btn:active { background: rgba(139,108,255,.28); }
 </style>
 </head>
 <body>
@@ -5295,7 +5306,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v18.5';
+const APP_VER = 'v18.6';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -5648,6 +5659,90 @@ async function checkForUpdate() {
   const msg = '已是最新版本 ' + APP_VER;
   toast(msg);
   return { updated: false, message: msg };
+}
+
+/* ============================================================
+   自动提取账户：把流水里出现过、但账户表里没有的名字，追加到账户表末尾。
+   自动给一个唯一简码（X1、X2…），类型默认「资产类」、分类留空，
+   由用户自己到汇总页设置类型/分类、校对简码，不需要的可以直接删。
+   ============================================================ */
+function collectFlowAccountNames() {
+  const set = new Set();
+  for (const t of state.transactions) {
+    const f = String(t.from || '').trim();
+    const to = String(t.to || '').trim();
+    if (f) set.add(f);
+    if (to) set.add(to);
+  }
+  return [...set];
+}
+
+function nextFreeCode(used) {
+  let i = 1;
+  while (used.has('X' + i)) i++;
+  used.add('X' + i);
+  return 'X' + i;
+}
+
+function openExtractAccountsDialog() {
+  const names = collectFlowAccountNames();
+  const existing = new Set(state.accounts.map(a => String(a.name || '').trim()).filter(Boolean));
+  const missing = names.filter(nm => !existing.has(nm)).sort((a, b) => a.localeCompare(b, 'zh'));
+
+  const listHtml = missing.length
+    ? missing.map(nm => `<span class="thanks-chip">${esc(nm)}</span>`).join('')
+    : '<span class="sync-hint small">流水里用到的账户名都已经在账户表里了。</span>';
+
+  mkDialog(`
+    <div class="sync-title">提取流水账户</div>
+    <div class="sync-hint" style="text-align:left;line-height:1.75">
+      从现有 <b>${state.transactions.length}</b> 笔流水里扫出 <b>${names.length}</b> 个账户名，
+      其中 <b>${missing.length}</b> 个还不在账户表里。<br>
+      新增的会<b>追加到账户表末尾</b>，简码自动给（X1、X2…），
+      类型默认「资产类」、分类留空 —— 需要你到汇总页自己设置并校对简码，不要的可以删掉。
+    </div>
+    <div class="thanks-wall" style="margin-top:10px">${listHtml}</div>
+    <div class="sync-actions">
+      <button type="button" id="ex-go" ${missing.length ? '' : 'disabled'}>追加这 ${missing.length} 个账户</button>
+      <button type="button" class="ghost" data-act="close">取消</button>
+    </div>
+  `);
+
+  const mask = [...document.querySelectorAll('.confirm-mask')].pop();
+  const go = mask.querySelector('#ex-go');
+  if (go) go.onclick = () => {
+    const used = new Set(state.accounts.map(a => String(a.code || '').trim()).filter(Boolean));
+    let added = 0;
+    for (const nm of missing) {
+      if (state.accounts.some(a => String(a.name || '').trim() === nm)) continue;
+      state.accounts.push({
+        id: 'ex' + Date.now().toString(36) + '_' + added,
+        cat: '资产类',
+        sub: '',
+        code: nextFreeCode(used),
+        name: nm,
+        opening: 0,
+        pending: 1
+      });
+      added++;
+    }
+    save(); render();
+    mask.remove();
+    toast('已追加 ' + added + ' 个账户到末尾：请到汇总页设置类型/分类、校对简码', { duration: 6000 });
+  };
+}
+
+/* 账户上下移动：只对同一「类型」内相邻的两行交换位置 */
+function moveAccount(id, dir) {
+  const arr = state.accounts;
+  const i = arr.findIndex(a => a.id === id);
+  if (i < 0) return;
+  const cat = arr[i].cat || '';
+  let j = i + dir;
+  while (j >= 0 && j < arr.length && (arr[j].cat || '') !== cat) j += dir;
+  if (j < 0 || j >= arr.length) { toast('已经到头了', { duration: 1200 }); return; }
+  const tmp = arr[i]; arr[i] = arr[j]; arr[j] = tmp;
+  save(); render();
 }
 
 /* ============================================================
@@ -6206,6 +6301,14 @@ function renderAudit(main, footer) {
         <button type="button" id="acc-export">复制账户设置</button>
         <button type="button" class="ghost" id="acc-import">导入账户设置</button>
       </div>
+
+      <div class="sync-hint small" style="margin-top:16px">
+        <b>提取流水账户</b>：把流水里出现、但账户表里还没有的名字，
+        自动追加到账户表末尾（简码自动给 X1、X2…）。
+      </div>
+      <div style="margin-top:8px">
+        <button type="button" id="acc-extract">提取流水账户</button>
+      </div>
     </div>`;
   main.appendChild(vpane);
 
@@ -6255,6 +6358,8 @@ function renderAudit(main, footer) {
     if ($ax) $ax.onclick = () => copyAccountsText();
     const $ai = vpane.querySelector('#acc-import');
     if ($ai) $ai.onclick = () => openImportAccountsDialog();
+    const $ae = vpane.querySelector('#acc-extract');
+    if ($ae) $ae.onclick = () => openExtractAccountsDialog();
     $b.onclick = async () => {
       if ($b.disabled) return;
       $b.disabled = true; $b.textContent = '检查中…';
@@ -10128,6 +10233,7 @@ function renderSummary(main, footer) {
       <th class="col-in">转入</th>
       <th class="col-hout">转出历史</th>
       <th class="col-hin">转入历史</th>
+      <th class="col-move"></th>
       <th class="col-open">期初</th>
       <th class="col-del"></th>
       <th class="col-bill"></th>
@@ -10184,6 +10290,7 @@ function renderSummary(main, footer) {
       `<td class="cat-sum col-in">${dash(s.in)}</td>` +
       `<td class="cat-sum col-hout">${dash(s.hout)}</td>` +
       `<td class="cat-sum col-hin">${dash(s.hin)}</td>` +
+      `<td class="col-move"></td>` +
       `<td class="cat-sum col-open">${dash(s.open)}</td>` +
       `<td class="col-del"></td>` +
       `<td class="col-bill">${isDebt ? '<span class="cat-col">账单日</span>' : ''}</td>` +
@@ -10471,6 +10578,22 @@ function makeSummaryRow(acc, idx, range) {
   tr.appendChild(mkReadCell('in', stats.mIn ? fmtMoney(stats.mIn) : '—'));
   tr.appendChild(mkReadCell('hout', stats.hOut ? fmtMoney(stats.hOut) : '—'));
   tr.appendChild(mkReadCell('hin', stats.hIn ? fmtMoney(stats.hIn) : '—'));
+
+  // 上移 / 下移：只在同类型内相邻交换，方便把提取出来的账户排顺
+  if (!isNew) {
+    const tdMove = document.createElement('td');
+    tdMove.className = 'col-move';
+    tdMove.innerHTML = `<button type="button" class="mv-btn" data-dir="-1" title="上移">▲</button>`
+                     + `<button type="button" class="mv-btn" data-dir="1" title="下移">▼</button>`;
+    tdMove.querySelectorAll('.mv-btn').forEach(b => {
+      b.onclick = (ev) => { ev.stopPropagation(); moveAccount(acc.id, Number(b.dataset.dir)); };
+    });
+    tr.appendChild(tdMove);
+  } else {
+    const tdMove = document.createElement('td');
+    tdMove.className = 'col-move';
+    tr.appendChild(tdMove);
+  }
 
   const tdOpen = mkInputCell('opening', 'text', 'col-open');
   tdOpen.querySelector('input').style.textAlign = 'right'; tr.appendChild(tdOpen);
