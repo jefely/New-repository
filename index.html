@@ -5418,7 +5418,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v10.15';
+const APP_VER = 'v10.16';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -13027,14 +13027,8 @@ function openSyncDialog() {
     } catch (e) { toast('读取失败：' + e.message, { type: 'error', duration: 6000 }); }
     finally { fileInp.value = ''; }
   };
-}
 
-
-
-
-  /* ---------- 识别二维码：选一张图，解码后合并 ----------
-     能用的浏览器（Chrome / 华为自带内核）有 BarcodeDetector，直接读图；
-     没有就退回「粘贴二维码下面那段文本」。 */
+  /* ---------- 识别二维码：选一张图 → 解码 → 合并 ---------- */
   const pickBtn = mask.querySelector('#sync-qr-pick');
   const pasteBtn = mask.querySelector('#sync-qr-paste');
   const applyQrText = async (raw) => {
@@ -13049,7 +13043,6 @@ function openSyncDialog() {
       toast('识别失败：' + (e && e.message ? e.message : e), { type: 'error', duration: 6000 });
     }
   };
-
   if (pickBtn) pickBtn.onclick = () => {
     const inp = document.createElement('input');
     inp.type = 'file';
@@ -13073,11 +13066,14 @@ function openSyncDialog() {
     };
     inp.click();
   };
-
   if (pasteBtn) pasteBtn.onclick = () => {
     const raw = window.prompt('把二维码下面那段文本粘进来：');
     if (raw) applyQrText(raw);
   };
+}
+
+
+
 // 默认列宽（用户调好的，作为新用户 / 重置后的初始值）
 const DEFAULT_COL_WIDTHS = {
   flow:    [50, 77, 107, 117, 109, 179, 52],
