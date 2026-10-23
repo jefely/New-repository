@@ -5376,7 +5376,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v20.9';
+const APP_VER = 'v21.0';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -12910,7 +12910,7 @@ function showExportDone(name, size, url, dataUrl, info) {
         <a href="${dataUrl}" download="${esc(name)}" style="display:block;text-decoration:none">
           <button type="button" class="ghost" style="width:100%">换个方式保存</button>
         </a>
-        <button type="button" id="x-copy-file" class="ghost" style="width:100%">复制文件到剪贴板</button>
+        <button type="button" id="x-copy-csv" class="ghost" style="width:100%">复制为 CSV 文本（手机可用）</button>
       </div>
       <div class="sync-hint" style="text-align:left;font-size:12px;color:#64748b">
         长按上面任一按钮 →「链接另存为」也能保存
@@ -12920,6 +12920,8 @@ function showExportDone(name, size, url, dataUrl, info) {
   document.body.appendChild(mask);
   const close = () => mask.remove();
   bindMaskClose(mask, close);
+  const csvBtn2 = mask.querySelector('#x-copy-csv');
+  if (csvBtn2) csvBtn2.onclick = () => { mask.remove(); openCsvFallbackDialog(); };
   // 「复制文件到剪贴板」：华为浏览器唯一能走通的路 —— 复制后去微信/邮件里粘贴
   const copyBtn = mask.querySelector('#x-copy-file');
   if (copyBtn) {
