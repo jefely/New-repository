@@ -5345,7 +5345,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v10.01';
+const APP_VER = 'v10.02';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -5771,18 +5771,21 @@ function openExtractAccountsDialog() {
   };
 }
 
-/* 置顶：把某个账户挪到「它所属类型」的第一位。
-   反复对不同的行点 ▲，就能排出自己想要的顺序（后点的排在最上）。 */
+/* 上移：与「上一个同类型的行」交换位置。点一次挪一格，跨类型不换。 */
 function pinAccountToTop(id) {
-  const i = state.accounts.findIndex(a => a.id === id);
+  const arr = state.accounts;
+  const i = arr.findIndex(a => a.id === id);
   if (i < 0) return;
-  const cat = state.accounts[i].cat || '';
-  const j = state.accounts.findIndex(a => (a.cat || '') === cat);
-  if (j < 0 || j === i) { toast('已经在最前面了', { duration: 1200 }); return; }
-  const [item] = state.accounts.splice(i, 1);
-  state.accounts.splice(j, 0, item);
+  const cat = arr[i].cat || '';
+  let j = i - 1;
+  while (j >= 0 && (arr[j].cat || '') !== cat) j--;
+  if (j < 0) {
+    toast((arr[i].name || '这一行') + ' 已经是「' + (cat || '未分类') + '」里第一行了', { duration: 1800 });
+    return;
+  }
+  const tmp = arr[j]; arr[j] = arr[i]; arr[i] = tmp;
   save(); render();
-  toast('已置顶：' + (item.name || '这一行') + ' → 「' + (cat || '未分类') + '」最前面', { duration: 2500 });
+  toast('已上移：' + (arr[j].name || '这一行'), { duration: 1500 });
 }
 
 /* 修改账本密码：先用旧密码把当前密文解开（验证），再换新 salt + 新 key 重新加密写盘 */
@@ -10363,7 +10366,7 @@ function renderSummary(main, footer) {
       <th class="col-hout">转出历史</th>
       <th class="col-hin">转入历史</th>
       <th class="col-open">期初</th>
-      <th class="col-move" title="点 ▲ 立刻把该行移到所属类型最前面">置顶</th>
+      <th class="col-move" title="点 ▲ 与上一行交换位置（同「类型」内）">上移</th>
       <th class="col-del"></th>
       <th class="col-bill"></th>
       <th class="col-repay"></th>
@@ -10710,6 +10713,20 @@ function makeSummaryRow(acc, idx, range) {
 
   const tdOpen = mkInputCell('opening', 'text', 'col-open');
   tdOpen.querySelector('input').style.textAlign = 'right'; tr.appendChild(tdOpen);
+
+  // 「上移」列（表头里已经有这一列，数据行必须跟着补一格，否则整行错位）
+  const tdMove = document.createElement('td');
+  tdMove.className = 'col-move';
+  if (!isNew) {
+    const pin = document.createElement('button');
+    pin.type = 'button';
+    pin.className = 'pin-btn';
+    pin.textContent = '▲';
+    pin.title = '上移：与上一个「' + (acc.cat || '同类') + '」行交换位置';
+    pin.onclick = (ev) => { ev.stopPropagation(); pinAccountToTop(acc.id); };
+    tdMove.appendChild(pin);
+  }
+  tr.appendChild(tdMove);
 
   // 「置顶」：点一下立刻移到所属类型的最前面；反复点不同行就能排出想要的顺序
   const tdMove = document.createElement('td');
