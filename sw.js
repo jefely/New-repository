@@ -1,12 +1,31 @@
 ﻿/* NT账本 · Service Worker
    策略：**缓存优先**（用本地版本启动，快且离线可用）。
    想换新版时，去「校验」页点「检查更新」，由页面发 SKIP_WAITING 让新 SW 接管。 */
-const CACHE = 'ledger-v321';
+const CACHE = 'ledger-v322';
 const ASSETS = ['./', './index.html', './manifest.json', 
   './nt-splash-512.png', './nt-192.png', './nt-512.png',
   './nt-maskable-192.png', './nt-maskable-512.png',
   './nt-light-192.png', './nt-light-512.png',
   './nt-mono-192.png', './nt-mono-512.png'];
+
+/* ------------------------------------------------------------
+   强制下载通道：页面把 Blob 交过来，这里用 Content-Disposition: attachment
+   回给浏览器。手机浏览器对 <a download> 时常「假装成功」，但对带
+   Content-Disposition 的响应必须交给系统下载管理器，绕不过去。
+   ------------------------------------------------------------ */
+const _dlStore = new Map();
+
+self.addEventListener('message', e => {
+  const d = e.data;
+  if (!d || d.type !== 'DL_PUT') return;
+  _dlStore.set(d.id, { blob: d.blob, name: d.name });
+  // 只留最近 5 个，避免一直占内存
+  if (_dlStore.size > 5) {
+    const first = _dlStore.keys().next().value;
+    if (first !== d.id) _dlStore.delete(first);
+  }
+  try { e.ports && e.ports[0] && e.ports[0].postMessage('ok'); } catch (x) {}
+});
 
 self.addEventListener('install', e => {
   e.waitUntil(
@@ -31,6 +50,25 @@ self.addEventListener('fetch', e => {
   const url = new URL(req.url);
   // 感谢墙与赞助码要能随时更新：直接放行给浏览器，不经过 SW 缓存
   if (url.pathname.endsWith('/thanks.json') || url.pathname.endsWith('/thanks-qr.png')) return;
+
+  // 强制下载：/__dl/<id>
+  if (url.pathname.indexOf('/__dl/') >= 0) {
+    const id = url.pathname.split('/__dl/')[1];
+    const item = _dlStore.get(id);
+    if (item) {
+      e.respondWith(new Response(item.blob, {
+        headers: {
+          'Content-Type': item.blob.type || 'application/octet-stream',
+          'Content-Disposition': 'attachment; filename="' + encodeURIComponent(item.name) + '"',
+          'Content-Length': String(item.blob.size),
+          'Cache-Control': 'no-store'
+        }
+      }));
+    } else {
+      e.respondWith(new Response('file not found', { status: 404, headers: { 'Content-Type': 'text/plain' } }));
+    }
+    return;
+  }
   const isPage = req.mode === 'navigate' || url.pathname.endsWith('/')
     || url.pathname.endsWith('/index.html');
 

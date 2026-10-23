@@ -5376,7 +5376,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v21.4';
+const APP_VER = 'v21.5';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -12713,6 +12713,7 @@ function openSaveChoiceDialog(text, filename, blob) {
         border:1px solid #cbbcf0;background:#faf8ff;color:#5b4ea8;font-size:14px;font-weight:600">
         ② 长按这里 → 「链接另存为 / 下载链接」</a>` : ''}
       <button type="button" class="ghost" id="sv-window">③ 新窗口打开纯文本</button>
+      <button type="button" class="ghost" id="sv-swdl">④ 交给系统下载（可能有效）</button>
       ${window.showSaveFilePicker ? `<button type="button" class="ghost" id="sv-picker">④ 选择保存位置（另存为）</button>` : ''}
       ${canShareFiles ? `<button type="button" class="ghost" id="sv-share">系统分享 / 发送给朋友</button>` : ''}
     </div>
@@ -12747,6 +12748,13 @@ function openSaveChoiceDialog(text, filename, blob) {
     } catch (e) { toast('打开失败：' + e.message, { type: 'error' }); }
   };
 
+  const swBtn = dlg.querySelector('#sv-swdl');
+  if (swBtn) swBtn.onclick = async () => {
+    const r = await swForceDownload(blob, filename);
+    if (r.via === 'sw') saveResultToast(r, filename, blob.size);
+    else toast('这条路也走不通，请用 ① 复制全文', { type: 'error', duration: 6000 });
+  };
+
   const pkBtn = dlg.querySelector('#sv-picker');
   if (pkBtn) pkBtn.onclick = async () => {
     const r = await saveBlobToDevice(blob, filename);
@@ -12763,6 +12771,32 @@ function openSaveChoiceDialog(text, filename, blob) {
   setTimeout(() => { try { ta.focus(); ta.setSelectionRange(0, ta.value.length); } catch (e) {} }, 100);
 }
 
+
+/* 强制下载：把 Blob 交给 Service Worker，由它用 Content-Disposition: attachment 回应，
+   浏览器必须交给系统下载管理器（<a download> 在部分手机上会被静默忽略）。 */
+async function swForceDownload(blob, filename) {
+  if (!navigator.serviceWorker || !navigator.serviceWorker.controller) return { via: 'nosupport' };
+  try {
+    const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+    const reg = await navigator.serviceWorker.ready;
+    const target = reg.active || navigator.serviceWorker.controller;
+    const ch = new MessageChannel();
+    const ack = new Promise(res => { ch.port1.onmessage = () => res(true); setTimeout(() => res(false), 1500); });
+    target.postMessage({ type: 'DL_PUT', id, blob, name: filename }, [ch.port2]);
+    await ack;
+
+    const url = new URL('__dl/' + id, location.href).href;
+    // 优先用隐藏 iframe（有些浏览器对 a.click 拦截，对 iframe 放行）
+    const ifr = document.createElement('iframe');
+    ifr.style.display = 'none';
+    ifr.src = url;
+    document.body.appendChild(ifr);
+    setTimeout(() => { try { ifr.remove(); } catch (e) {} }, 20000);
+    return { via: 'sw' };
+  } catch (e) {
+    return { via: 'fail', error: e };
+  }
+}
 
 async function saveBlobToDevice(blob, filename, opts) {
   const file = (typeof File === 'function') ? new File([blob], filename, { type: blob.type || 'application/octet-stream' }) : null;
@@ -12802,7 +12836,13 @@ async function saveBlobToDevice(blob, filename, opts) {
     }
   }
 
-  // ③ 普通下载
+  // ③ Service Worker 强制下载（带 Content-Disposition，手机浏览器绕不过）
+  if (!(opts && opts.skipSW)) {
+    const rSw = await swForceDownload(blob, filename);
+    if (rSw.via === 'sw') return { via: 'sw' };
+  }
+
+  // ④ 普通下载
   try {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -12817,7 +12857,8 @@ async function saveBlobToDevice(blob, filename, opts) {
 
 function saveResultToast(r, filename, size) {
   const kb = Math.round(size / 1024) + ' KB';
-  if (r.via === 'picker') toast('已保存到你选的目录：' + (r.name || filename) + '（' + kb + '）', { duration: 6000 });
+  if (r.via === 'sw') toast('已交给系统下载：' + filename + '（' + kb + '）\n请到手机的「下载」或「文件」里查看', { duration: 8000 });
+  else if (r.via === 'picker') toast('已保存到你选的目录：' + (r.name || filename) + '（' + kb + '）', { duration: 6000 });
   else if (r.via === 'share') toast('已通过系统分享保存：' + filename + '（' + kb + '）', { duration: 5000 });
   else if (r.via === 'cancel') toast('已取消保存', { duration: 2500 });
   else if (r.via === 'download') toast('已发起下载：' + filename + '（' + kb + '）\n如果没看到文件，请到浏览器的下载列表里找，或改用「分享」方式保存', { duration: 8000 });
