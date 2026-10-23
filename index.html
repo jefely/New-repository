@@ -5295,7 +5295,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v18.4';
+const APP_VER = 'v18.5';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -5648,6 +5648,106 @@ async function checkForUpdate() {
   const msg = '已是最新版本 ' + APP_VER;
   toast(msg);
   return { updated: false, message: msg };
+}
+
+/* ============================================================
+   账户设置框架：导出成文本（可直接复制）/ 从文本导入
+   格式与「添加」弹窗保持一致：
+     账户
+     类型，分类，简码，名称，期初，
+   ============================================================ */
+function accountsToText() {
+  const lines = ['账户'];
+  for (const a of state.accounts) {
+    const cells = [
+      a.cat || '资产类',
+      a.sub || '',
+      a.code || '',
+      a.name || '',
+      (a.opening === '' || a.opening == null) ? '0.00' : a.opening,
+      ''
+    ];
+    lines.push(cells.join('，'));
+  }
+  return lines.join('\n');
+}
+
+async function copyAccountsText() {
+  const txt = accountsToText();
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(txt);
+    } else {
+      const ta = document.createElement('textarea');
+      ta.value = txt;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      ta.remove();
+    }
+    toast('已复制 ' + state.accounts.length + ' 个账户设置，可直接粘贴保存', { duration: 4000 });
+  } catch (e) {
+    // 复制失败就把文本摆出来让人手动选
+    const dlg = mkDialog(`
+      <div class="sync-title">账户设置（手动复制）</div>
+      <textarea readonly style="width:100%;height:240px;font-family:ui-monospace,Consolas,monospace;font-size:12px;line-height:1.6">${esc(txt)}</textarea>
+      <div class="sync-actions"><button type="button" class="ghost" data-act="close">关闭</button></div>
+    `);
+    const ta = dlg.querySelector('textarea');
+    setTimeout(() => { try { ta.focus(); ta.select(); } catch (e2) {} }, 80);
+  }
+}
+
+function openImportAccountsDialog() {
+  mkDialog(`
+    <div class="sync-title">导入账户设置</div>
+    <div class="sync-hint" style="text-align:left;line-height:1.7">
+      粘贴「复制账户设置」得到的那段文本（也接受只有账户行的片段）。<br>
+      字段：<code>类型，分类，简码，名称，期初，</code><br>
+      <span style="color:#dc2626">这会替换现有账户表。流水不会删，但账户名对不上的地方，
+      校验会提示「对不上的名称」，需要你手动改。</span>
+    </div>
+    <textarea id="acc-imp" placeholder="账户
+资产类，现金，XJ，现金，200.00，
+资产类，充值，FK，饭卡，0.00，" style="width:100%;height:200px;box-sizing:border-box;font-family:ui-monospace,Consolas,monospace;font-size:12px;line-height:1.6;padding:8px;border-radius:9px;border:1px solid var(--border-light);background:var(--bg-main);color:var(--text-main)"></textarea>
+    <div class="sync-hint small" id="acc-imp-preview" style="min-height:18px;margin-top:6px"></div>
+    <div class="sync-actions">
+      <button type="button" id="acc-imp-go">替换账户表</button>
+      <button type="button" class="ghost" data-act="close">取消</button>
+    </div>
+  `).firstElementChild;
+  const mask = [...document.querySelectorAll('.confirm-mask')].pop();
+  const ta = mask.querySelector('#acc-imp');
+  const pv = mask.querySelector('#acc-imp-preview');
+  const parse = () => {
+    try {
+      const r = parseImportText(ta.value || '');
+      const acc = (r.accounts || []).filter(a => (a.name || '').trim());
+      pv.textContent = acc.length ? ('识别到 ' + acc.length + ' 个账户') : '还没识别到账户';
+      return acc;
+    } catch (e) {
+      pv.textContent = '解析失败：' + e.message;
+      return [];
+    }
+  };
+  ta.addEventListener('input', parse);
+  mask.querySelector('#acc-imp-go').onclick = () => {
+    const acc = parse();
+    if (!acc.length) { toast('没有可导入的账户', { type: 'error' }); return; }
+    state.accounts = acc.map((a, i) => ({
+      id: a.id || ('acc' + Date.now() + '_' + i),
+      cat: a.cat || '资产类',
+      sub: a.sub || '',
+      code: a.code || '',
+      name: a.name.trim(),
+      opening: a.opening === '' || a.opening == null ? 0 : a.opening
+    }));
+    save(); render();
+    mask.remove();
+    toast('已导入 ' + state.accounts.length + ' 个账户设置', { duration: 5000 });
+  };
 }
 
 /* ============================================================
@@ -6095,6 +6195,17 @@ function renderAudit(main, footer) {
         <button type="button" id="ver-reset-keep" class="danger-btn">重置账户（保留数据）</button>
         <button type="button" id="ver-reset" class="danger-btn">重置账本（清空数据）</button>
       </div>
+
+      <div class="audit-sep"></div>
+      <div class="audit-title" style="margin-top:18px">账户设置框架</div>
+      <div class="sync-hint small" style="margin-top:8px">
+        把当前账户表（类型 / 分类 / 简码 / 名称 / 期初）导出成一段文本，
+        存着下次用、或发给别的设备。<b>导出＝复制到剪贴板</b>，粘贴到记事本即可保存。
+      </div>
+      <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
+        <button type="button" id="acc-export">复制账户设置</button>
+        <button type="button" class="ghost" id="acc-import">导入账户设置</button>
+      </div>
     </div>`;
   main.appendChild(vpane);
 
@@ -6140,6 +6251,10 @@ function renderAudit(main, footer) {
     if ($rt) $rt.onclick = () => openResetDialog('wipe');
     const $rk = vpane.querySelector('#ver-reset-keep');
     if ($rk) $rk.onclick = () => openResetDialog('keep');
+    const $ax = vpane.querySelector('#acc-export');
+    if ($ax) $ax.onclick = () => copyAccountsText();
+    const $ai = vpane.querySelector('#acc-import');
+    if ($ai) $ai.onclick = () => openImportAccountsDialog();
     $b.onclick = async () => {
       if ($b.disabled) return;
       $b.disabled = true; $b.textContent = '检查中…';
