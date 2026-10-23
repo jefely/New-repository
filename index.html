@@ -5164,6 +5164,22 @@ table#summary-table tbody td.col-cat  { z-index: 3; }
 table#summary-table tbody td.col-sub  { z-index: 4; }
 table#summary-table tbody td.col-code { z-index: 5; }
 table#summary-table tbody td.col-name { z-index: 6; }
+
+/* 导出 / 导入 的行式菜单（和添加、同步弹窗一个观感） */
+.rowmenu { display: flex; flex-direction: column; gap: 10px; margin: 14px 0 4px; }
+.rowmenu-item {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  width: 100%; padding: 12px 14px; box-sizing: border-box;
+  border: 1px solid #cbbcf0; border-radius: 12px; background: #faf8ff;
+  color: #4c3d80; font-size: 14px; font-weight: 600; cursor: pointer; text-align: left;
+}
+.rowmenu-item:hover { background: #f2ecff; border-color: #b7a3ea; }
+.rowmenu-item:active { background: #e9e0ff; }
+.rowmenu-label { flex: 1 1 auto; min-width: 0; }
+.rowmenu-types { flex: 0 0 auto; font-size: 12px; font-weight: 600; color: #6b5bc4; opacity: .85; white-space: nowrap; }
+[data-theme="dark"] .rowmenu-item { background: #1b1630; border-color: #3a2f66; color: #d9d0f5; }
+[data-theme="dark"] .rowmenu-item:hover { background: #241d3d; }
+[data-theme="dark"] .rowmenu-types { color: #a99bf0; }
 </style>
 </head>
 <body>
@@ -5374,7 +5390,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v10.09';
+const APP_VER = 'v10.10';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -9609,17 +9625,14 @@ function renderFlow(main, footer) {
   // 「添加」= 批量添加（文本 / TXT）
   document.getElementById('f-add').onclick = () => openImportTextDialog();
   document.getElementById('f-sync').onclick = () => openSyncDialog();
-  // 导出：直接生成 xlsx（原来那层对话框里只有一个「从 Excel 添加流水」，
-  // 和工具栏的「导入」功能重复，已删掉整层对话框）
-  document.getElementById('f-exp').onclick = async () => {
-    try { await exportXLSX(); }
-    catch (err) { toast('导出失败：' + (err && err.message ? err.message : err), { type: 'error', duration: 6000 }); }
-  };
+  // 导出：两行菜单 —— 导出文件（仅电脑端）/ 复制内容
+  document.getElementById('f-exp').onclick = () => openExportMenu();
   document.getElementById('f-theme').onclick = () => toggleTheme();
   const colsBtn = document.getElementById('f-cols');
   if (colsBtn) colsBtn.onclick = () => openColWidthsDialog();
+  // 导入：两行菜单 —— 导入覆盖文件 / 导入覆盖账单
   const impBtn = document.getElementById('f-import');
-  if (impBtn) impBtn.onclick = () => openImportHub();
+  if (impBtn) impBtn.onclick = () => openImportMenu();
 
   // 3. 表格主体
   const wrap = document.createElement('div');
@@ -12788,6 +12801,43 @@ function showExportDone(name, size, url, dataUrl, info) {
 }
 
 try { watchOtherTabs(); } catch (e) {}
+
+/* 导出 / 导入：一个弹窗里两行，和「添加」「同步」的展开方式一致。
+   每行左边是功能名，右边是支持的文件类型。 */
+function openRowMenu(title, rows) {
+  const dlg = mkDialog(`
+    <div class="sync-title">${esc(title)}</div>
+    <div class="rowmenu">
+      ${rows.map((r, i) => `
+        <button type="button" class="rowmenu-item" data-idx="${i}">
+          <span class="rowmenu-label">${esc(r.label)}</span>
+          ${r.types ? `<span class="rowmenu-types">${esc(r.types)}</span>` : ''}
+        </button>`).join('')}
+    </div>
+    <div class="sync-actions"><button type="button" class="ghost" data-act="close">关闭</button></div>
+  `);
+  dlg.querySelectorAll('.rowmenu-item').forEach(b => {
+    b.onclick = () => {
+      const r = rows[Number(b.dataset.idx)];
+      dlg.remove();
+      try { r.run(); } catch (e) { toast('打开失败：' + e.message, { type: 'error' }); }
+    };
+  });
+}
+
+function openExportMenu() {
+  openRowMenu('导出', [
+    { label: '导出文件（仅支持电脑端）', types: '.lz　.xlsx', run: () => exportXLSX() },
+    { label: '复制内容', types: '.csv　.txt', run: () => openCsvFallbackDialog() }
+  ]);
+}
+
+function openImportMenu() {
+  openRowMenu('导入', [
+    { label: '导入覆盖文件', types: '.lz　.xlsx', run: () => openSyncDialog('file', true) },
+    { label: '导入覆盖账单', types: '.csv　.txt　.xlsx', run: () => openImportHub() }
+  ]);
+}
 
 function openSyncDialog() {
   const mask = document.createElement('div');
