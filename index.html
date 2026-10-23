@@ -5135,6 +5135,28 @@ table#summary-table thead th.col-move { border-right: none !important; }
   .thanks-row .thanks-qr { flex: none; width: 156px; height: auto; }
   .thanks-qr-miss { flex: none; width: 156px; height: 156px; }
 }
+
+/* 汇总表：类型 / 分类 / 简码 三列也跟着「序号」一起冻结，
+   横向拖动条只滚右边的金额区，不会再把这四列甩出去。
+   （收起状态它们宽度是 0，sticky 自然不影响） */
+table#summary-table thead th.col-cat,
+table#summary-table thead th.col-sub,
+table#summary-table thead th.col-code,
+table#summary-table tbody td.col-cat,
+table#summary-table tbody td.col-sub,
+table#summary-table tbody td.col-code {
+  position: sticky;
+  z-index: 2;
+}
+table#summary-table thead th.col-cat,
+table#summary-table thead th.col-sub,
+table#summary-table thead th.col-code { z-index: 6; }
+table#summary-table tbody td.col-cat,
+table#summary-table tbody td.col-sub,
+table#summary-table tbody td.col-code { background: var(--bg-main); }
+table#summary-table tbody tr:nth-child(even) td.col-cat,
+table#summary-table tbody tr:nth-child(even) td.col-sub,
+table#summary-table tbody tr:nth-child(even) td.col-code { background: var(--bg-gray-light); }
 </style>
 </head>
 <body>
@@ -5345,7 +5367,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v19.9';
+const APP_VER = 'v20.0';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -10529,8 +10551,35 @@ function setSummaryFold(on) {
 function applySummarySticky() {
   const table = document.getElementById('summary-table');
   if (!table) return;
-  const w = Math.round((Array.isArray(colWidths.summary) && colWidths.summary[0]) || 54);
-  table.style.setProperty('--summary-seq-w', w + 'px');
+  const cols = Array.isArray(colWidths.summary) ? colWidths.summary : [];
+  const seqW = Math.round(cols[0] || 54);
+  table.style.setProperty('--summary-seq-w', seqW + 'px');
+
+  // 依次累加「序号 → 类型 → 分类 → 简码 → 账户名称」的 left 偏移，
+  // 让这几列横向滚动时整体钉在左边。收起状态前三列宽度为 0，偏移自然重合。
+  const offs = {};
+  let acc = 0;
+  const parts = [
+    ['col-seq', seqW],
+    ['col-cat', Math.round(cols[1] || 0)],
+    ['col-sub', Math.round(cols[2] || 0)],
+    ['col-code', Math.round(cols[3] || 0)],
+    ['col-name', Math.round(cols[4] || 0)]
+  ];
+  for (const [cls, w] of parts) {
+    offs[cls] = acc;
+    acc += w;
+  }
+  const apply = (cell) => {
+    for (const cls in offs) {
+      if (cell.classList.contains(cls)) {
+        cell.style.left = offs[cls] + 'px';
+        return;
+      }
+    }
+  };
+  table.querySelectorAll('thead th').forEach(apply);
+  table.querySelectorAll('tbody td').forEach(apply);
 }
 
 // 汇总页两条工具栏的右边界：都对齐表格「期初」列的右边框。
