@@ -4214,11 +4214,9 @@ table#fixed-table tbody td.col-amount input { text-align: right; }
 table#fixed-table tbody td.col-note input { text-align: left; }
 table#fixed-table tbody td select { text-align: center; text-align-last: center; }
 
-/* ⑭ 汇总表冻结列：left 由 --summary-seq-w 决定，JS 只写一次变量，不再逐格写 style */
-table#summary-table thead th.col-seq,
-table#summary-table tbody td.col-seq { left: 0 !important; }
-table#summary-table thead th.col-name,
-table#summary-table tbody td.col-name { left: var(--summary-seq-w, 54px) !important; }
+/* ⑭ 汇总表冻结列：left 由 applySummarySticky() 逐格写入（含类型/分类/简码/名称的累加偏移）。
+   这里不要再写 !important 的 left，否则会把内联值压掉 —— 之前正是这条把「账户名称」
+   的 left 锁死在序号列宽上，展开三列后它仍然贴在 52px。 */
 
 /* ⑬ 深色主题：序号列表头与其它表头同色（原来它是 #0d0d0d，旁边是 #141414，看着更黑） */
 html[data-theme="dark"] table.grid thead th.col-seq,
@@ -5378,7 +5376,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v20.4';
+const APP_VER = 'v20.5';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
