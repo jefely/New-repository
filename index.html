@@ -5448,7 +5448,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v10.23';
+const APP_VER = 'v10.24';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -14086,10 +14086,10 @@ function qrEncode(text) {
    · 二维码里是 gzip+base64 的明文（不经过任何服务器，但别给外人扫）
    · 合并端会再按 id / 指纹判一次重，重复的不会加第二遍
    ============================================================ */
-const SYNC_QR_BASE = 'https://jefely.github.io/New-repository/';
+const SYNC_QR_BASE = 'https://jefely.github.io/nt-ledger/';
 // 二维码 L 级上限 2953 字节。这里压到 1800：模块越少、每模块越大，
 // 手机扫屏幕（反光、摩尔纹）时更容易识别。
-const SYNC_QR_MAX_URL = 1800;
+const SYNC_QR_MAX_URL = 2600;
 // base64url：去掉 + / =，扫码器不会把 + 当成空格，URL 也干净
 function b64ToUrl(s) {
   return String(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
@@ -14117,8 +14117,12 @@ function mergePayloadOf(txs, part) {
     const from = codeOfName(t.from), to = codeOfName(t.to);
     if (from && !codeMap.has(from)) codeMap.set(from, String(t.from || '').trim());
     if (to && !codeMap.has(to)) codeMap.set(to, String(t.to || '').trim());
-    const note = String(t.note || '').replace(/[\r\n]+/g, ' ');
-    const amount = (t.amount === '' || t.amount == null) ? '' : String(t.amount);
+    const note = String(t.note || '').replace(/[\r\n]+/g, ' ').slice(0, 16);
+    let amount = (t.amount === '' || t.amount == null) ? '' : String(t.amount);
+    // 3.00 → 3、3.50 → 3.5：二维码容量紧张时这点很关键
+    if (amount && /^\d+(\.\d+)?$/.test(amount)) {
+      amount = amount.replace(/(\.\d*?)0+$/, '$1').replace(/\.$/, '');
+    }
     return [toYYMMDD(String(t.date || '')), from, to, amount, note].join(',');
   });
   const dates = txs.map(t => String(t.date || '')).filter(Boolean).sort();
