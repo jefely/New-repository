@@ -5374,7 +5374,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v10.05';
+const APP_VER = 'v10.06';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -10546,27 +10546,39 @@ function applySummarySticky() {
   const seqW = Math.round((Array.isArray(colWidths.summary) && colWidths.summary[0]) || 54);
   table.style.setProperty('--summary-seq-w', seqW + 'px');
 
-  // 宽度用 summaryBaseWidths()：它总能给出「展开时的真实宽度」。
-  // 收起状态前三列渲染宽度是 0，偏移也必须按 0 算，否则名称列会被推到 260px、左边空一块。
-  const real = summaryBaseWidths();
-  const idxOf = { 'col-seq': 0, 'col-cat': 1, 'col-sub': 2, 'col-code': 3, 'col-name': 4 };
-  const effW = (i) => (summaryFold && i >= 1 && i <= 3) ? 0 : Math.round(real[i] || 0);
-
-  const offs = {};
-  let acc = 0;
-  for (const cls in idxOf) {
-    offs[cls] = acc;
-    let w = effW(idxOf[cls]);
-    if (cls === 'col-seq' && !w) w = seqW;
-    acc += w;
-  }
-  const apply = (cell) => {
-    for (const cls in offs) {
-      if (cell.classList.contains(cls)) { cell.style.left = offs[cls] + 'px'; return; }
+  /* left 偏移必须用「表头实际渲染宽度」累加。
+     用 colWidths / summaryBaseWidths 算会在这些情况下错位：
+       · 浏览器把列压窄（表格要挤进容器）
+       · 收起时前三列是 0
+       · 用户拖过列宽分隔线
+     量 5 个 th 的开销可以忽略，但要在布局完成后再量 —— 否则拿到的是旧值。 */
+  const measureAndApply = () => {
+    const ths = table.querySelectorAll('thead th');
+    if (!ths.length) return;
+    const findTh = (cls) => {
+      for (const th of ths) if (th.classList.contains(cls)) return th;
+      return null;
+    };
+    const offs = {};
+    let acc = 0;
+    for (const cls of ['col-seq', 'col-cat', 'col-sub', 'col-code', 'col-name']) {
+      offs[cls] = acc;
+      const th = findTh(cls);
+      acc += th ? Math.round(th.getBoundingClientRect().width) : 0;
     }
+    if (acc <= 0) return;
+    const apply = (cell) => {
+      for (const cls in offs) {
+        if (cell.classList.contains(cls)) { cell.style.left = offs[cls] + 'px'; return; }
+      }
+    };
+    table.querySelectorAll('thead th').forEach(apply);
+    table.querySelectorAll('tbody td').forEach(apply);
   };
-  table.querySelectorAll('thead th').forEach(apply);
-  table.querySelectorAll('tbody td').forEach(apply);
+
+  // 先同步试一次（多数情况下布局已经好了），下一帧再补一次防抖动
+  measureAndApply();
+  if (typeof requestAnimationFrame === 'function') requestAnimationFrame(measureAndApply);
 }
 
 // 汇总页两条工具栏的右边界：都对齐表格「期初」列的右边框。
