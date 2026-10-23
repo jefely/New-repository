@@ -4988,6 +4988,19 @@ table.install-table thead th.col-month {
 .thanks-tip b { color: #5b4ea8; }
 [data-theme="dark"] .thanks-tip { background: rgba(139,108,255,.14); }
 [data-theme="dark"] .thanks-tip b { color: #c3b2ff; }
+
+/* ===== 校验页：分页标签（v17.5）===== */
+.audit-tabs { gap: 6px; }
+.audit-tab {
+  height: 26px; padding: 0 12px; border-radius: 8px; cursor: pointer;
+  border: 1px solid var(--border-light); background: var(--bg-main);
+  color: var(--text-muted); font-size: 13px; font-weight: 600;
+  transition: background .15s, color .15s, border-color .15s;
+}
+.audit-tab:hover { border-color: var(--primary); color: var(--primary); }
+.audit-tab.active { background: var(--primary); border-color: var(--primary); color: #fff; }
+.audit-pane[hidden] { display: none !important; }
+.audit-pane { width: 100%; }
 </style>
 </head>
 <body>
@@ -5187,7 +5200,7 @@ async function encryptWithSession(text) {
 // 网站二维码（内嵌 base64，离线可显示），扫码打开 https://jefely.github.io/New-repository/
 const QR_DATA_URL = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAUoAAAFKCAIAAAD0S4FSAAAFCUlEQVR42u3dS3IUMRBF0VcE+9+y2QETIfKjc+YGd7VvqAYZqe/n5yfARr88ApA3IG9A3oC8AXkD8gZ5A/IG5A3IG5A3IG+QNyBvQN6AvAF5A/KGl/0++eHv+5Y9jr9vnjv5vD3/5Xub9nr+v/v+Jp3e4OUckDcgb0DegLwBeQPyBnkDeWpqLdembe7pOdV071nt+xZOPtFrf5NOb/ByDsgbkDcgb0DegLxB3oC8gTw1tZaiSZ2Jk0n3NrFVPcmTn636vPv+Jp3e4OUckDcgb0DegLwBeYO8AXkDMbUW94du2eI2cQ7P6Q3IG5A3IG9A3oC8Qd6AvAF5AzG1Nsi9Oa2qGzPNpTm9AXkD8gbkDcgbkDfIG5A3IG8gj0yt9bzHs+eutZP/t+qWz33fr9MbkDcgb0DegLxB3oC8AXkD8gbSfGpt37ate7vH/Gz+yxzeaxvgnN4gb0DegLwBeQPyBuQN8gbkDTT07dsvNXGmrWrWque3f+9JOr0BeQPyBuQNyBuQN8gbkDcgbyCjd63ZiZUGe+nu3Vta9S303MTW835Ypzd4OQfkDcgbkDcgb0DegLxB3kCemlq7N8djB9j0ezxTNNM2cRry3l+O0xu8nAPyBuQNyBuQNyBvkDcgbyDLbgidOAM0cU6ranbwtcnCqp91egPyBuQN8gbkDcgbkDcgb0DeELvWsne2rOd+uJ4zTz3vh616GhM/r9MbvJwD8gbkDcgbkDcgb5A3IG8gT02tnUzb3JtMujfTNnHyrGqLW9Wz2vcdOb3Byzkgb0DegLwBeQPyBuQN8gZiai29p4smburqOePVczNZ1ed1egPyBuQNyBvkDcgbkDcgb0DeQEZPraXlBNi+XVwZeIvra1OJTm9A3iBvQN6AvAF5A/IG5A3yBmJqLb3nw3rOD1VNU937vFUzbVX70ibOLDq9wcs5IG9A3oC8AXkD8gZ5A/IGGvp6zuJMvKux52ayqttFe86W7XuSTm/wcg7IG5A3IG9A3oC8AXmDvIE8NbVWtU/r3oRQ1bTcaxvReu482/f37PQGL+eAvAF5A/IG5A3IG+QNyBvIshtCM3BfWtUEWNZNcU18VlUzbVX/stMbvJwD8gbkDcgbkDcgb5A3IG8gT02t5bHpohTNllU9jbScw6uahzt5znatAfIG5A3yBuQNyBuQNyBvQN4QN4SWTwhNvNfy3u/sW9jN1Bogb0DeIG9A3oC8AXkD8gbkDTG1xpo7QHvuh/NbOb0BeQPyBnkD8gbkDcgbkDcgb4gbQjNniisDt16d7B6ruuVz4u2iE39npzcgb0DeIG9A3oC8AXkD8gbkDTG1lt4TYDFp136LW9W3XzV32HPSzukNXs4BeQPyBuQNyBuQN8gbkDeQp6bWUjQ99toOsJMnee9OzHvfb9Xc4ck3WDXh5/QGL+eAvAF5A/IG5A3IG+QNyBuIqbW8ures6g7Qe7NlPSfees4sVs20Ob3Byzkgb0DegLwBeQPyBnkD8gZiai2v3qe577eq2g+Xoj1tVbvlnN6AvEHegLwBeQPyBuQNyBvkDcTUWvZOgGXgRNTEaap7E289b2Kt+o6c3uDlHJA3IG9A3oC8AXmDvAF5Aw19EzdmpeVNjml5R2TVJFbcLur0BuQNyBuQN8gbkDcgb0DegLyB/OupNcDpDcgbkDcgb5A3IG9A3oC8AXkD8gbkDfIG5A3IG5A3IG9A3iBvQN5AU38AW3Unpg+CBHwAAAAASUVORK5CYII=';
 
-const APP_VER = 'v17.4';
+const APP_VER = 'v17.5';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -5707,23 +5720,44 @@ async function openThanksDialog() {
   return mask;
 }
 
+/* 校验页的分页状态（跨重渲染保留） */
+let auditTabBar = null;
+let auditCurTab = 'verify';
+function switchAuditTab(key, silent) {
+  auditCurTab = key;
+  const main = document.getElementById('main');
+  if (!main) return;
+  main.querySelectorAll('.audit-pane').forEach(p => {
+    if (p.dataset.pane === key) p.removeAttribute('hidden');
+    else p.setAttribute('hidden', '');
+  });
+  if (auditTabBar) {
+    auditTabBar.querySelectorAll('.audit-tab').forEach(b => {
+      b.classList.toggle('active', b.dataset.tab === key);
+    });
+  }
+  main.scrollTop = 0;
+}
+
 function renderAudit(main, footer) {
   // 顶部工具条：软件更新入口（v16.7 起启动不再联网取新版，只在这里手动更新）
   {
+    // 分页标签：四个标签切换四块内容，不再用弹窗
     const ubar = document.createElement('div');
-    ubar.className = 'toolbar flow-bar';
-    ubar.innerHTML = `
-      <span class="flow-title">校验</span>
-      <button class="ghost" id="chk-help">账本说明</button>
-      <button class="ghost" id="chk-audit">账本校验</button>
-      <button class="ghost" id="chk-version">版本校验</button>
-      <button class="ghost" id="chk-thanks">赞助感谢</button>
-    `;
+    ubar.className = 'toolbar flow-bar audit-tabs';
+    const TABS = [
+      ['verify', '账本校验'],
+      ['help', '账本说明'],
+      ['version', '版本校验'],
+      ['thanks', '赞助感谢']
+    ];
+    ubar.innerHTML = TABS.map(([k, label]) =>
+      `<button type="button" class="audit-tab" data-tab="${k}">${label}</button>`).join('');
     main.appendChild(ubar);
-    ubar.querySelector('#chk-help').onclick = () => openHelpDialog();
-    ubar.querySelector('#chk-audit').onclick = () => openAuditSummaryDialog();
-    ubar.querySelector('#chk-version').onclick = () => openVersionDialog();
-    ubar.querySelector('#chk-thanks').onclick = () => openThanksDialog();
+    auditTabBar = ubar;
+    auditTabBar.querySelectorAll('.audit-tab').forEach(btn => {
+      btn.onclick = () => switchAuditTab(btn.dataset.tab);
+    });
   }
   const CATS = ['资产类', '负债类', '收入类', '权益类', '费用类'];
   const accByName = new Map();
@@ -5788,7 +5822,8 @@ function renderAudit(main, footer) {
 
   // —— 组装 ——
   const wrap = document.createElement('div');
-  wrap.className = 'audit-wrap';
+  wrap.className = 'audit-wrap audit-pane';
+  wrap.dataset.pane = 'verify';
 
   const card = (title, sub, head, rowsHtml, footHtml) => `
     <div class="audit-card">
@@ -5845,7 +5880,8 @@ function renderAudit(main, footer) {
 
   // —— 简介（精简版）——
   const intro = document.createElement('div');
-  intro.className = 'audit-intro';
+  intro.className = 'audit-intro audit-pane';
+  intro.dataset.pane = 'help';
   intro.innerHTML = `
     <div class="intro-head">NT账本 · 简介</div>
     <div class="intro-tagline">紫老头的专属账本，用「NT = 直觉 + 思考」的习惯进行记账。</div>
@@ -5934,6 +5970,97 @@ function renderAudit(main, footer) {
     <div class="intro-foot">你负责记录钱的去向，软件负责让账永远是平的。</div>
   `;
   main.appendChild(intro);
+
+  // ── 版本校验 pane ──
+  const vpane = document.createElement('div');
+  vpane.className = 'audit-pane';
+  vpane.dataset.pane = 'version';
+  vpane.innerHTML = `
+    <div class="audit-card">
+      <div class="audit-title">版本校验</div>
+      <div class="chk-list">
+        <div class="chk-row"><span class="chk-name">当前版本</span><span class="chk-val">${APP_VER}</span></div>
+        <div class="chk-row"><span class="chk-name">远端版本</span><span class="chk-val" id="ver-remote">检查中…</span></div>
+        <div class="chk-row"><span class="chk-name">离线缓存</span><span class="chk-val" id="ver-cache">读取中…</span></div>
+      </div>
+      <div class="sync-hint small" id="ver-note" style="margin-top:10px">
+        启动一律用本地版本，只有点下面的按钮才会联网取新版。更新只替换程序，不碰账本数据。
+      </div>
+      <div style="margin-top:12px"><button type="button" id="ver-update">检查更新</button></div>
+    </div>`;
+  main.appendChild(vpane);
+
+  // ── 赞助感谢 pane ──
+  const tpane = document.createElement('div');
+  tpane.className = 'audit-pane';
+  tpane.dataset.pane = 'thanks';
+  tpane.innerHTML = `
+    <div class="audit-card">
+      <div class="audit-title">赞助感谢</div>
+      <div class="thanks-qr-wrap"><img class="thanks-qr" src="thanks-qr.png" alt="赞助二维码"></div>
+      <div class="thanks-tip">
+        <b>想出现在下面的感谢墙？</b><br>
+        转账时把昵称填进<b>「转账备注」</b>里就行（最多 16 个英文字符，也可以留空保持匿名）。<br>
+        我看到备注后会把它写进感谢墙，只显示昵称，<b>不显示金额、不显示时间</b>。
+      </div>
+      <div class="sync-sec-title" style="margin-top:16px">感谢墙</div>
+      <div class="thanks-wall" id="thanks-wall">加载中…</div>
+    </div>`;
+  main.appendChild(tpane);
+
+  // 版本 pane 的异步填充
+  (async () => {
+    const $r = vpane.querySelector('#ver-remote');
+    const $c = vpane.querySelector('#ver-cache');
+    const $n = vpane.querySelector('#ver-note');
+    const $b = vpane.querySelector('#ver-update');
+    let remote = '';
+    try {
+      const res = await fetch('sw.js?probe=' + Date.now(), { cache: 'no-store' });
+      const m = (await res.text()).match(/const CACHE = '([^']+)'/);
+      remote = m ? m[1] : '';
+    } catch (e) {}
+    $r.textContent = remote || '取不到（离线？）';
+    let localHas = false;
+    try {
+      const keys = await caches.keys();
+      localHas = remote ? keys.includes(remote) : false;
+      $c.textContent = localHas ? ('已含 ' + remote) : '待更新';
+    } catch (e) { $c.textContent = '—'; }
+    if (remote && localHas) $n.textContent = '已是最新，无需更新。';
+    $b.onclick = async () => {
+      if ($b.disabled) return;
+      $b.disabled = true; $b.textContent = '检查中…';
+      try {
+        const r = await checkForUpdate();
+        $b.textContent = r.updated ? '更新中…' : '已是最新';
+      } catch (e) {
+        toast('更新失败：' + (e && e.message ? e.message : e), { type: 'error' });
+        $b.textContent = '检查更新';
+      } finally {
+        $b.disabled = false;
+        setTimeout(() => { try { $b.textContent = '检查更新'; } catch (e) {} }, 2000);
+      }
+    };
+  })();
+
+  // 感谢墙
+  (async () => {
+    const wall = tpane.querySelector('#thanks-wall');
+    try {
+      const res = await fetch('thanks.json?t=' + Date.now(), { cache: 'no-store' });
+      const data = await res.json();
+      const list = Array.isArray(data.donors) ? data.donors : [];
+      wall.innerHTML = list.length
+        ? list.map(d => `<span class="thanks-chip">${esc(d.name || '匿名')}</span>`).join('')
+        : '<span class="sync-hint small">还没有人，等第一位朋友。</span>';
+    } catch (e) {
+      wall.innerHTML = '<span class="sync-hint small">离线，暂时取不到感谢墙</span>';
+    }
+  })();
+
+  // 恢复上次看的分页（默认「账本校验」）
+  switchAuditTab(auditCurTab || 'verify', true);
 
   setFooterText(nTx + ' 笔流水 · ' + state.accounts.length + ' 个账户 · 校验完成');
 }
