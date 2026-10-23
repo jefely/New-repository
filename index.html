@@ -5376,7 +5376,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v20.7';
+const APP_VER = 'v20.8';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -12666,6 +12666,53 @@ const XLSX_TPL_IDB = 'flow_xlsx_template_v2';
 // 用模板 + 当前数据生成 .xlsx
 
 // 「Excel」按钮：有模板就走模板，没有就提示选文件
+/* ============================================================
+   存文件的正确姿势（手机端尤其重要）
+   ------------------------------------------------------------
+   手机浏览器里 <a download> + blob 经常「看起来点了、提示也弹了，但文件没落地」
+   （华为浏览器丢进 Download/Browser 子目录、微信内置浏览器直接吞掉）。
+   所以：
+     1) 能分享就先用 navigator.share（系统面板里可以「保存到文件/网盘/发给自己」）
+     2) 不支持分享再退回 <a download>
+     3) 提示语如实写，不再谎报「已保存」
+   ============================================================ */
+async function saveBlobToDevice(blob, filename, opts) {
+  const file = (typeof File === 'function') ? new File([blob], filename, { type: blob.type || 'application/octet-stream' }) : null;
+
+  // ① 手机：系统分享（「存储到文件」最可靠）
+  if (file && navigator.canShare && navigator.canShare({ files: [file] })) {
+    try {
+      await navigator.share({ files: [file], title: filename });
+      return { via: 'share' };
+    } catch (e) {
+      if (e && e.name === 'AbortError') return { via: 'cancel' };
+      // 其它错误继续走下载
+    }
+  }
+
+  if (opts && opts.shareOnly) return { via: 'nosupport' };
+
+  // ② 桌面 / 不支持分享：普通下载
+  try {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename; a.rel = 'noopener';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+    return { via: 'download' };
+  } catch (e) {
+    return { via: 'fail', error: e };
+  }
+}
+
+function saveResultToast(r, filename, size) {
+  const kb = Math.round(size / 1024) + ' KB';
+  if (r.via === 'share') toast('已通过系统分享保存：' + filename + '（' + kb + '）', { duration: 5000 });
+  else if (r.via === 'cancel') toast('已取消保存', { duration: 2500 });
+  else if (r.via === 'download') toast('已发起下载：' + filename + '（' + kb + '）\n如果没看到文件，请到浏览器的下载列表里找，或改用「分享」方式保存', { duration: 8000 });
+  else toast('保存失败：' + (r.error && r.error.message ? r.error.message : '浏览器不允许下载'), { type: 'error', duration: 7000 });
+}
+
 async function exportXLSX() {
   // 直接用手写的生成器：表头/日期格式/列宽/冻结都由它保证，
   // 不再走「拿模板改行」那条路（那条会保留模板的标题行和说明行，
@@ -12674,7 +12721,19 @@ async function exportXLSX() {
   const name = 'NT账本_' + todayISO() + '.xlsx';
   const type = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
   const blob = new Blob([bytes], { type });
-  toast('[' + APP_VER + '] 已生成 Excel（' + Math.round(bytes.length / 1024) + ' KB）：流水 ' + state.transactions.length + ' 笔、账户 ' + state.accounts.length + ' 个、分期 ' + (state.installments || []).length + ' 个', { duration: 5000 });
+
+  // ★ 手机/平板：先试系统分享面板（「存储到文件」「发给朋友」「存网盘」都在里面），
+  //   这是唯一能在手机上真正把文件落地的通道；<a download> 在华为/微信里经常是假的。
+  try {
+    const rShare = await saveBlobToDevice(blob, name, { shareOnly: true });
+    if (rShare.via === 'share') {
+      toast('已生成 Excel（' + Math.round(bytes.length / 1024) + ' KB），请在系统面板里选择「保存到文件」', { duration: 6000 });
+      return;
+    }
+    if (rShare.via === 'cancel') { return; }
+  } catch (e) {}
+
+  toast('已生成 Excel（' + Math.round(bytes.length / 1024) + ' KB）：流水 ' + state.transactions.length + ' 笔、账户 ' + state.accounts.length + ' 个、分期 ' + (state.installments || []).length + ' 个', { duration: 5000 });
   // 手机（窄屏 / 触屏）不试前面那两级：华为浏览器会「假装支持」然后什么都不做，
   // 直接走最后的 data URL + 剪贴板，那个是用户主动点击，绕不过去。
   const isMobile = (typeof window !== 'undefined')
@@ -12907,12 +12966,22 @@ function openSyncDialog() {
       const name = 'NT账本_' + d.getFullYear() + pad(d.getMonth() + 1) + pad(d.getDate())
         + '_' + pad(d.getHours()) + pad(d.getMinutes()) + '.lz';
       const blob = new Blob([code], { type: 'text/plain;charset=utf-8' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url; a.download = name;
-      document.body.appendChild(a); a.click(); a.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 2000);
-      toast('已存为 ' + name + '（' + Math.round(blob.size / 1024) + ' KB）', { duration: 5000 });
+      const r = await saveBlobToDevice(blob, name);
+      if (r.via === 'fail') {
+        // 下载也不行 → 把内容摊出来，让用户全选复制
+        const dlg = mkDialog(`
+          <div class="sync-title">手动保存同步文件</div>
+          <div class="sync-hint small" style="text-align:left">
+            浏览器不让直接存文件。下面这段就是同步文件的全部内容 —— 全选复制，粘到记事本里保存成 <b>${esc(name)}</b> 即可。
+          </div>
+          <textarea readonly style="width:100%;height:200px;font-family:ui-monospace,Consolas,monospace;font-size:11px;line-height:1.5;padding:8px;border-radius:9px;border:1px solid var(--border-light);background:var(--bg-main);color:var(--text-main)">${esc(code)}</textarea>
+          <div class="sync-actions"><button type="button" class="ghost" data-act="close">关闭</button></div>
+        `);
+        const ta = dlg.querySelector('textarea');
+        setTimeout(() => { try { ta.focus(); ta.select(); } catch (e) {} }, 80);
+      } else {
+        saveResultToast(r, name, blob.size);
+      }
     } catch (e) { toast('导出失败：' + e.message, { type: 'error' }); }
   };
 
