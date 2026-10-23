@@ -5327,7 +5327,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v19.5';
+const APP_VER = 'v19.6';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -6093,6 +6093,22 @@ async function openThanksDialog() {
 /* 校验页的分页状态（跨重渲染保留） */
 let auditTabBar = null;
 let auditCurTab = 'verify';
+/* 感谢墙：每次切到「赞助感谢」都重新拉一次，保证手动改的 thanks.json 立刻可见 */
+async function loadThanksWall() {
+  const wall = document.querySelector('.audit-pane[data-pane="thanks"] #thanks-wall');
+  if (!wall) return;
+  try {
+    const res = await fetch('thanks.json?t=' + Date.now(), { cache: 'no-store' });
+    const data = await res.json();
+    const list = Array.isArray(data.donors) ? data.donors : [];
+    wall.innerHTML = list.length
+      ? list.map(d => `<span class="thanks-chip">${esc(d.name || '匿名')}</span>`).join('')
+      : '<span class="sync-hint small">还没有人，等第一位朋友。</span>';
+  } catch (e) {
+    wall.innerHTML = '<span class="sync-hint small">离线，暂时取不到感谢墙</span>';
+  }
+}
+
 function switchAuditTab(key, silent) {
   auditCurTab = key;
   const main = document.getElementById('main');
@@ -6107,6 +6123,7 @@ function switchAuditTab(key, silent) {
     });
   }
   main.scrollTop = 0;
+  if (key === 'thanks') loadThanksWall();
 }
 
 function renderAudit(main, footer) {
@@ -6411,7 +6428,7 @@ function renderAudit(main, footer) {
   tpane.innerHTML = `
     <div class="audit-card">
       <div class="audit-title">赞助感谢</div>
-      <div class="thanks-qr-wrap"><img class="thanks-qr" src="thanks-qr.png" alt="赞助二维码"></div>
+      <div class="thanks-qr-wrap"><img class="thanks-qr" src="thanks-qr.png" alt="赞助二维码" onerror="this.style.display='none';this.insertAdjacentHTML('afterend','<div class=\\'sync-hint small\\'>赞助码暂未放入</div>')"></div>
       <div class="thanks-tip">
         <b>想出现在感谢墙上？</b><br>
         转账时把昵称填进<b>「转账备注」</b>里就行（最多 16 个英文字符，也可以留空保持匿名）。<br>
@@ -6476,20 +6493,7 @@ function renderAudit(main, footer) {
     };
   })();
 
-  // 感谢墙
-  (async () => {
-    const wall = tpane.querySelector('#thanks-wall');
-    try {
-      const res = await fetch('thanks.json?t=' + Date.now(), { cache: 'no-store' });
-      const data = await res.json();
-      const list = Array.isArray(data.donors) ? data.donors : [];
-      wall.innerHTML = list.length
-        ? list.map(d => `<span class="thanks-chip">${esc(d.name || '匿名')}</span>`).join('')
-        : '<span class="sync-hint small">还没有人，等第一位朋友。</span>';
-    } catch (e) {
-      wall.innerHTML = '<span class="sync-hint small">离线，暂时取不到感谢墙</span>';
-    }
-  })();
+
 
   // 恢复上次看的分页（默认「账本校验」）
   switchAuditTab(auditCurTab || 'verify', true);
