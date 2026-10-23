@@ -4956,6 +4956,32 @@ table.install-table thead th.col-month {
   border-top-color: var(--border-light) !important;
   border-left-color: var(--border-light) !important;
 }
+
+/* ===== 校验页四个弹窗的补充样式（v17.3）===== */
+.dlg-scroll { max-height: 56vh; overflow-y: auto; padding-right: 2px; }
+.chk-head { font-size: 15px; font-weight: 700; text-align: center; padding: 10px 0 12px; }
+.chk-head.ok { color: #16a34a; }
+.chk-head.bad { color: #dc2626; }
+.chk-list { display: flex; flex-direction: column; gap: 6px; }
+.chk-row { display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 7px 10px; border-radius: 8px; background: rgba(139,108,255,.06); font-size: 13px; }
+.chk-name { color: var(--text-main); font-weight: 600; }
+.chk-val { color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.chk-badge { font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: 10px; }
+.chk-badge.ok { color: #16a34a; background: rgba(22,163,74,.12); }
+.chk-badge.bad { color: #dc2626; background: rgba(220,38,38,.12); }
+.thanks-qr-wrap { text-align: center; }
+.thanks-qr { width: 180px; height: 180px; border-radius: 10px; object-fit: contain; background: #fff; }
+.thanks-name-row { display: flex; gap: 8px; align-items: center; margin: 8px 0 6px; }
+.thanks-name-row input { flex: 1; height: 32px; padding: 0 10px; box-sizing: border-box;
+  border-radius: 8px; border: 1px solid var(--border-light); background: var(--bg-main); color: var(--text-main); font-size: 14px; }
+.thanks-name-row button { height: 32px; padding: 0 16px; border: none; border-radius: 8px;
+  background: var(--primary); color: #fff; font-weight: 600; cursor: pointer; }
+.thanks-wall { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; min-height: 28px; }
+.thanks-chip { padding: 3px 10px; border-radius: 12px; font-size: 12.5px; font-weight: 600;
+  background: rgba(139,108,255,.12); color: #5b4ea8; }
+[data-theme="dark"] .thanks-chip { background: rgba(139,108,255,.22); color: #c3b2ff; }
+[data-theme="dark"] .chk-row { background: rgba(255,255,255,.05); }
 </style>
 </head>
 <body>
@@ -5155,7 +5181,7 @@ async function encryptWithSession(text) {
 // 网站二维码（内嵌 base64，离线可显示），扫码打开 https://jefely.github.io/New-repository/
 const QR_DATA_URL = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAUoAAAFKCAIAAAD0S4FSAAAFCUlEQVR42u3dS3IUMRBF0VcE+9+y2QETIfKjc+YGd7VvqAYZqe/n5yfARr88ApA3IG9A3oC8AXkD8gZ5A/IG5A3IG5A3IG+QNyBvQN6AvAF5A/KGl/0++eHv+5Y9jr9vnjv5vD3/5Xub9nr+v/v+Jp3e4OUckDcgb0DegLwBeQPyBnkDeWpqLdembe7pOdV071nt+xZOPtFrf5NOb/ByDsgbkDcgb0DegLxB3oC8gTw1tZaiSZ2Jk0n3NrFVPcmTn636vPv+Jp3e4OUckDcgb0DegLwBeYO8AXkDMbUW94du2eI2cQ7P6Q3IG5A3IG9A3oC8Qd6AvAF5AzG1Nsi9Oa2qGzPNpTm9AXkD8gbkDcgbkDfIG5A3IG8gj0yt9bzHs+eutZP/t+qWz33fr9MbkDcgb0DegLxB3oC8AXkD8gbSfGpt37ate7vH/Gz+yxzeaxvgnN4gb0DegLwBeQPyBuQN8gbkDTT07dsvNXGmrWrWque3f+9JOr0BeQPyBuQNyBuQN8gbkDcgbyCjd63ZiZUGe+nu3Vta9S303MTW835Ypzd4OQfkDcgbkDcgb0DegLxB3kCemlq7N8djB9j0ezxTNNM2cRry3l+O0xu8nAPyBuQNyBuQNyBvkDcgbyDLbgidOAM0cU6ranbwtcnCqp91egPyBuQN8gbkDcgbkDcgb0DeELvWsne2rOd+uJ4zTz3vh616GhM/r9MbvJwD8gbkDcgbkDcgb5A3IG8gT02tnUzb3JtMujfTNnHyrGqLW9Wz2vcdOb3Byzkgb0DegLwBeQPyBuQN8gZiai29p4smburqOePVczNZ1ed1egPyBuQNyBvkDcgbkDcgb0DeQEZPraXlBNi+XVwZeIvra1OJTm9A3iBvQN6AvAF5A/IG5A3yBmJqLb3nw3rOD1VNU937vFUzbVX70ibOLDq9wcs5IG9A3oC8AXkD8gZ5A/IGGvp6zuJMvKux52ayqttFe86W7XuSTm/wcg7IG5A3IG9A3oC8AXmDvIE8NbVWtU/r3oRQ1bTcaxvReu482/f37PQGL+eAvAF5A/IG5A3IG+QNyBvIshtCM3BfWtUEWNZNcU18VlUzbVX/stMbvJwD8gbkDcgbkDcgb5A3IG8gT02t5bHpohTNllU9jbScw6uahzt5znatAfIG5A3yBuQNyBuQNyBvQN4QN4SWTwhNvNfy3u/sW9jN1Bogb0DeIG9A3oC8AXkD8gbkDTG1xpo7QHvuh/NbOb0BeQPyBnkD8gbkDcgbkDcgb4gbQjNniisDt16d7B6ruuVz4u2iE39npzcgb0DeIG9A3oC8AXkD8gbkDTG1lt4TYDFp136LW9W3XzV32HPSzukNXs4BeQPyBuQNyBuQN8gbkDeQp6bWUjQ99toOsJMnee9OzHvfb9Xc4ck3WDXh5/QGL+eAvAF5A/IG5A3IG+QNyBuIqbW8ures6g7Qe7NlPSfees4sVs20Ob3Byzkgb0DegLwBeQPyBnkD8gZiai2v3qe577eq2g+Xoj1tVbvlnN6AvEHegLwBeQPyBuQNyBvkDcTUWvZOgGXgRNTEaap7E289b2Kt+o6c3uDlHJA3IG9A3oC8AXmDvAF5Aw19EzdmpeVNjml5R2TVJFbcLur0BuQNyBuQN8gbkDcgb0DegLyB/OupNcDpDcgbkDcgb5A3IG9A3oC8AXkD8gbkDfIG5A3IG5A3IG9A3iBvQN5AU38AW3Unpg+CBHwAAAAASUVORK5CYII=';
 
-const APP_VER = 'v17.2';
+const APP_VER = 'v17.3';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -5510,33 +5536,208 @@ async function checkForUpdate() {
   return { updated: false, message: msg };
 }
 
+/* ============================================================
+   校验页的四个按钮：账本说明 / 账本校验 / 版本校验 / 赞助感谢
+   全部用统一的弹窗皮肤（.confirm-mask + .sync-box）
+   ============================================================ */
+function mkDialog(html, opts) {
+  const mask = document.createElement('div');
+  mask.className = 'confirm-mask';
+  mask.style.zIndex = String((opts && opts.z) || 9000);
+  mask.innerHTML = `<div class="sync-box">${html}</div>`;
+  document.body.appendChild(mask);
+  bindMaskClose(mask, () => mask.remove());
+  return mask;
+}
+
+/* 1. 账本说明 */
+function openHelpDialog() {
+  const mask = mkDialog(`
+    <div class="sync-title">账本说明</div>
+    <div class="dlg-scroll">
+      <div class="intro-lead">每一笔钱，都从一个账户<b>转出</b>，进入另一个账户<b>转入</b>。<br>
+        不用记「借 / 贷」，只回答一个问题：<b>这笔钱从哪来，到哪去。</b></div>
+
+      <div class="intro-sec">简单开始</div>
+      <div class="intro-steps">
+        <div class="step"><span class="sn">1</span><div>先去<b>汇总</b>表查看账户及简码，简码可直接修改。</div></div>
+        <div class="step"><span class="sn">2</span><div>到<b>流水记录</b>表，日期栏输入 <code>:</code> 插入今天。</div></div>
+        <div class="step"><span class="sn">3</span><div>把简码填进「转出账户」和「转入账户」。</div></div>
+        <div class="step"><span class="sn">4</span><div>填入金额，一笔记账完成。</div></div>
+      </div>
+
+      <div class="intro-sec">账户性质决定加减</div>
+      <div class="intro-grid">
+        <div><span class="tag tag-a">资产 · 费用</span>转入增加，转出减少</div>
+        <div><span class="tag tag-l">负债 · 权益 · 收入</span>转出增加，转入减少</div>
+      </div>
+
+      <div class="intro-sec">数据安全与备份</div>
+      <div class="intro-grid" style="grid-template-columns:1fr">
+        <div><b>① 存成同步文件</b>：工具栏「同步」→「存成同步文件」。内容是<b>加密</b>的，适合放网盘 / U 盘。</div>
+        <div><b>② 导出 Excel</b>：能直接看，但<b>不带密码保护</b>，别随手发出去。</div>
+        <div><span class="intro-warn">忘记密码 = 数据永久无法恢复</span>。换手机 / 清缓存前，一定先存一份同步文件。</div>
+      </div>
+    </div>
+    <div class="sync-actions"><button type="button" class="ghost" data-act="close">关闭</button></div>
+  `);
+  return mask;
+}
+
+/* 2. 账本校验：把页面上的三块结论汇总成一个弹窗 */
+function openAuditSummaryDialog() {
+  const rows = [...document.querySelectorAll('.audit-card')].map(card => {
+    const title = (card.querySelector('.audit-title') || {}).textContent || '';
+    const badge = card.querySelector('.audit-badge');
+    return {
+      title: title.replace(/\s+/g, ' ').trim().slice(0, 24),
+      ok: badge ? badge.classList.contains('ok') : null,
+      text: badge ? badge.textContent.trim() : '—'
+    };
+  });
+  const allOk = rows.length > 0 && rows.every(r => r.ok);
+  const list = rows.map(r => `
+    <div class="chk-row">
+      <span class="chk-name">${esc(r.title)}</span>
+      <span class="chk-badge ${r.ok ? 'ok' : 'bad'}">${esc(r.text)}</span>
+    </div>`).join('') || '<div class="sync-hint">还没有校验结果</div>';
+
+  mkDialog(`
+    <div class="sync-title">账本校验</div>
+    <div class="chk-head ${allOk ? 'ok' : 'bad'}">
+      ${allOk ? '全部通过' : '有项目未通过'}
+    </div>
+    <div class="chk-list">${list}</div>
+    <div class="sync-hint small">明细见页面下方的「① 发生额平衡 / ② 会计恒等式 / ③ 数据完整性」。</div>
+    <div class="sync-actions"><button type="button" class="ghost" data-act="close">关闭</button></div>
+  `);
+}
+
+/* 3. 版本校验：当前版本 + 远端版本 + 检查更新 */
+async function openVersionDialog() {
+  const mask = mkDialog(`
+    <div class="sync-title">版本校验</div>
+    <div class="chk-list">
+      <div class="chk-row"><span class="chk-name">当前版本</span><span class="chk-val">${APP_VER}</span></div>
+      <div class="chk-row"><span class="chk-name">远端版本</span><span class="chk-val" id="ver-remote">检查中…</span></div>
+      <div class="chk-row"><span class="chk-name">离线缓存</span><span class="chk-val" id="ver-cache">读取中…</span></div>
+    </div>
+    <div class="sync-hint small" id="ver-note">启动一律用本地版本，只有点下面的按钮才会联网取新版。</div>
+    <div class="sync-actions">
+      <button type="button" id="ver-update">检查更新</button>
+      <button type="button" class="ghost" data-act="close">关闭</button>
+    </div>
+  `);
+  const $r = mask.querySelector('#ver-remote');
+  const $c = mask.querySelector('#ver-cache');
+  const $n = mask.querySelector('#ver-note');
+  const $b = mask.querySelector('#ver-update');
+
+  // 远端 SW 的 CACHE 名
+  let remote = '';
+  try {
+    const res = await fetch('sw.js?probe=' + Date.now(), { cache: 'no-store' });
+    const txt = await res.text();
+    const m = txt.match(/const CACHE = '([^']+)'/);
+    remote = m ? m[1] : '';
+  } catch (e) {}
+  $r.textContent = remote || '取不到（离线？）';
+
+  // 本地缓存是否已含远端版本
+  let localHas = false;
+  try {
+    const keys = await caches.keys();
+    localHas = remote ? keys.includes(remote) : false;
+    $c.textContent = localHas ? ('已含 ' + remote) : '待更新';
+  } catch (e) { $c.textContent = '—'; }
+
+  if (remote && localHas) $n.textContent = '已是最新，无需更新。';
+
+  $b.onclick = async () => {
+    $b.disabled = true; $b.textContent = '检查中…';
+    try {
+      const r = await checkForUpdate();
+      $b.textContent = r.updated ? '更新中…' : '已是最新';
+    } catch (e) {
+      toast('更新失败：' + (e && e.message ? e.message : e), { type: 'error' });
+      $b.textContent = '检查更新';
+    } finally {
+      $b.disabled = false;
+      setTimeout(() => { try { $b.textContent = '检查更新'; } catch (e) {} }, 2000);
+    }
+  };
+  return mask;
+}
+
+/* 4. 赞助感谢：二维码 + 昵称设置 + 感谢墙 */
+const THANKS_NAME_KEY = 'nt_thanks_name';
+function thanksName() { try { return localStorage.getItem(THANKS_NAME_KEY) || ''; } catch (e) { return ''; } }
+function setThanksName(v) { try { localStorage.setItem(THANKS_NAME_KEY, v); } catch (e) {} }
+
+async function openThanksDialog() {
+  const mask = mkDialog(`
+    <div class="sync-title">赞助感谢</div>
+    <div class="thanks-qr-wrap">
+      <img class="thanks-qr" src="thanks-qr.png" alt="赞助二维码">
+      <div class="sync-hint small">扫码转账后，我可以把你写进下面的感谢墙。</div>
+    </div>
+    <div class="sync-sec-title" style="margin-top:14px">展示昵称（可留空，不展示）</div>
+    <div class="thanks-name-row">
+      <input id="thanks-name" maxlength="16" placeholder="最多 16 个英文字符" value="${esc(thanksName())}">
+      <button type="button" id="thanks-save">保存</button>
+    </div>
+    <div class="sync-hint small" id="thanks-saved">${thanksName() ? '当前：' + esc(thanksName()) : '当前：留空（不展示）'}</div>
+    <div class="sync-sec-title" style="margin-top:16px">感谢墙</div>
+    <div class="thanks-wall" id="thanks-wall">加载中…</div>
+    <div class="sync-actions"><button type="button" class="ghost" data-act="close">关闭</button></div>
+  `);
+
+  const inp = mask.querySelector('#thanks-name');
+  const saved = mask.querySelector('#thanks-saved');
+
+  // 只允许英文字符/数字/下划线/空格/中划线，最长 16
+  inp.addEventListener('input', () => {
+    const clean = inp.value.replace(/[^A-Za-z0-9_\- ]/g, '').slice(0, 16);
+    if (clean !== inp.value) inp.value = clean;
+  });
+  mask.querySelector('#thanks-save').onclick = () => {
+    const v = inp.value.trim().slice(0, 16);
+    setThanksName(v);
+    saved.textContent = v ? ('当前：' + v) : '当前：留空（不展示）';
+    toast(v ? ('已保存昵称：' + v) : '已设为不展示');
+  };
+
+  // 感谢墙：读服务器上的 thanks.json
+  try {
+    const res = await fetch('thanks.json?t=' + Date.now(), { cache: 'no-store' });
+    const data = await res.json();
+    const list = Array.isArray(data.donors) ? data.donors : [];
+    mask.querySelector('#thanks-wall').innerHTML = list.length
+      ? list.map(d => `<span class="thanks-chip">${esc(d.name || '匿名')}</span>`).join('')
+      : '<span class="sync-hint small">还没有人，等第一位朋友。</span>';
+  } catch (e) {
+    mask.querySelector('#thanks-wall').innerHTML = '<span class="sync-hint small">离线，暂时取不到感谢墙</span>';
+  }
+  return mask;
+}
+
 function renderAudit(main, footer) {
   // 顶部工具条：软件更新入口（v16.7 起启动不再联网取新版，只在这里手动更新）
   {
     const ubar = document.createElement('div');
     ubar.className = 'toolbar flow-bar';
     ubar.innerHTML = `
-      <span class="flow-title">版本</span>
-      <button class="ghost" id="chk-update">检查更新</button>
-      <span class="chk-ver">当前 ${APP_VER}</span>
+      <span class="flow-title">校验</span>
+      <button class="ghost" id="chk-help">账本说明</button>
+      <button class="ghost" id="chk-audit">账本校验</button>
+      <button class="ghost" id="chk-version">版本校验</button>
+      <button class="ghost" id="chk-thanks">赞助感谢</button>
     `;
     main.appendChild(ubar);
-    const btn = ubar.querySelector('#chk-update');
-    const verEl = ubar.querySelector('.chk-ver');
-    btn.onclick = async () => {
-      if (btn.disabled) return;
-      btn.disabled = true; btn.textContent = '检查中…';
-      try {
-        const r = await checkForUpdate();
-        verEl.textContent = '当前 ' + APP_VER;
-        btn.textContent = r.updated ? '已更新' : '已是最新';
-        setTimeout(() => { btn.textContent = '检查更新'; btn.disabled = false; }, 1800);
-        return;
-      } catch (e) {
-        toast('更新失败：' + (e && e.message ? e.message : e), { type: 'error' });
-        btn.textContent = '检查更新'; btn.disabled = false;
-      }
-    };
+    ubar.querySelector('#chk-help').onclick = () => openHelpDialog();
+    ubar.querySelector('#chk-audit').onclick = () => openAuditSummaryDialog();
+    ubar.querySelector('#chk-version').onclick = () => openVersionDialog();
+    ubar.querySelector('#chk-thanks').onclick = () => openThanksDialog();
   }
   const CATS = ['资产类', '负债类', '收入类', '权益类', '费用类'];
   const accByName = new Map();
