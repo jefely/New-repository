@@ -1,12 +1,12 @@
-# NT账本
+# NT账本 · NT Ledger
 
 个人复式流水账本。纯单文件前端应用，零依赖、零后端，数据完全存在浏览器本地并加密。
 
-> 当前版本：**v17.8**
+> 当前版本：**v17.9**
 
 ## 在线使用
 
-https://jefely.github.io/New-repository/
+https://jefely.github.io/nt-ledger/
 
 用手机扫软件里「同步」窗口的二维码也能直接打开。
 
@@ -20,7 +20,7 @@ https://jefely.github.io/New-repository/
 
 源码完整公开，仓库地址：
 
-**https://github.com/jefely/New-repository**
+**https://github.com/jefely/nt-ledger**
 
 许可证 [AGPL-3.0](LICENSE) —— 你可以自由使用、修改、分发，**包括商用**；
 但修改后若对外提供服务，必须同样以 AGPL 公开完整源码。代码可审计，**加密实现摆在这里，欢迎任何人检查**。
