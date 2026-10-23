@@ -1488,7 +1488,10 @@ table#summary-table { min-width: 800px !important; }
   white-space: nowrap !important;
 }
 /* 工具栏按表格宽度定宽后，超出视口时整页横向滚动即可 */
-#main { overflow-x: auto !important; }
+/* 横向滚动必须发生在 .grid-wrap 上：sticky 只对「最近的滚动祖先」生效，
+   如果滑块属于 #main，冻结列就跟不上，拖动时照样被甩出去。 */
+#main { overflow-x: hidden !important; }
+.grid-wrap { overflow-x: auto !important; overflow-y: auto; }
 .toolbar.flow-bar > button,
 .toolbar.bar1 > button,
 .toolbar.bar2 > button,
@@ -5367,7 +5370,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v20.0';
+const APP_VER = 'v20.1';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
