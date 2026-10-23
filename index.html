@@ -4473,7 +4473,7 @@ table#summary-table td input {
   box-shadow: 0 0 0 3px rgba(139, 108, 255, .22) !important;
 }
 /* 主按钮：紫色渐变；次按钮：透明 + 细边 */
-.confirm-mask .sync-box button:not(.ghost):not(.sync-tab):not(.row-del) {
+.confirm-mask .sync-box button:not(.ghost):not(.sync-tab):not(.row-del):not(.rowmenu-item) {
   border: 0 !important;
   border-radius: 12px !important;
   background: linear-gradient(135deg, #8b6cff, #5b4ea8) !important;
@@ -5418,7 +5418,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v10.13';
+const APP_VER = 'v10.14';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
