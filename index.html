@@ -5376,7 +5376,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v20.5';
+const APP_VER = 'v20.6';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -10570,11 +10570,17 @@ function applySummarySticky() {
   //   · 量 getBoundingClientRect 也不行 —— 刚设完 colgroup 还没重排，量到的是旧值 0。
   const real = summaryBaseWidths();
   const idxOf = { 'col-seq': 0, 'col-cat': 1, 'col-sub': 2, 'col-code': 3, 'col-name': 4 };
+  // 收起状态前三列实际渲染宽度是 0，偏移也必须按 0 算，
+  // 否则「账户名称」会被推到 260px，左边空出一块。
+  const effW = (i) => {
+    if (summaryFold && i >= 1 && i <= 3) return 0;
+    return Math.round(real[i] || 0);
+  };
   const offs = {};
   let acc = 0;
   for (const cls in idxOf) {
     offs[cls] = acc;
-    let w = Math.round(real[idxOf[cls]] || 0);
+    let w = effW(idxOf[cls]);
     if (cls === 'col-seq' && !w) w = seqW;
     acc += w;
   }
