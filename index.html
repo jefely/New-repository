@@ -4509,21 +4509,12 @@ table#summary-table td input {
   -webkit-backdrop-filter: none !important;
 }
 .confirm-mask .sync-box {
-  /* 浅色主题：白为主 + 亮紫渐变（右下角淡紫，左上角纯白） */
-  background:
-    linear-gradient(155deg,
-      #cdb6ff 0%,
-      #dccbff 20%,
-      #e9dcff 46%,
-      #f4ecff 72%,
-      #faf6ff 100%) !important;
-  backdrop-filter: blur(20px) saturate(140%);
-  -webkit-backdrop-filter: blur(20px) saturate(140%);
-  border: 1px solid rgba(139, 108, 255, .3) !important;
+  /* 浅色主题：纯白底 + 深紫描边，不要渐变、不要阴影 */
+  background: #ffffff !important;
+  border: 2px solid #4c3d80 !important;
   border-radius: 22px !important;
-  /* 不要外框阴影：只留 1px 内高光，让卡片平贴页面 */
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .9) !important;
-  color: #1f1b2e !important;
+  box-shadow: none !important;
+  color: #14121c !important;
 }
 .confirm-mask .sync-box .sync-title { color: #4c3d80 !important; }
 .confirm-mask .sync-box .sync-title::before {
@@ -4532,7 +4523,7 @@ table#summary-table td input {
 }
 .confirm-mask .sync-box .sync-hint,
 .confirm-mask .sync-box .small,
-.confirm-mask .sync-box label { color: rgba(31, 27, 46, .62) !important; }
+.confirm-mask .sync-box label { color: #3b3352 !important; }
 .confirm-mask .sync-box b { color: #4c3d80 !important; }
 .confirm-mask .sync-box input,
 .confirm-mask .sync-box select,
@@ -8580,10 +8571,11 @@ function makeFlowRow(t, idx, isNew) {
     if (field === 'date') {
       input.type = 'text'; input.inputMode = 'numeric'; input.value = t.date ? toYYMMDD(t.date) : '';
     } else if (field === 'amount') {
-      // 直接显示纯数字：以前显示「¥1,400.00」，每行都得点一下才会被剥成数字，
-      // 导入几百条时很难受。格式化只留给只读的地方（汇总、查询、页脚合计）。
+      // 会计格式：¥1,400.00（千分位 + 两位小数）
+      // 点进格子自动全选，直接打字就是覆盖，不用先删 ¥ 和逗号
       input.type = 'text'; input.inputMode = 'decimal';
-      input.value = (t.amount === '' || t.amount == null) ? '' : String(t.amount);
+      input.value = fmtMoneyOrBlank(t.amount);
+      input.onfocus = function () { try { this.select(); } catch (e) {} };
     } else {
       input.type = 'text'; input.value = t[field] || '';
     }
