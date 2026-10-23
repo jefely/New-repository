@@ -5345,7 +5345,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v10.03';
+const APP_VER = 'v10.04';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -8805,7 +8805,6 @@ function openColWidthsDialog() {
         </div>
         <button type="button" id="cw-copy" style="width:100%">导出布局参数（文本）</button>
         <button type="button" class="ghost" id="cw-paste" style="width:100%">导入布局参数（文本）</button>
-        <button type="button" class="ghost" id="cw-autofit" style="width:100%">列宽按内容收紧（像分期表那样）</button>
         <button type="button" class="ghost" id="cw-reset" style="width:100%">恢复默认布局</button>
       </div>
       <div id="cw-area" style="display:none;margin-top:8px">
@@ -8828,23 +8827,6 @@ function openColWidthsDialog() {
 
   // 手柄位置 / 文字距边框 / 账户列对齐 不再单独做控件 —— 全部写进「导出布局参数」那段文本里改。
 
-  // 一键把当前页所有表的列宽收到「刚好装下内容」（fitWidth 就是分期表那种按文字量的逻辑）
-  const autoFitBtn = mask.querySelector('#cw-autofit');
-  if (autoFitBtn) autoFitBtn.onclick = () => {
-    let n = 0;
-    document.querySelectorAll('table[data-colkey]').forEach(t => {
-      const key = t.dataset.colkey;
-      const ths = [...t.querySelectorAll('thead th')];
-      if (!ths.length) return;
-      const ws = ths.map((_, i) => Math.max(COL_MIN, fitWidth(t, i)));
-      applyWidths(t, key, ws);
-      n++;
-    });
-    saveColWidths();
-    close();
-    render();
-    toast('已把 ' + n + ' 张表的列宽按内容收紧', { duration: 4000 });
-  };
   mask.querySelector('#cw-reset').onclick = () => {
     colWidths = JSON.parse(JSON.stringify(DEFAULT_COL_WIDTHS));
     saveColWidths();
