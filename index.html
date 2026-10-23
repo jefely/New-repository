@@ -5448,7 +5448,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v10.21';
+const APP_VER = 'v10.22';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -13004,10 +13004,72 @@ function openExportMenu() {
 }
 
 function openImportMenu() {
-  openRowMenu('导入', [
-    { label: '导入覆盖文件', types: '.lz　.xlsx', run: () => openSyncDialog('file', true) },
-    { label: '导入覆盖账单', types: '.csv　.txt　.xlsx', run: () => openImportHub() }
-  ]);
+  const dlg = mkDialog(`
+    <div class="sync-title">导入</div>
+
+    <div class="sync-sec">
+      <div class="add-sec-head">
+        <span class="add-sec-title">导入覆盖文件</span>
+        <span class="add-sec-btns">
+          <button type="button" class="ghost add-sec-btn" id="im-lz">导入.lz文件</button>
+          <button type="button" class="ghost add-sec-btn" id="im-xlsx">导入.xlsx文件</button>
+        </span>
+      </div>
+      <div class="sync-hint small" style="text-align:left;margin-top:8px;line-height:1.6">
+        整本替换成文件里的数据（换手机 / 恢复备份）。<b>覆盖会清掉本机现有账户与流水</b>，
+        建议先「导出.lz文件」备份一份。
+      </div>
+    </div>
+
+    <div class="sync-sec">
+      <div class="add-sec-head">
+        <span class="add-sec-title">导入覆盖账单</span>
+        <span class="add-sec-btns">
+          <button type="button" class="ghost add-sec-btn" id="im-csv">导入.csv</button>
+          <button type="button" class="ghost add-sec-btn" id="im-txt">导入.txt</button>
+          <button type="button" class="ghost add-sec-btn" id="im-xlsx2">导入.xlsx</button>
+        </span>
+      </div>
+      <div class="sync-hint small" style="text-align:left;margin-top:8px;line-height:1.6">
+        把表格或文本里的账单铺进当前账本：<b>只追加</b>新记录，重复的自动跳过，
+        导入前会逐笔预览。
+      </div>
+    </div>
+
+    <div class="sync-actions"><button type="button" class="ghost" data-act="close">关闭</button></div>
+  `);
+
+  // ① .lz：直接选文件 → 确认 → 整本替换
+  dlg.querySelector('#im-lz').onclick = () => {
+    const inp = document.createElement('input');
+    inp.type = 'file';
+    inp.accept = '.lz,text/plain';
+    inp.onchange = async () => {
+      const f = inp.files && inp.files[0];
+      if (!f) return;
+      try {
+        const text = (await f.text()).trim();
+        if (!/^LZ[0-2][:：]/i.test(text)) throw new Error('这不是本程序的同步文件');
+        if (!confirm('用「' + f.name + '」的数据覆盖本机？\n\n本机当前的账户、流水、分期都会被替换。')) return;
+        const r = await applySyncCode(text, { merge: false });
+        dlg.remove();
+        toast('已导入：账户 ' + r.accounts + ' · 流水 ' + r.transactions
+          + ' · 分期 ' + r.installments + ' · 固定 ' + r.fixed, { duration: 6000 });
+      } catch (e) {
+        toast('导入失败：' + (e && e.message ? e.message : e), { type: 'error', duration: 6000 });
+      }
+    };
+    inp.click();
+  };
+
+  // ② .xlsx 覆盖：交给原来的 Excel 重建流程（它需要逐列预览）
+  dlg.querySelector('#im-xlsx').onclick = () => { dlg.remove(); openImportXlsxDialog(); };
+
+  // ③④⑤ 账单：统一走账单导入（含预览与逐笔勾选）
+  const bill = () => { dlg.remove(); openBillImportDialog(); };
+  dlg.querySelector('#im-csv').onclick = bill;
+  dlg.querySelector('#im-txt').onclick = bill;
+  dlg.querySelector('#im-xlsx2').onclick = bill;
 }
 
 function openSyncDialog() {
