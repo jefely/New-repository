@@ -5376,7 +5376,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v21.1';
+const APP_VER = 'v21.2';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -12679,56 +12679,83 @@ const XLSX_TPL_IDB = 'flow_xlsx_template_v2';
 /* 保存方式选择：手机浏览器里 <a download> 经常假装成功，所以不赌它，
    直接给三条路让用户选，其中「复制全文」在纯文本文件上 100% 可行。 */
 function openSaveChoiceDialog(text, filename, blob) {
+  /* 华为浏览器等不支持 navigator.share 的文件分享，<a download> 又常是假保存。
+     所以这里给三条真能用的路：
+       ① 复制全文（记事本另存）—— 一定成
+       ② 长按「另存为」的 data: 链接 —— 手机浏览器普遍支持
+       ③ 新窗口打开纯文本 —— 再全选复制
+     只有浏览器真的支持文件分享时，才显示「系统分享」按钮。 */
+  const canShareFiles = (() => {
+    try {
+      if (!navigator.canShare) return false;
+      const f = new File(['x'], 'x.txt', { type: 'text/plain' });
+      return navigator.canShare({ files: [f] });
+    } catch (e) { return false; }
+  })();
+
+  // data: 链接（长按另存为）。纯文本 base64 体积约 1.37 倍，几 KB 没问题。
+  let dataUrl = '';
+  try {
+    const b64 = btoa(unescape(encodeURIComponent(text)));
+    dataUrl = 'data:text/plain;charset=utf-8;base64,' + b64;
+  } catch (e) {}
+
   const dlg = mkDialog(`
     <div class="sync-title">保存同步文件</div>
     <div class="sync-hint small" style="text-align:left;line-height:1.7">
       文件名 <b>${esc(filename)}</b>，约 ${Math.round((blob ? blob.size : text.length) / 1024)} KB。<br>
-      手机浏览器对「直接下载」支持不一，下面三种任选一种，建议用<b>复制全文</b>。
+      手机浏览器对「直接下载」支持不一，用下面任意一种都能存下来。
     </div>
     <div style="display:flex;flex-direction:column;gap:8px;margin-top:14px">
-      <button type="button" id="sv-copy">复制全文（推荐，粘到记事本存成 .lz）</button>
-      <button type="button" class="ghost" id="sv-share">系统分享 / 发送给朋友</button>
-      <button type="button" class="ghost" id="sv-dl">直接下载文件</button>
+      <button type="button" id="sv-copy">① 复制全文（最稳）</button>
+      ${dataUrl ? `<a id="sv-longpress" href="${dataUrl}" download="${esc(filename)}"
+        style="display:block;text-align:center;padding:9px 12px;border-radius:9px;text-decoration:none;
+        border:1px solid #cbbcf0;background:#faf8ff;color:#5b4ea8;font-size:14px;font-weight:600">
+        ② 长按这里 → 「链接另存为 / 下载链接」</a>` : ''}
+      <button type="button" class="ghost" id="sv-window">③ 新窗口打开纯文本</button>
+      ${canShareFiles ? `<button type="button" class="ghost" id="sv-share">系统分享 / 发送给朋友</button>` : ''}
     </div>
-    <textarea id="sv-text" readonly style="width:100%;height:150px;margin-top:12px;font-family:ui-monospace,Consolas,monospace;font-size:11px;line-height:1.5;padding:8px;border-radius:9px;border:1px solid var(--border-light);background:var(--bg-main);color:var(--text-main)">${esc(text)}</textarea>
+    <textarea id="sv-text" readonly style="width:100%;height:140px;margin-top:12px;font-family:ui-monospace,Consolas,monospace;font-size:11px;line-height:1.5;padding:8px;border-radius:9px;border:1px solid var(--border-light);background:var(--bg-main);color:var(--text-main)">${esc(text)}</textarea>
     <div class="sync-actions"><button type="button" class="ghost" data-act="close">关闭</button></div>
   `);
   const ta = dlg.querySelector('#sv-text');
 
   const copyNow = async () => {
+    let ok = false;
     try {
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        await navigator.clipboard.writeText(text);
-        toast('已复制全文（' + Math.round(text.length / 1024) + ' KB）—— 粘到记事本，存成 ' + filename, { duration: 7000 });
-        return true;
-      }
+      if (navigator.clipboard && navigator.clipboard.writeText) { await navigator.clipboard.writeText(text); ok = true; }
     } catch (e) {}
-    // 剪贴板 API 不可用：退回 execCommand
+    if (!ok) { try { ta.focus(); ta.select(); ok = document.execCommand('copy'); } catch (e) {} }
+    toast(ok ? ('已复制全文 —— 粘到记事本，存成 ' + filename) : '复制失败，请长按下面的文本全选复制',
+      ok ? { duration: 7000 } : { type: 'error' });
+    return ok;
+  };
+
+  dlg.querySelector('#sv-copy').onclick = () => { copyNow(); };
+
+  dlg.querySelector('#sv-window').onclick = () => {
     try {
-      ta.focus(); ta.select();
-      const ok = document.execCommand('copy');
-      toast(ok ? ('已复制全文 —— 粘到记事本，存成 ' + filename) : '复制失败，请长按下面的文本全选复制', { duration: 7000 });
-      return ok;
-    } catch (e) {
-      toast('复制失败，请长按下面的文本全选复制', { type: 'error' });
-      return false;
-    }
+      const w = window.open('', '_blank');
+      if (!w) { toast('浏览器拦了新窗口，请用「复制全文」', { type: 'error' }); return; }
+      w.document.write('<meta charset="utf-8"><title>' + esc(filename) + '</title>'
+        + '<textarea style="width:100%;height:96vh;font-family:monospace;font-size:12px;border:0;padding:8px;box-sizing:border-box">'
+        + esc(text) + '</textarea>');
+      w.document.close();
+      try { const t2 = w.document.querySelector('textarea'); t2.focus(); t2.select(); } catch (e) {}
+      toast('已在新窗口打开，全选复制后存成 ' + filename, { duration: 6000 });
+    } catch (e) { toast('打开失败：' + e.message, { type: 'error' }); }
   };
 
-  dlg.querySelector('#sv-copy').onclick = async () => { await copyNow(); };
-  dlg.querySelector('#sv-share').onclick = async () => {
+  const shareBtn = dlg.querySelector('#sv-share');
+  if (shareBtn) shareBtn.onclick = async () => {
     const r = await saveBlobToDevice(blob, filename, { shareOnly: true });
-    if (r.via === 'nosupport') { toast('这个浏览器不支持系统分享，请用「复制全文」', { duration: 5000 }); return; }
-    saveResultToast(r, filename, blob.size);
-  };
-  dlg.querySelector('#sv-dl').onclick = async () => {
-    const r = await saveBlobToDevice(blob, filename);
+    if (r.via === 'nosupport') { toast('这个浏览器不支持系统分享，请用 ① 或 ②', { duration: 5000 }); return; }
     saveResultToast(r, filename, blob.size);
   };
 
-  // 打开就把文本选中，长按/复制都能立刻用
   setTimeout(() => { try { ta.focus(); ta.setSelectionRange(0, ta.value.length); } catch (e) {} }, 100);
 }
+
 
 async function saveBlobToDevice(blob, filename, opts) {
   const file = (typeof File === 'function') ? new File([blob], filename, { type: blob.type || 'application/octet-stream' }) : null;
