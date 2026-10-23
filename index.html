@@ -5448,7 +5448,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v10.27';
+const APP_VER = 'v10.28';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -5759,48 +5759,63 @@ function attachFixedCheckbox(tr) {
 /* 手动检查更新：只在「校验」页点按钮时联网，启动一律用本地缓存。
    拿到新 SW → 让它 skipWaiting → 收到 controllerchange 再刷新，刷新后弹版本提示。 */
 async function checkForUpdate() {
-  if (!('serviceWorker' in navigator)) {
-    const msg = '当前不是 PWA 环境，无法在线更新（本地版本 ' + APP_VER + '）';
-    toast(msg);
-    return { updated: false, message: msg };
-  }
-  const reg = await navigator.serviceWorker.getRegistration();
-  if (!reg) {
-    const msg = '尚未注册离线缓存，请从主屏图标启动后再试（本地版本 ' + APP_VER + '）';
-    toast(msg);
-    return { updated: false, message: msg };
-  }
-  await reg.update();
+  /* 不再只看 Service Worker 有没有 waiting —— 那个判断有漏洞：
+     只改 index.html 而 sw.js 内容没变时，浏览器根本不触发 install，
+     reg.waiting 永远是空，于是每次都说「已是最新」，版本号却还是旧的。
+     正确做法：直接拉远端 index.html，比对里面的 APP_VER。 */
+  const localVer = APP_VER;
+  let remoteVer = null;
 
-  const pick = () => reg.waiting || reg.installing;
-  let sw = pick();
-  if (sw) {
-    // 等它装好
-    await new Promise(res => {
-      if (sw.state === 'installed' || sw.state === 'activated') return res();
-      const t = setTimeout(res, 8000);
-      sw.addEventListener('statechange', function h() {
-        if (sw.state === 'installed' || sw.state === 'activated') {
-          sw.removeEventListener('statechange', h); clearTimeout(t); res();
-        }
-      });
-    });
+  try {
+    const res = await fetch('index.html?t=' + Date.now(), { cache: 'no-store' });
+    const html = await res.text();
+    const m = html.match(/APP_VER\s*=\s*'([^']+)'/);
+    if (m) remoteVer = m[1];
+  } catch (e) {
+    toast('检查失败：网络不通（本地版本 ' + localVer + '）', { type: 'error' });
+    return { updated: false, message: 'network' };
   }
 
-  if (reg.waiting) {
-    // 有新版本在等 → 让它接管，然后刷新（带上标记，刷新后由 boot 弹提示）
-    navigator.serviceWorker.addEventListener('controllerchange', () => {
-      try { sessionStorage.setItem('nt_updated', '1'); } catch (e) {}
-      location.reload();
-    }, { once: true });
-    reg.waiting.postMessage({ type: 'SKIP_WAITING' });
-    toast('发现新版本，正在更新…');
-    return { updated: true };
+  if (!remoteVer) {
+    toast('检查失败：读不到远端版本号（本地版本 ' + localVer + '）', { type: 'error' });
+    return { updated: false, message: 'no-version' };
   }
 
-  const msg = '已是最新版本 ' + APP_VER;
-  toast(msg);
-  return { updated: false, message: msg };
+  if (remoteVer === localVer) {
+    toast('已是最新版本 ' + localVer);
+    return { updated: false, message: '已是最新版本 ' + localVer, remote: remoteVer };
+  }
+
+  // 远端和本地版本号不同 → 真的要更新
+  const ok = confirm('发现新版本 ' + remoteVer + '\n当前版本 ' + localVer + '\n\n现在更新？'
+    + '\n\n更新会清掉离线缓存并重新载入，账本数据不受影响。');
+  if (!ok) return { updated: false, message: '已取消', remote: remoteVer };
+
+  toast('正在更新到 ' + remoteVer + '…', { duration: 5000 });
+
+  // ① 清掉所有 Cache Storage（旧 HTML / 旧资源都在里面）
+  try {
+    const names = await caches.keys();
+    await Promise.all(names.map(n => caches.delete(n)));
+  } catch (e) {}
+
+  // ② 顺手让 Service Worker 也更新一次
+  try {
+    if ('serviceWorker' in navigator) {
+      const reg = await navigator.serviceWorker.getRegistration();
+      if (reg) {
+        await reg.update();
+        if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+      }
+    }
+  } catch (e) {}
+
+  // ③ 记下这次更新，刷新后由 boot 弹提示
+  try { sessionStorage.setItem('nt_updated', remoteVer); } catch (e) {}
+
+  // ④ 强制从网络重载
+  try { location.reload(true); } catch (e) { location.reload(); }
+  return { updated: true, remote: remoteVer };
 }
 
 /* ============================================================
