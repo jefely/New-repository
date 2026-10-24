@@ -5565,7 +5565,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v10.53';
+const APP_VER = 'v10.54';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -6798,6 +6798,15 @@ function mwDrawSvg(nodes, edges) {
     if (last && last.acc === sl.acc) { last.a2 = sl.a2; last.count++; }
     else blocks.push({ acc: sl.acc, cat: sl.cat, sub: sl.sub, a1: sl.a1, a2: sl.a2, count: 1 });
   });
+
+  // 选中某个账户时，只点亮与它相关的引线
+  var mwHotEdges = null;
+  if (mwSelected) {
+    mwHotEdges = {};
+    txs.forEach(function (x) {
+      if (x.f === mwSelected || x.to === mwSelected) mwHotEdges[x.f + '\u0001' + x.to] = 1;
+    });
+  }
 
   var parts = [];
   parts.push('<svg viewBox="0 0 ' + SIZE + ' ' + SIZE + '" width="100%" preserveAspectRatio="xMidYMid meet">');
