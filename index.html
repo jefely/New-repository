@@ -5565,7 +5565,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v10.50';
+const APP_VER = 'v10.51';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -6707,6 +6707,15 @@ function mwDrawSvg(nodes, edges) {
   });
 
   var pt = function (r, ang) { return [cx + r * Math.sin(ang), cy - r * Math.cos(ang)]; };
+
+  // 选中某个账户时，只点亮和它相关的弦
+  var mwHotEdges = null;
+  if (mwSelected) {
+    var up = mwTraceUp(mwSelected, edges);
+    var dn = mwTraceDown(mwSelected, edges);
+    mwHotEdges = {};
+    up.concat(dn).forEach(function (e) { mwHotEdges[e.from + '\u0001' + e.to] = 1; });
+  }
 
   var parts = [];
   parts.push('<svg viewBox="0 0 ' + SIZE + ' ' + SIZE + '" width="100%" preserveAspectRatio="xMidYMid meet">');
