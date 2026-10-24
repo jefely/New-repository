@@ -5492,7 +5492,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v10.39';
+const APP_VER = 'v10.41';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -6562,6 +6562,21 @@ function mwRingPath(cx, cy, rIn, rOut, a1, a2) {
 }
 
 function mwDrawSvg(nodes, edges) {
+  /* 同一个账目类型（收入/负债/资产/费用）用同一个颜色；
+     同一环里可能混着两类（内环是收入 + 负债），靠颜色分开。 */
+  var CAT_FILL = {
+    '收入类': '#6ee7b7',   // 绿
+    '负债类': '#fbbf24',   // 橙
+    '资产类': '#7dd3fc',   // 蓝
+    '费用类': '#fca5a5'    // 红
+  };
+  var CAT_EDGE = {
+    '收入类': '#10b981',
+    '负债类': '#d97706',
+    '资产类': '#0284c7',
+    '费用类': '#dc2626'
+  };
+
   var TAU = Math.PI * 2;
   var SIZE = 900;
   var cx = SIZE / 2, cy = SIZE / 2;
@@ -6654,8 +6669,8 @@ function mwDrawSvg(nodes, edges) {
         + ' C ' + m1[0].toFixed(1) + ' ' + m1[1].toFixed(1) + ', '
         + m2[0].toFixed(1) + ' ' + m2[1].toFixed(1) + ', '
         + p3[0].toFixed(1) + ' ' + p3[1].toFixed(1) + '"'
-        + ' fill="none" stroke="#a78bfa" stroke-width="' + (1.2 + Math.min(5, e.value / 2500)).toFixed(1)
-        + '" stroke-opacity="0.32" stroke-linecap="round">'
+        + ' fill="none" stroke="' + (CAT_EDGE[ct] || '#a78bfa') + '" stroke-width="' + (1.4 + Math.min(9, e.value / 1500)).toFixed(1)
+        + '" stroke-opacity="0.42" stroke-linecap="round">'
         + '<title>' + mwEsc(e.from) + ' → ' + mwEsc(e.to) + '　¥' + e.value.toFixed(2) + '</title></path>');
     } else if (lf === 1 && lt === 2) {
       af = angleOf[1][e.from];
@@ -6669,15 +6684,13 @@ function mwDrawSvg(nodes, edges) {
         + ' C ' + c1[0].toFixed(1) + ' ' + c1[1].toFixed(1) + ', '
         + c2[0].toFixed(1) + ' ' + c2[1].toFixed(1) + ', '
         + p4[0].toFixed(1) + ' ' + p4[1].toFixed(1) + '"'
-        + ' fill="none" stroke="#8b5cf6" stroke-width="' + (1.2 + Math.min(5, e.value / 2500)).toFixed(1)
-        + '" stroke-opacity="0.36" stroke-linecap="round">'
+        + ' fill="none" stroke="' + (CAT_EDGE[ct] || '#8b5cf6') + '" stroke-width="' + (1.4 + Math.min(9, e.value / 1500)).toFixed(1)
+        + '" stroke-opacity="0.45" stroke-linecap="round">'
         + '<title>' + mwEsc(e.from) + ' → ' + mwEsc(e.to) + '　¥' + e.value.toFixed(2) + '</title></path>');
     }
   });
 
   /* ---------- 四层环 ---------- */
-  var FILL = ['#c4b5fd', '#a78bfa', '#8b5cf6'];
-  var EDGE = ['#a78bfa', '#8b5cf6', '#6d28d9'];
   layers.forEach(function (list, li) {
     var total = list.reduce(function (a, b) { return a + b.value; }, 0) || 1;
     list.forEach(function (item) {
@@ -6686,9 +6699,11 @@ function mwDrawSvg(nodes, edges) {
       if (an.a2 - an.a1 < 0.004) return; // 太窄，不画
       var sel = (mwSelected === item.name);
       var dim = mwSelected && !sel;
+      var fillC = CAT_FILL[item.cat] || '#cbd5e1';
+      var edgeC = CAT_EDGE[item.cat] || '#94a3b8';
       parts.push('<path d="' + mwRingPath(cx, cy, RING[li].in, RING[li].out, an.a1, an.a2) + '"'
-        + ' fill="' + FILL[li] + '" fill-opacity="' + (dim ? '0.3' : sel ? '1' : '0.9') + '"'
-        + ' stroke="' + EDGE[li] + '" stroke-opacity="' + (sel ? '1' : '0.55') + '" stroke-width="' + (sel ? 2.4 : 0.8) + '"'
+        + ' fill="' + fillC + '" fill-opacity="' + (dim ? '0.25' : sel ? '1' : '0.92') + '"'
+        + ' stroke="' + edgeC + '" stroke-opacity="' + (sel ? '1' : '0.65') + '" stroke-width="' + (sel ? 2.4 : 0.9) + '"'
         + ' class="mw-ring" data-node="' + mwEsc(item.name) + '" style="cursor:pointer">'
         + '<title>' + mwEsc(item.name) + '　¥' + item.value.toFixed(2)
         + '（' + (item.value / total * 100).toFixed(1) + '%）' + (item.virtual ? '　虚拟' : '') + '</title></path>');
