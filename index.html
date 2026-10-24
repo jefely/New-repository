@@ -5565,7 +5565,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v10.49';
+const APP_VER = 'v10.50';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -6646,38 +6646,35 @@ function mwRingPath(cx, cy, rIn, rOut, a1, a2) {
      · 带内与环心共心，沿圆弧绕行
      · 每个环块的出线点按线数等距分开，不挤在一点
    环宽 60，可拖动旋转。 */
+/* Money Way · 单环和弦图（chord diagram）
+   一圈环上每个账户一段弧，块与块之间留缝；
+   连线从源块连到目标块，曲线穿过圆心区域（chord 样式），
+   文字沿圆心射线朝外排；块太窄时拉引线到环外。 */
 function mwDrawSvg(nodes, edges) {
   var CAT_FILL = { '收入类': '#6ee7b7', '权益类': '#a5b4fc', '资产类': '#34d399', '负债类': '#f87171' };
-  var CAT_EDGE = { '收入类': '#10b981', '权益类': '#6366f1', '资产类': '#059669', '负债类': '#dc2626' };
+  var CAT_LINE = { '收入类': '#10b981', '权益类': '#6366f1', '资产类': '#059669', '负债类': '#dc2626' };
   var FEE_PALETTE = ['#f9a8d4', '#fca5a5', '#fdba74', '#fcd34d', '#bef264',
                      '#86efac', '#67e8f9', '#93c5fd', '#c4b5fd', '#d8b4fe'];
 
   var TAU = Math.PI * 2;
-  var SIZE = 1300;                 // 比上一版大 30%，外环不再贴边缺损
+  var SIZE = 1300;
   var cx = SIZE / 2, cy = SIZE / 2;
-  var THICK = 60;
+  var R_OUT = 470, THICK = 34, R_IN = R_OUT - THICK;
+  var GAP = 0.010;
 
-  var RING = [
-    { in: 90,  out: 90 + THICK },
-    { in: 268, out: 268 + THICK },
-    { in: 446, out: 446 + THICK }
-  ];
-  var BAND = [
-    { from: RING[0].out, to: RING[1].in },
-    { from: RING[1].out, to: RING[2].in }
-  ];
-  var GAP = 0.012;
-
-  /* ---------- 分层 ---------- */
-  var income = [], midL = [], fee = [];
+  /* ---------- 账户 → 弧段 ---------- */
+  var items = [];
   nodes.forEach(function (nd) {
     var v = (nd.cat === '费用类') ? (nd.inflow || nd.outflow) : (nd.outflow || nd.inflow);
     if (!(v > 0)) return;
-    var rec = { name: nd.name, cat: nd.cat, value: v };
-    if (nd.cat === '收入类' || nd.cat === '权益类') income.push(rec);
-    else if (nd.cat === '资产类' || nd.cat === '负债类') midL.push(rec);
-    else if (nd.cat === '费用类') fee.push(rec);
+    items.push({ name: nd.name, cat: nd.cat, value: v });
   });
+  if (!items.length) {
+    var empty = document.createElement('div');
+    empty.className = 'mw-empty';
+    empty.textContent = '这个区间里没有可画的流水';
+    return empty;
+  }
 
   var accOf = function (name) {
     for (var i = 0; i < state.accounts.length; i++) {
@@ -6685,152 +6682,127 @@ function mwDrawSvg(nodes, edges) {
     }
     return null;
   };
-  fee.sort(function (a, b) {
-    var sa = (accOf(a.name) || {}).sub || '', sb = (accOf(b.name) || {}).sub || '';
-    if (sa === sb) return b.value - a.value;
-    return sa < sb ? -1 : 1;
+  // 同类型排在一起，视觉上成组
+  items.sort(function (a, b) {
+    if (a.cat === b.cat) return b.value - a.value;
+    return a.cat < b.cat ? -1 : 1;
   });
+
   var feeSubs = [], feeColor = {};
-  fee.forEach(function (r) {
-    var sb = (accOf(r.name) || {}).sub || '未分类';
-    r.sub = sb;
+  items.forEach(function (it) {
+    if (it.cat !== '费用类') return;
+    var sb = (accOf(it.name) || {}).sub || '未分类';
+    it.sub = sb;
     if (feeSubs.indexOf(sb) < 0) feeSubs.push(sb);
   });
   feeSubs.forEach(function (sb, i) { feeColor[sb] = FEE_PALETTE[i % FEE_PALETTE.length]; });
 
-  var layers = [income, midL, fee];
-
-  /* ---------- 角度 ---------- */
-  var angleOf = [{}, {}, {}];
-  layers.forEach(function (list, li) {
-    var total = list.reduce(function (a, b) { return a + b.value; }, 0);
-    if (!total) return;
-    var a = -GAP / 2;
-    list.forEach(function (item) {
-      var span = (item.value / total) * TAU;
-      if (span < 0.006) return;
-      angleOf[li][item.name] = { a1: a, a2: a + span - GAP, mid: a + span / 2, span: span };
-      a = a + span;
-    });
+  var total = items.reduce(function (a, b) { return a + b.value; }, 0);
+  var a = -Math.PI / 2 - GAP / 2;          // 从 12 点开始
+  var slot = {};
+  items.forEach(function (it) {
+    var span = (it.value / total) * TAU;
+    slot[it.name] = { a1: a, a2: a + span - GAP, mid: a + span / 2, span: span, it: it };
+    a += span;
   });
 
-  var layerOf = function (cat) {
-    if (cat === '收入类' || cat === '权益类') return 0;
-    if (cat === '资产类' || cat === '负债类') return 1;
-    if (cat === '费用类') return 2;
-    return -1;
-  };
   var pt = function (r, ang) { return [cx + r * Math.sin(ang), cy - r * Math.cos(ang)]; };
-
-  /* ---------- 出线点：每个块按连线条数等距分开 ---------- */
-  // 先统计每个 (层, 账户) 有多少条出线 / 入线
-  var outCount = {}, inCount = {};
-  var liveEdges = edges.filter(function (e) {
-    var lf = layerOf(mwCatOf(e.from)), lt = layerOf(mwCatOf(e.to));
-    if (lf < 0 || lt < 0 || lt !== lf + 1) return false;
-    if (!angleOf[lf][e.from] || !angleOf[lt][e.to]) return false;
-    return true;
-  });
-  liveEdges.forEach(function (e) {
-    var lf = layerOf(mwCatOf(e.from)), lt = layerOf(mwCatOf(e.to));
-    outCount[lf + '|' + e.from] = (outCount[lf + '|' + e.from] || 0) + 1;
-    inCount[lt + '|' + e.to] = (inCount[lt + '|' + e.to] || 0) + 1;
-  });
-
-  // 给每条边分配具体的出发角 / 到达角
-  var outIdx = {}, inIdx = {};
-  liveEdges.sort(function (a, b) {
-    var la = layerOf(mwCatOf(a.from)), lb = layerOf(mwCatOf(b.from));
-    if (la !== lb) return la - lb;
-    var aa = angleOf[la][a.from].mid, bb = angleOf[lb][b.from].mid;
-    return aa - bb;
-  });
-  liveEdges.forEach(function (e) {
-    var lf = layerOf(mwCatOf(e.from)), lt = layerOf(mwCatOf(e.to));
-    var af = angleOf[lf][e.from], at = angleOf[lt][e.to];
-    // 出线端不再在块内等分：统一用块的中角，线从块的正中间出去
-    e.aOut = af.mid;
-    e.aIn = at.mid;
-    e._lf = lf; e._lt = lt;
-  });
 
   var parts = [];
   parts.push('<svg viewBox="0 0 ' + SIZE + ' ' + SIZE + '" width="100%" preserveAspectRatio="xMidYMid meet">');
 
-  /* ---------- 布线：一条平滑曲线，控制点全部落在环间空白带内 ----------
-     起点在源环外沿，终点在目标环内沿；
-     两个控制点沿切向拉开一点，半径取带内 1/3 与 2/3 处 ——
-     曲线整条都在带里，既不会穿环，也不会像三段拼的那样折角。 */
-  liveEdges.forEach(function (e) {
-    var lf = e._lf, lt = e._lt;
-    var rOut = RING[lf].out;
-    var rIn = RING[lt].in;
+  /* ---------- 弦：源块 → 目标块，曲线走圆心一侧 ---------- */
+  edges.forEach(function (e) {
+    var A = slot[e.from], B = slot[e.to];
+    if (!A || !B) return;
 
-    var p1 = pt(rOut, e.aOut);
-    var p2 = pt(rIn, e.aIn);
+    var p1 = pt(R_IN, A.mid);
+    var p2 = pt(R_IN, B.mid);
+    // 控制点朝圆心收拢，形成典型的弦形
+    var k = 0.36;
+    var c1 = [cx + (p1[0] - cx) * k, cy + (p1[1] - cy) * k];
+    var c2 = [cx + (p2[0] - cx) * k, cy + (p2[1] - cy) * k];
 
-    var dir = (e.aIn >= e.aOut) ? 1 : -1;
-    // 切向偏移量：角度差越大，控制点越靠外，曲线更舒展
-    var da = Math.abs(e.aIn - e.aOut);
-    var bow = Math.min(da * 0.45, 0.55);
+    var cf = mwCatOf(e.from), ct = mwCatOf(e.to);
+    var col = (ct === '费用类')
+      ? (feeColor[(accOf(e.to) || {}).sub] || '#f87171')
+      : (CAT_LINE[ct] || '#94a3b8');
+    var w = 1.2 + Math.min(14, e.value / 1100);
 
-    var rA = rOut + (rIn - rOut) * 0.34;
-    var rB = rOut + (rIn - rOut) * 0.66;
-    var c1 = pt(rA, e.aOut + dir * bow);
-    var c2 = pt(rB, e.aIn - dir * bow);
-
-    var d = 'M ' + p1[0].toFixed(1) + ' ' + p1[1].toFixed(1)
-      + ' C ' + c1[0].toFixed(1) + ' ' + c1[1].toFixed(1)
-      + ', ' + c2[0].toFixed(1) + ' ' + c2[1].toFixed(1)
-      + ', ' + p2[0].toFixed(1) + ' ' + p2[1].toFixed(1);
-
-    var ct = mwCatOf(e.to);
-    var col = (lt === 2) ? (feeColor[(accOf(e.to) || {}).sub] || '#f87171') : (CAT_EDGE[ct] || '#94a3b8');
-    var w = 1.4 + Math.min(9, e.value / 1500);
-
-    parts.push('<path d="' + d + '" fill="none" stroke="' + col + '" stroke-width="' + w.toFixed(1)
-      + '" stroke-opacity="0.5" stroke-linecap="round">'
+    var isHot = !mwHotEdges || mwHotEdges[e.from + '\u0001' + e.to];
+    parts.push('<path d="M ' + p1[0].toFixed(1) + ' ' + p1[1].toFixed(1)
+      + ' C ' + c1[0].toFixed(1) + ' ' + c1[1].toFixed(1) + ', '
+      + c2[0].toFixed(1) + ' ' + c2[1].toFixed(1) + ', '
+      + p2[0].toFixed(1) + ' ' + p2[1].toFixed(1) + '"'
+      + ' fill="none" stroke="' + col + '" stroke-width="' + w.toFixed(1)
+      + '" stroke-opacity="' + (isHot ? '0.38' : '0.06') + '" stroke-linecap="round">'
       + '<title>' + mwEsc(e.from) + ' → ' + mwEsc(e.to) + '　¥' + e.value.toFixed(2) + '</title></path>');
   });
 
-  /* ---------- 环块 ---------- */
-  layers.forEach(function (list, li) {
-    var total = list.reduce(function (a, b) { return a + b.value; }, 0) || 1;
-    list.forEach(function (item) {
-      var an = angleOf[li][item.name];
-      if (!an || (an.a2 - an.a1) < 0.004) return;
-      var fillC = (li === 2) ? (feeColor[item.sub] || '#fca5a5') : (CAT_FILL[item.cat] || '#cbd5e1');
-      var edgeC = (li === 2) ? '#94a3b8' : (CAT_EDGE[item.cat] || '#94a3b8');
-      var sel = (mwSelected === item.name);
-      var dim = mwSelected && !sel;
-      parts.push('<path d="' + mwRingPath(cx, cy, RING[li].in, RING[li].out, an.a1, an.a2) + '"'
-        + ' fill="' + fillC + '" fill-opacity="' + (dim ? '0.25' : sel ? '1' : '0.92') + '"'
-        + ' stroke="' + edgeC + '" stroke-opacity="' + (sel ? '1' : '0.5') + '" stroke-width="' + (sel ? 2.6 : 0.9) + '"'
-        + ' class="mw-ring" data-node="' + mwEsc(item.name) + '" style="cursor:pointer">'
-        + '<title>' + mwEsc(item.name) + '　¥' + item.value.toFixed(2) + '　' + (item.value / total * 100).toFixed(1) + '%</title></path>');
+  /* ---------- 环块 + 径向文字 ---------- */
+  items.forEach(function (it) {
+    var sp = slot[it.name];
+    var fillC = (it.cat === '费用类')
+      ? (feeColor[it.sub] || '#fca5a5')
+      : (CAT_FILL[it.cat] || '#cbd5e1');
+    var sel = (mwSelected === it.name);
+    var dim = mwSelected && !sel;
 
-      if (an.span > 0.04) {
-        var rMid2 = (RING[li].in + RING[li].out) / 2;
-        var deg = an.span > 0.14
-          ? an.mid * 180 / Math.PI
-          : an.mid * 180 / Math.PI;   // 统一沿射线方向，不做 180° 翻转
-        var lb = item.name.length > 9 ? item.name.slice(0, 9) + '…' : item.name;
-        // 文字从「圆心射线与环中线的交点」开始，朝外排；位置就是引线位置
-        var anchorX = cx + rMid2;
-        parts.push('<text'
-          + ' x="' + anchorX.toFixed(1) + '" y="' + (cy + 3.6) + '"'
-          + ' text-anchor="start" font-size="11" font-weight="600"'
-          + ' fill="' + (dim ? '#a3a3a3' : '#1f2937') + '"'
-          + ' transform="rotate(' + deg.toFixed(1) + ' ' + cx + ' ' + cy + ')"'
-          + ' style="pointer-events:none">' + mwEsc(lb) + '</text>');
-      }
-    });
+    var large = (sp.a2 - sp.a1) > Math.PI ? 1 : 0;
+    var x1 = cx + R_OUT * Math.sin(sp.a1), y1 = cy - R_OUT * Math.cos(sp.a1);
+    var x2 = cx + R_OUT * Math.sin(sp.a2), y2 = cy - R_OUT * Math.cos(sp.a2);
+    var x3 = cx + R_IN * Math.sin(sp.a2), y3 = cy - R_IN * Math.cos(sp.a2);
+    var x4 = cx + R_IN * Math.sin(sp.a1), y4 = cy - R_IN * Math.cos(sp.a1);
+    var d = 'M ' + x1 + ' ' + y1 + ' A ' + R_OUT + ' ' + R_OUT + ' 0 ' + large + ' 1 ' + x2 + ' ' + y2
+      + ' L ' + x3 + ' ' + y3 + ' A ' + R_IN + ' ' + R_IN + ' 0 ' + large + ' 0 ' + x4 + ' ' + y4 + ' Z';
+
+    parts.push('<path d="' + d + '" fill="' + fillC + '" fill-opacity="' + (dim ? '0.22' : sel ? '1' : '0.9') + '"'
+      + ' stroke="#fff" stroke-width="1.2"'
+      + ' class="mw-ring" data-node="' + mwEsc(it.name) + '" style="cursor:pointer">'
+      + '<title>' + mwEsc(it.name) + '（' + it.cat + (it.sub ? ' · ' + it.sub : '') + '）　¥'
+      + it.value.toFixed(2) + '　' + (it.value / total * 100).toFixed(1) + '%</title></path>');
   });
 
-  parts.push('<text x="' + cx + '" y="' + (cy - 4) + '" text-anchor="middle" font-size="15" font-weight="700" fill="#4c3d80">'
+  /* ---------- 文字：沿射线朝外；太窄的块拉引线 ---------- */
+  items.forEach(function (it) {
+    var sp = slot[it.name];
+    var fillC = (it.cat === '费用类') ? (feeColor[it.sub] || '#fca5a5') : (CAT_FILL[it.cat] || '#cbd5e1');
+    var dim = mwSelected && !(mwSelected === it.name);
+    var deg = sp.mid * 180 / Math.PI;
+    var flip = (sp.mid > Math.PI / 2 && sp.mid < Math.PI * 1.5);
+    var lb = it.name.length > 10 ? it.name.slice(0, 10) + '…' : it.name;
+
+    if (sp.span > 0.075) {
+      // 块够宽：文字直接压在环上，从环中线沿射线朝外
+      var rMid = (R_OUT + R_IN) / 2;
+      var lx = cx + rMid;
+      parts.push('<text x="' + lx.toFixed(1) + '" y="' + (cy + 4) + '"'
+        + ' text-anchor="middle" font-size="12" font-weight="700"'
+        + ' fill="' + (dim ? '#c9c9c9' : '#0f172a') + '"'
+        + ' transform="rotate(' + (flip ? deg + 180 : deg) + ' ' + cx + ' ' + cy + ')"'
+        + ' style="pointer-events:none">' + mwEsc(lb) + '</text>');
+    } else {
+      // 块太窄：引线拉到环外
+      var rr = R_OUT + 26;
+      var px = cx + rr * Math.sin(sp.mid), py = cy - rr * Math.cos(sp.mid);
+      var px2 = cx + (rr + 26) * Math.sin(sp.mid), py2 = cy - (rr + 26) * Math.cos(sp.mid);
+      var ox = pt(R_OUT, sp.mid);
+      parts.push('<line x1="' + ox[0].toFixed(1) + '" y1="' + ox[1].toFixed(1) + '"'
+        + ' x2="' + px2.toFixed(1) + '" y2="' + py2.toFixed(1) + '"'
+        + ' stroke="' + fillC + '" stroke-width="1" stroke-opacity="0.8"/>');
+      var lx2 = cx + (rr + 32);
+      parts.push('<text x="' + lx2.toFixed(1) + '" y="' + (cy + 3.5) + '"'
+        + ' text-anchor="start" font-size="10.5" font-weight="600"'
+        + ' fill="' + (dim ? '#c9c9c9' : '#374151') + '"'
+        + ' transform="rotate(' + (flip ? deg + 180 : deg) + ' ' + cx + ' ' + cy + ')"'
+        + ' style="pointer-events:none">' + mwEsc(lb) + '</text>');
+    }
+  });
+
+  parts.push('<text x="' + cx + '" y="' + (cy - 2) + '" text-anchor="middle" font-size="15" font-weight="700" fill="#4c3d80">'
     + mwEsc(mwSelected ? (mwSelected.length > 10 ? mwSelected.slice(0, 10) + '…' : mwSelected) : 'Money Way') + '</text>');
-  parts.push('<text x="' + cx + '" y="' + (cy + 16) + '" text-anchor="middle" font-size="10" fill="#9ca3af">'
-    + (mwSelected ? '再点还原' : '滚轮缩放 · 拖动旋转') + '</text>');
+  parts.push('<text x="' + cx + '" y="' + (cy + 18) + '" text-anchor="middle" font-size="10" fill="#9ca3af">'
+    + (mwSelected ? '再点还原' : '滚轮缩放 · 拖动平移') + '</text>');
   parts.push('</svg>');
 
   /* ---------- 外壳 ---------- */
@@ -6844,73 +6816,63 @@ function mwDrawSvg(nodes, edges) {
 
   var listBox = document.createElement('div');
   listBox.className = 'mw-list';
-  var layerNames = ['① 收入', '② 资产 / 负债', '③ 费用'];
-  layers.forEach(function (list, li) {
+  var catOrder = ['收入类', '权益类', '资产类', '负债类', '费用类'];
+  var groups = {};
+  items.forEach(function (it) {
+    (groups[it.cat] = groups[it.cat] || []).push(it);
+  });
+  catOrder.forEach(function (cat) {
+    var list = groups[cat];
+    if (!list || !list.length) return;
     var box = document.createElement('div');
     box.className = 'mw-list-sec';
     var head = document.createElement('div');
     head.className = 'mw-list-head';
-    head.textContent = layerNames[li];
+    head.textContent = cat + '（' + list.length + '）';
     box.appendChild(head);
-    var total = list.reduce(function (a, b) { return a + b.value; }, 0) || 1;
-    if (!list.length) {
-      var em = document.createElement('div');
-      em.className = 'mw-list-empty';
-      em.textContent = '—';
-      box.appendChild(em);
-    }
-    list.forEach(function (item) {
-      if (!angleOf[li][item.name]) return;
+    var sum = list.reduce(function (x, y) { return x + y.value; }, 0) || 1;
+    list.forEach(function (it) {
       var row = document.createElement('div');
-      row.className = 'mw-list-row' + (mwSelected === item.name ? ' on' : '');
-      var color = (li === 2) ? (feeColor[item.sub] || '#fca5a5') : (CAT_FILL[item.cat] || '#cbd5e1');
-      row.innerHTML = '<i class="mw-dot" style="background:' + color + '"></i><span>' + mwEsc(item.name)
-        + '</span><b>¥' + item.value.toFixed(0) + '</b><i class="mw-pct">'
-        + (item.value / total * 100).toFixed(0) + '%</i>';
+      row.className = 'mw-list-row' + (mwSelected === it.name ? ' on' : '');
+      var color = (it.cat === '费用类') ? (feeColor[it.sub] || '#fca5a5') : (CAT_FILL[it.cat] || '#cbd5e1');
+      row.innerHTML = '<i class="mw-dot" style="background:' + color + '"></i><span>' + mwEsc(it.name)
+        + '</span><b>¥' + it.value.toFixed(0) + '</b><i class="mw-pct">'
+        + (it.value / sum * 100).toFixed(0) + '%</i>';
       row.onclick = function () {
-        mwSelected = (mwSelected === item.name) ? null : item.name;
+        mwSelected = (mwSelected === it.name) ? null : it.name;
         renderMoneyWay(document.getElementById('main'), document.getElementById('footer'));
       };
       box.appendChild(row);
     });
     listBox.appendChild(box);
   });
-  // 右沿的收起 / 展开三角
+  wrap.appendChild(listBox);
+
+  // 右沿收起三角
   var tg = document.createElement('button');
   tg.type = 'button';
   tg.className = 'mw-toggle';
   tg.title = '收起 / 展开右侧列表';
   tg.textContent = '▶';
   wrap.appendChild(tg);
-  wrap.appendChild(listBox);
   tg.onclick = function () {
     var hidden = listBox.classList.toggle('collapsed');
     tg.textContent = hidden ? '◀' : '▶';
   };
 
-  /* ---------- 交互：拖动平移 / 滚轮缩放 / 双指缩放 ---------- */
+  /* ---------- 交互 ---------- */
   var zoom = 1, tx = 0, ty = 0;
   var svgEl = chartBox.querySelector('svg');
-  // 初始缩放到「刚好放进容器」，这样打开就能看到完整的环；
-  // 想放大看细节再用滚轮 / 双指。
   try {
     var cw = chartBox.clientWidth || 900;
     var ch = chartBox.clientHeight || 700;
-    // 留 92% 的余量，保证整个外环都在视野里
-    zoom = Math.min(1, (cw * 0.92) / 1300, (ch * 0.92) / 1300);
-  } catch (e) {}
-
+    zoom = Math.min(1, (cw * 0.94) / SIZE, (ch * 0.94) / SIZE);
+  } catch (zz) {}
   var applyT = function () {
     if (svgEl) svgEl.style.transform = 'translate(' + tx.toFixed(1) + 'px,' + ty.toFixed(1) + 'px) scale(' + zoom.toFixed(2) + ')';
   };
-  if (svgEl) {
-    svgEl.style.margin = '0 auto';
-    svgEl.style.willChange = 'transform';
-  }
-  // 首帧应用初始缩放
-  (function () {
-    if (svgEl) svgEl.style.transform = 'translate(0px,0px) scale(' + zoom.toFixed(2) + ')';
-  })();
+  if (svgEl) { svgEl.style.willChange = 'transform'; }
+  applyT();
 
   chartBox.addEventListener('wheel', function (ev) {
     ev.preventDefault();
@@ -6918,7 +6880,6 @@ function mwDrawSvg(nodes, edges) {
     applyT();
   }, { passive: false });
 
-  // 单指拖动 = 平移环心；双指 = 缩放
   var drag = null, pinch = null;
   chartBox.addEventListener('pointerdown', function (ev) {
     if (ev.target.classList && ev.target.classList.contains('mw-ring')) return;
@@ -6937,8 +6898,7 @@ function mwDrawSvg(nodes, edges) {
   chartBox.addEventListener('touchstart', function (ev) {
     if (ev.touches.length === 2) {
       drag = null;
-      var d = Math.hypot(ev.touches[0].clientX - ev.touches[1].clientX, ev.touches[0].clientY - ev.touches[1].clientY);
-      pinch = { d: d, z: zoom };
+      pinch = { d: Math.hypot(ev.touches[0].clientX - ev.touches[1].clientX, ev.touches[0].clientY - ev.touches[1].clientY), z: zoom };
     }
   }, { passive: true });
   chartBox.addEventListener('touchmove', function (ev) {
