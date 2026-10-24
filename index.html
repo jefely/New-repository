@@ -5576,7 +5576,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v10.57';
+const APP_VER = 'v10.58';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -6600,14 +6600,11 @@ function renderMoneyWay(main, footer) {
 
     if (!nodes.length) {
       body.innerHTML = '<div class="mw-empty">这个区间里没有可画的流水</div>';
-      side.innerHTML = '';
       return;
     }
 
     body.innerHTML = '';
     body.appendChild(mwDrawSvg(nodes, edges));
-
-    mwRenderSide(side, nodes, edges);
   };
 
 
