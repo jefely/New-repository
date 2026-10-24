@@ -5576,7 +5576,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v10.56';
+const APP_VER = 'v10.57';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -6735,7 +6735,8 @@ function mwDrawSvg(nodes, edges) {
   };
 
   /* ---------- 分类（弧块）与颜色 ---------- */
-  var CAT_ORDER = ['收入类', '权益类', '资产类', '负债类', '费用类', '其它'];
+  // 环上的排布顺序（从 2 点钟开始顺时针）：费用 → 资产 → 收入(含权益) → 负债
+  var CAT_ORDER = ['费用类', '资产类', '收入类', '权益类', '负债类', '其它'];
   var subMeta = {};        // key = cat + '|' + sub
   var subKeys = [];
   function ensureSub(cat, sub) {
@@ -6804,7 +6805,7 @@ function mwDrawSvg(nodes, edges) {
   var GAP_BLOCK = Math.min(unit * 3, 0.016);   // 分类块之间的间隔
   var GAP_ACC = Math.min(unit * 1.2, 0.004);   // 账户之间的细分隔
 
-  var ang = -Math.PI / 2;
+  var ang = Math.PI / 3;        // 从 2 点钟开始顺时针排
   var prevSub = null, prevAcc = null;
   slots.forEach(function (sl) {
     var a = accAgg[sl.acc];
