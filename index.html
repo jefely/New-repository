@@ -5265,6 +5265,9 @@ table#summary-table tbody td.col-name { z-index: 6; }
 .mw-side-row b { font-variant-numeric: tabular-nums; }
 .mw-side-row i { font-style: normal; color: var(--text-muted); width: 38px; text-align: right; }
 .mw-side-empty { color: var(--text-muted); }
+
+.mw-ring-wrap { display: flex; justify-content: center; padding: 10px; }
+.mw-ring-wrap svg { max-width: 620px; max-height: 62vh; }
 </style>
 </head>
 <body>
@@ -5476,7 +5479,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v10.29';
+const APP_VER = 'v10.30';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -6508,116 +6511,92 @@ function renderMoneyWay(main, footer) {
   footer.textContent = 'Money Way · ' + mwRange.start + ' ~ ' + mwRange.end + ' · 点账户看它的来路与去向';
 }
 
+/* 环状图：三层同心环
+   内环 = 收入类（钱从哪来）+ 收入汇总（沉淀下来的）
+   中环 = 资产类 / 负债类（钱在中转）
+   外环 = 费用类（钱花到哪去）+ 离开账本（花到账本外面的）
+   扇区之间留空隙，不靠颜色区分层次。 */
+function mwRingPath(cx, cy, r1, r2, a1, a2) {
+  // 角度用「从 12 点顺时针」的弧度
+  var large = (a2 - a1) > Math.PI ? 1 : 0;
+  var x1 = cx + r2 * Math.sin(a1), y1 = cy - r2 * Math.cos(a1);
+  var x2 = cx + r2 * Math.sin(a2), y2 = cy - r2 * Math.cos(a2);
+  var x3 = cx + r1 * Math.sin(a2), y3 = cy - r1 * Math.cos(a2);
+  var x4 = cx + r1 * Math.sin(a1), y4 = cy - r1 * Math.cos(a1);
+  return 'M ' + x1 + ' ' + y1
+    + ' A ' + r2 + ' ' + r2 + ' 0 ' + large + ' 1 ' + x2 + ' ' + y2
+    + ' L ' + x3 + ' ' + y3
+    + ' A ' + r1 + ' ' + r1 + ' 0 ' + large + ' 0 ' + x4 + ' ' + y4
+    + ' Z';
+}
+
 function mwDrawSvg(nodes, edges) {
-  var colX = [90, 520, 950];
-  var nodeW = 150;
-  var padTop = 56;
-  var gap = 14;
+  var TAU = Math.PI * 2;
+  var cx = 300, cy = 300;
+  var R = [150, 210, 268];          // 每层外半径
+  var inner = [96, 150, 210];       // 每层内半径
+  var GAP = 0.012;                  // 扇区之间的空隙（弧度）
 
-  var cols = [[], [], []];
+  // 三层数据
+  var income = [], asset = [], expense = [];
   nodes.forEach(function (nd) {
-    var ci = nd.cat === '资产类' ? 1 : (nd.cat === '费用类' ? 2 : 0);
-    cols[ci].push(nd);
+    if (nd.cat === '收入类') income.push({ name: nd.name, cat: nd.cat, value: nd.outflow || nd.inflow, nd: nd });
+    else if (nd.cat === '负债类') asset.push({ name: nd.name, cat: nd.cat, value: nd.outflow || nd.inflow, nd: nd });
+    else if (nd.cat === '资产类') asset.push({ name: nd.name, cat: nd.cat, value: nd.outflow || nd.inflow, nd: nd });
+    else if (nd.cat === '费用类') expense.push({ name: nd.name, cat: nd.cat, value: nd.inflow || nd.outflow, nd: nd });
   });
 
-  var maxCount = Math.max(cols[0].length, cols[1].length, cols[2].length, 1);
-  var H = Math.max(420, padTop + maxCount * 64 + 40);
-  var W = 1170;
+  // 收入汇总：收入总额 - 流向费用的总额（沉淀下来的）
+  var totalIncome = income.reduce(function (a, b) { return a + b.value; }, 0);
+  var totalExpense = expense.reduce(function (a, b) { return a + b.value; }, 0);
+  var sinkLeft = Math.max(0, totalIncome - totalExpense);
+  if (sinkLeft > 0) income.push({ name: '收入汇总', cat: '收入类', value: sinkLeft, virtual: true });
 
-  var pos = {};
-  cols.forEach(function (list, ci) {
-    if (!list.length) return;
-    var total = list.reduce(function (a, b) { return a + b.total; }, 0) || 1;
-    var heights = list.map(function (nd) {
-      return Math.max(30, Math.round((nd.total / total) * (H - padTop - 30) - gap));
-    });
-    var sumH = heights.reduce(function (a, b) { return a + b; }, 0) + gap * (list.length - 1);
-    var y = padTop + Math.max(0, ((H - padTop - 30) - sumH) / 2);
-    for (var i = 0; i < list.length; i++) {
-      pos[list[i].name] = { x: colX[ci], y: y, w: nodeW, h: heights[i], nd: list[i] };
-      y += heights[i] + gap;
-    }
-  });
+  // 外环「离开账本」：资产流出到未入账部分（这里用资产流出总额 - 费用总额兜底）
+  var totalAssetOut = asset.reduce(function (a, b) { return a + b.value; }, 0);
+  var leak = Math.max(0, totalAssetOut - totalExpense);
+  if (leak > 0) expense.push({ name: '离开账本', cat: '费用类', value: leak, virtual: true });
 
-  var live = edges.filter(function (e) { return pos[e.from] && pos[e.to]; });
-  var maxVal = live.reduce(function (a, e) { return Math.max(a, e.value); }, 1);
-  var px = function (v) { return Math.max(1.2, (v / maxVal) * 24); };
-
-  var outAcc = {}, inAcc = {};
-  Object.keys(pos).forEach(function (nm) { outAcc[nm] = 0; inAcc[nm] = 0; });
-
-  var byTarget = live.slice().sort(function (a, b) { return pos[a.to].y - pos[b.to].y; });
-  var outPort = {};
-  byTarget.forEach(function (e) {
-    var p = pos[e.from];
-    var w = px(e.value);
-    var off = outAcc[e.from];
-    outPort[e.from + '\u0001' + e.to] = { y: p.y + off + w / 2, w: w };
-    outAcc[e.from] = off + w + 1.2;
-  });
-
-  var bySource = live.slice().sort(function (a, b) { return pos[a.from].y - pos[b.from].y; });
-  var inPort = {};
-  bySource.forEach(function (e) {
-    var p = pos[e.to];
-    var w = px(e.value);
-    var off = inAcc[e.to];
-    inPort[e.from + '\u0001' + e.to] = { y: p.y + off + w / 2, w: w };
-    inAcc[e.to] = off + w + 1.2;
-  });
-
-  var hot = null;
-  if (mwSelected) {
-    var up = mwTraceUp(mwSelected, live);
-    var dn = mwTraceDown(mwSelected, live);
-    hot = {};
-    up.concat(dn).forEach(function (e) { hot[e.from + '\u0001' + e.to] = 1; });
-  }
-
+  var layers = [income, asset, expense];
   var parts = [];
-  parts.push('<svg viewBox="0 0 ' + W + ' ' + H + '" width="100%" preserveAspectRatio="xMidYMin meet">');
-  parts.push('<text x="20" y="24" font-size="12" fill="#8b93a3">收入类 / 负债类</text>');
-  parts.push('<text x="' + (colX[1] - 10) + '" y="24" font-size="12" fill="#8b93a3">资产类（中转）</text>');
-  parts.push('<text x="' + (colX[2] - 10) + '" y="24" font-size="12" fill="#8b93a3">费用类（去向）</text>');
+  parts.push('<svg viewBox="0 0 600 600" width="100%" preserveAspectRatio="xMidYMid meet">');
 
-  live.forEach(function (e) {
-    var a = pos[e.from], b = pos[e.to];
-    var op = outPort[e.from + '\u0001' + e.to];
-    var ip = inPort[e.from + '\u0001' + e.to];
-    var x1 = a.x + a.w, y1 = op.y, x2 = b.x, y2 = ip.y;
-    var dx = Math.max(44, (x2 - x1) * 0.42);
-    var d = 'M ' + x1 + ' ' + y1 + ' C ' + (x1 + dx) + ' ' + y1 + ', ' + (x2 - dx) + ' ' + y2 + ', ' + x2 + ' ' + y2;
-    var internal = (a.nd.cat === '资产类' && b.nd.cat === '资产类');
-    var isHot = !hot || hot[e.from + '\u0001' + e.to];
-    var color = MW_COLOR[b.nd.cat] || '#94a3b8';
-    parts.push('<path d="' + d + '" fill="none" stroke="' + color + '" stroke-width="' + Math.max(1, op.w).toFixed(1)
-      + '" stroke-opacity="' + (isHot ? '0.72' : '0.1') + '" stroke-linecap="round"'
-      + (internal ? ' stroke-dasharray="7 5"' : '')
-      + '><title>' + mwEsc(e.from) + ' → ' + mwEsc(e.to) + '　¥' + e.value.toFixed(2) + (internal ? '（内部转账）' : '') + '</title></path>');
+  var FILL = ['#a78bfa', '#8b5cf6', '#6d28d9'];   // 内→外，紫由浅到深
+  var STROKE = ['#c4b5fd', '#a78bfa', '#7c3aed'];
+
+  layers.forEach(function (list, li) {
+    var total = list.reduce(function (a, b) { return a + b.value; }, 0);
+    if (!total) return;
+    var a = -GAP / 2;
+    list.forEach(function (item, ii) {
+      var span = (item.value / total) * TAU;
+      var a1 = a;
+      var a2 = a + Math.max(0.004, span - GAP);
+      a = a + span;
+      var sel = (mwSelected === item.name);
+      var dim = mwSelected && !sel;
+      parts.push('<path d="' + mwRingPath(cx, cy, inner[li], R[li], a1, a2) + '"'
+        + ' fill="' + FILL[li] + '" fill-opacity="' + (dim ? '0.22' : sel ? '1' : '0.78') + '"'
+        + ' stroke="' + STROKE[li] + '" stroke-opacity="' + (sel ? '1' : '0.35') + '" stroke-width="' + (sel ? 2 : 0.6) + '"'
+        + ' class="mw-ring" data-node="' + mwEsc(item.name) + '" style="cursor:pointer"'
+        + '><title>' + mwEsc(item.name) + '　¥' + item.value.toFixed(2)
+        + '（' + (item.value / total * 100).toFixed(1) + '%）' + (item.virtual ? '　虚拟' : '') + '</title></path>');
+    });
   });
 
-  Object.keys(pos).forEach(function (nm) {
-    var p = pos[nm];
-    var c = MW_COLOR[p.nd.cat] || '#94a3b8';
-    var sel = (mwSelected === nm);
-    var dim = mwSelected && !sel;
-    parts.push('<g class="mw-node" data-node="' + mwEsc(nm) + '" style="cursor:pointer">');
-    parts.push('<rect x="' + p.x + '" y="' + p.y + '" width="' + p.w + '" height="' + p.h
-      + '" rx="9" fill="' + c + '" fill-opacity="' + (sel ? '0.45' : (dim ? '0.08' : '0.18'))
-      + '" stroke="' + c + '" stroke-width="' + (sel ? '2.6' : '1.4') + '" stroke-opacity="' + (dim ? '0.3' : '1') + '"/>');
-    parts.push('<text x="' + (p.x + 10) + '" y="' + (p.y + p.h / 2 + 4) + '" font-size="12.5" font-weight="'
-      + (sel ? '700' : '600') + '" fill="' + (dim ? '#8b93a3' : '#1f2430') + '">'
-      + mwEsc(nm.length > 9 ? nm.slice(0, 9) + '…' : nm) + '</text>');
-    parts.push('<title>' + mwEsc(nm) + '（' + p.nd.cat + '）　流入 ¥' + p.nd.inflow.toFixed(2) + '　流出 ¥' + p.nd.outflow.toFixed(2) + '</title>');
-    parts.push('</g>');
-  });
+  // 中心文字
+  var centerLabel = mwSelected || 'Money Way';
+  parts.push('<text x="' + cx + '" y="' + (cy - 4) + '" text-anchor="middle" font-size="15" font-weight="700" fill="#4c3d80">'
+    + mwEsc(centerLabel.length > 8 ? centerLabel.slice(0, 8) + '…' : centerLabel) + '</text>');
+  parts.push('<text x="' + cx + '" y="' + (cy + 16) + '" text-anchor="middle" font-size="11" fill="#8b93a3">'
+    + (mwSelected ? '再点一次还原' : '点环上的块看构成') + '</text>');
 
   parts.push('</svg>');
 
   var wrap = document.createElement('div');
-  wrap.className = 'mw-svg-wrap';
+  wrap.className = 'mw-svg-wrap mw-ring-wrap';
   wrap.innerHTML = parts.join('');
-  wrap.querySelectorAll('.mw-node').forEach(function (g2) {
+  wrap.querySelectorAll('.mw-ring').forEach(function (g2) {
     g2.onclick = function () {
       var nm = g2.getAttribute('data-node');
       mwSelected = (mwSelected === nm) ? null : nm;
