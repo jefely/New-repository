@@ -5492,7 +5492,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v10.33';
+const APP_VER = 'v10.37';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -6563,20 +6563,20 @@ function mwRingPath(cx, cy, rIn, rOut, a1, a2) {
 
 function mwDrawSvg(nodes, edges) {
   var TAU = Math.PI * 2;
-  var SIZE = 660;
+  var SIZE = 900;
   var cx = SIZE / 2, cy = SIZE / 2;
 
-  /* 半径（按参考图：环厚 ~44，环间空隙 ~58，接近一个环厚） */
+  /* 环很细（只放得下账户名），环与环之间留出很宽的黑色布线区 */
   var RING = [
-    { in: 52, out: 96 },        // ① 总收入
-    { in: 154, out: 198 },      // ② 收入 / 负债
-    { in: 256, out: 300 },      // ③ 资产
-    { in: 358, out: 402 }       // ④ 费用 + 离开
+    { in: 46, out: 68 },        // ① 总收入
+    { in: 170, out: 192 },      // ② 收入 / 负债
+    { in: 294, out: 316 },      // ③ 资产
+    { in: 418, out: 440 }       // ④ 费用 + 离开
   ];
   var BAND = [
-    { from: 96, to: 154 },
-    { from: 198, to: 256 },
-    { from: 300, to: 358 }
+    { from: 68, to: 170 },
+    { from: 192, to: 294 },
+    { from: 316, to: 418 }
   ];
   var GAP = 0.012;
 
@@ -6698,8 +6698,8 @@ function mwDrawSvg(nodes, edges) {
   /* ---------- 层名（沿 3 点钟方向的小字） ---------- */
   var names = ['总收入', '收入 / 负债', '资产（中转）', '费用 / 离开'];
   for (var li2 = 0; li2 < 4; li2++) {
-    var pr = pt((RING[li2].in + RING[li2].out) / 2, 0.05);
-    parts.push('<text x="' + pr[0].toFixed(0) + '" y="' + (pr[1] + 3).toFixed(0) + '" font-size="9.5" fill="#6b7280">' + names[li2] + '</text>');
+    var pr = pt((RING[li2].in + RING[li2].out) / 2, 0.03);
+    parts.push('<text x="' + pr[0].toFixed(0) + '" y="' + (pr[1] + 3).toFixed(0) + '" font-size="10" fill="#8b93a3">' + names[li2] + '</text>');
   }
 
   /* ---------- 中心 ---------- */
