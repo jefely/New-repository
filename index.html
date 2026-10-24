@@ -5311,13 +5311,17 @@ table#summary-table tbody td.col-name { z-index: 6; }
 .mw-chart {
   flex: 1 1 auto; min-width: 0;
   overflow: auto;
-  display: block;
+  display: flex;                /* 缩放后居中，不偏到角落 */
+  align-items: center;
+  justify-content: center;
   cursor: grab;
   touch-action: none;          /* 自己处理拖动与双指 */
+  background: var(--bg-main);
 }
 .mw-chart:active { cursor: grabbing; }
 .mw-chart svg {
   display: block;
+  flex: 0 0 auto;
   width: 1300px; height: 1300px;   /* 再放大 30%，留出外环余量 */
   transform-origin: center center;
   transition: transform .08s ease-out;
@@ -5561,7 +5565,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v10.46';
+const APP_VER = 'v10.47';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
