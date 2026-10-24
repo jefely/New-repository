@@ -5307,6 +5307,7 @@ table#summary-table tbody td.col-name { z-index: 6; }
 .mw-split {
   display: flex; align-items: stretch; gap: 0;
   padding: 0; flex: 1 1 auto; min-height: 0; overflow: hidden;
+  position: relative;
 }
 .mw-chart {
   flex: 1 1 auto; min-width: 0;
@@ -5348,12 +5349,22 @@ table#summary-table tbody td.col-name { z-index: 6; }
 .mw-pct { font-style: normal; color: var(--text-muted); width: 32px; text-align: right; flex: 0 0 auto; }
 .mw-list-empty { font-size: 12px; color: var(--text-muted); }
 .mw-toggle {
-  flex: 0 0 auto; width: 16px; align-self: stretch;
-  border: 0; background: var(--bg-gray); color: var(--text-muted);
-  cursor: pointer; font-size: 10px; padding: 0;
+  position: absolute; right: 246px; top: 4px;
+  width: 20px; height: 20px; border-radius: 50%;
+  border: 1px solid var(--border-light); background: #fff; color: var(--text-muted);
+  cursor: pointer; font-size: 9px; padding: 0; line-height: 18px;
 }
+.mw-toggle.shifted { right: 4px; }
 .mw-toggle:hover { background: #ece7ff; color: var(--primary); }
 
+
+.mw-side-head { font-size: 14px; font-weight: 700; color: var(--primary); margin-bottom: 6px; }
+.mw-side-set { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+.mw-side-set label { font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 5px; }
+.mw-side-set input[type=date] { height: 26px; font-size: 12px; flex: 1 1 auto; min-width: 0; }
+.mw-side-set select { height: 26px; font-size: 12px; }
+.mw-side-set button { height: 26px; font-size: 12px; }
+.mw-side-stat { font-size: 11.5px; color: var(--text-muted); padding: 6px 0 8px; border-bottom: 1px solid var(--border-light); margin-bottom: 8px; }
 </style>
 </head>
 <body>
@@ -5565,7 +5576,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v10.54';
+const APP_VER = 'v10.55';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -6527,17 +6538,7 @@ function renderMoneyWay(main, footer) {
     mwRange = { start: now.getFullYear() + '-' + mm + '-01', end: todayISO() };
   }
 
-  var bar = document.createElement('div');
-  bar.className = 'toolbar mw-bar';
-  bar.innerHTML = ''
-    + '<span class="mw-title">Money Way</span>'
-    + '<label class="mw-date">从 <input type="date" id="mw-start" value="' + mwRange.start + '"></label>'
-    + '<label class="mw-date">到 <input type="date" id="mw-end" value="' + mwRange.end + '"></label>'
-    + '<button type="button" class="ghost" id="mw-apply">应用</button>'
-    + '<label class="mw-date">只看前 <select id="mw-topn"><option>8</option><option selected>12</option><option>20</option><option>36</option><option value="999">全部</option></select> 个账户</label>'
-    + '<button type="button" class="ghost" id="mw-internal"></button>';
-  main.appendChild(bar);
-
+  // 设置项已搬到右侧栏顶部，这里不再单独出工具条
   var body = document.createElement('div');
   body.className = 'mw-body';
   main.appendChild(body);
@@ -6546,11 +6547,6 @@ function renderMoneyWay(main, footer) {
   side.className = 'mw-side';
   main.appendChild(side);
 
-  var intBtn = bar.querySelector('#mw-internal');
-  var syncInt = function () {
-    intBtn.textContent = '内部转账：' + (mwShowInternal ? '显示' : '隐藏');
-  };
-  syncInt();
 
   var draw = function () {
     var g = mwBuildGraph(mwRange.start, mwRange.end);
@@ -6617,30 +6613,6 @@ function renderMoneyWay(main, footer) {
     mwRenderSide(side, nodes, edges);
   };
 
-  bar.querySelector('#mw-apply').onclick = function () {
-    var sv = bar.querySelector('#mw-start').value || '';
-    var ev = bar.querySelector('#mw-end').value || '';
-    if (sv && ev && sv > ev) { toast('起始日期不能晚于结束日期', { type: 'error' }); return; }
-    mwRange = { start: sv, end: ev };
-    mwSelected = null;
-    draw();
-    footer.textContent = 'Money Way · ' + mwRange.start + ' ~ ' + mwRange.end;
-  };
-
-  intBtn.onclick = function () {
-    mwShowInternal = !mwShowInternal;
-    syncInt();
-    draw();
-  };
-  var selTop = bar.querySelector('#mw-topn');
-  if (selTop) {
-    selTop.value = String(mwTopN > 40 ? 999 : mwTopN);
-    selTop.onchange = function () {
-      mwTopN = Number(selTop.value) || 12;
-      mwSelected = null;
-      draw();
-    };
-  }
 
   draw();
   footer.textContent = 'Money Way · ' + mwRange.start + ' ~ ' + mwRange.end + ' · 点账户看它的来路与去向';
@@ -6708,18 +6680,20 @@ function mwRingPath(cx, cy, rIn, rOut, a1, a2) {
    同一账户的所有槽位连续排在一起，形成一个块。
    线的多少与走向，直接反映账户之间的往来频率。
    ============================================================ */
+/* Money Way · 逐笔和弦图
+   · 环按「流水笔数」等分：N 笔 = 2N 段，同一账户的段连续成块
+   · 块长 = 该账户参与的笔数；块颜色互不重复
+   · 排序：类型 → 分类(sub) → 账户，让同类相邻
+   · 每笔一条线，线的颜色取「转出块」的颜色
+   · 文字从弧外沿开始外推，字号随可用弧长自动缩放
+   · 设置项与列表全部收进右侧栏；点弧块不做任何弹窗 */
 function mwDrawSvg(nodes, edges) {
-  var CAT_FILL = { '收入类': '#6ee7b7', '权益类': '#a5b4fc', '资产类': '#34d399', '负债类': '#f87171' };
-  var CAT_LINE = { '收入类': '#10b981', '权益类': '#6366f1', '资产类': '#059669', '负债类': '#dc2626' };
-  var FEE_PALETTE = ['#f9a8d4', '#fca5a5', '#fdba74', '#fcd34d', '#bef264',
-                     '#86efac', '#67e8f9', '#93c5fd', '#c4b5fd', '#d8b4fe'];
-
   var TAU = Math.PI * 2;
   var SIZE = 1300;
   var cx = SIZE / 2, cy = SIZE / 2;
-  var R_OUT = 470, THICK = 30, R_IN = R_OUT - THICK;
+  var R_OUT = 470, THICK = 26, R_IN = R_OUT - THICK;
 
-  /* ---------- 取区间内的逐笔流水 ---------- */
+  /* ---------- 区间内逐笔流水 ---------- */
   var txs = [];
   for (var ti = 0; ti < state.transactions.length; ti++) {
     var t = state.transactions[ti];
@@ -6735,7 +6709,6 @@ function mwDrawSvg(nodes, edges) {
     if (cf === '未知' || ct === '未知') continue;
     txs.push({ f: f, to: to, amt: amt, cf: cf, ct: ct, d: d });
   }
-
   if (!txs.length) {
     var empty = document.createElement('div');
     empty.className = 'mw-empty';
@@ -6749,57 +6722,73 @@ function mwDrawSvg(nodes, edges) {
     }
     return null;
   };
-  var subColor = {}, subs = [];
-  txs.forEach(function (x) {
-    if (x.ct !== '费用类') return;
-    var sb = (accOf(x.to) || {}).sub || '未分类';
-    x.sub = sb;
-    if (subs.indexOf(sb) < 0) { subs.push(sb); }
-  });
-  subs.forEach(function (sb, i) { subColor[sb] = FEE_PALETTE[i % FEE_PALETTE.length]; });
+  var subOf = function (name) { var a = accOf(name); return (a && a.sub) ? String(a.sub) : '未分类'; };
 
-  /* ---------- 每笔流水两个槽位 ---------- */
-  var slots = [];      // { acc, cat, sub, name, idx }
-  var txSlots = [];    // 每笔流水: { fSlot, tSlot }
+  /* ---------- 账户聚合 + 排序（类型 → 分类 → 账户） ---------- */
+  var CAT_ORDER = ['收入类', '权益类', '资产类', '负债类', '费用类', '其它'];
+  var agg = {};
+  txs.forEach(function (x) {
+    [[x.f, x.cf], [x.to, x.ct]].forEach(function (pair) {
+      var nm = pair[0], cat = pair[1];
+      var a = agg[nm] || (agg[nm] = { name: nm, cat: cat, sub: subOf(nm), n: 0, sum: 0 });
+      a.n += 1; a.sum += x.amt;
+    });
+  });
+  var accList = Object.keys(agg).map(function (k) { return agg[k]; });
+  accList.sort(function (a, b) {
+    var ia = CAT_ORDER.indexOf(a.cat), ib = CAT_ORDER.indexOf(b.cat);
+    if (ia !== ib) return ia - ib;
+    if (a.sub !== b.sub) return a.sub < b.sub ? -1 : 1;
+    if (a.n !== b.n) return b.n - a.n;
+    return a.name < b.name ? -1 : 1;
+  });
+
+  // 颜色：黄金角取色相，保证相邻块不同色
+  var colorOf = {};
+  accList.forEach(function (a, i) {
+    colorOf[a.name] = 'hsl(' + ((i * 137.508) % 360).toFixed(0) + ', 62%, 58%)';
+  });
+
+  /* ---------- 槽位：每笔两个 ---------- */
+  var slots = [];
+  var txSlot = [];
   txs.forEach(function (x, i) {
-    var fs = { acc: x.f, cat: x.cf, sub: null, idx: i, role: 'f' };
-    var ts = { acc: x.to, cat: x.ct, sub: x.sub || null, idx: i, role: 't' };
-    txSlots.push({ f: fs, t: ts });
+    var fs = { acc: x.f, idx: i };
+    var ts = { acc: x.to, idx: i };
+    txSlot.push({ f: fs, t: ts });
     slots.push(fs, ts);
   });
-
-  // 按账户分组，组内按账户名排，组间按账户名排 —— 同一账户的槽位连续
+  // 槽位按账户排：账户顺序由 accList 决定，账户内按时间
+  var rank = {};
+  accList.forEach(function (a, i) { rank[a.name] = i; });
   slots.sort(function (a, b) {
-    if (a.acc !== b.acc) return a.acc < b.acc ? -1 : 1;
+    var ra = rank[a.acc], rb = rank[b.acc];
+    if (ra !== rb) return ra - rb;
     return a.idx - b.idx;
   });
 
-  var unit = TAU / slots.length;      // 每个槽位占的角度
-  var GAP_ACC = Math.min(unit * 1.6, 0.012);   // 账户与账户之间留一点缝
-
-  // 逐槽分配角度
-  var prevAcc = null;
-  var ang = -Math.PI / 2;             // 从 12 点开始
+  var unit = TAU / slots.length;
+  var GAP = Math.min(unit * 1.4, 0.008);
+  var ang = -Math.PI / 2;
+  var prev = null;
   slots.forEach(function (sl) {
-    if (prevAcc !== null && sl.acc !== prevAcc) ang += GAP_ACC;
-    sl.a1 = ang;
-    sl.a2 = ang + unit;
-    sl.mid = ang + unit / 2;
+    if (prev !== null && sl.acc !== prev) ang += GAP;
+    sl.a1 = ang; sl.a2 = ang + unit; sl.mid = ang + unit / 2;
     ang += unit;
-    prevAcc = sl.acc;
+    prev = sl.acc;
+  });
+
+  // 每个账户的连续区间
+  var blocks = [];
+  slots.forEach(function (sl) {
+    var last = blocks[blocks.length - 1];
+    if (last && last.acc === sl.acc) { last.a2 = sl.a2; last.n++; }
+    else blocks.push({ acc: sl.acc, a1: sl.a1, a2: sl.a2, n: 1, cat: agg[sl.acc].cat, sub: agg[sl.acc].sub });
   });
 
   var pt = function (r, a) { return [cx + r * Math.sin(a), cy - r * Math.cos(a)]; };
 
-  /* ---------- 每个账户在环上占的连续区间 ---------- */
-  var blocks = [];
-  slots.forEach(function (sl) {
-    var last = blocks[blocks.length - 1];
-    if (last && last.acc === sl.acc) { last.a2 = sl.a2; last.count++; }
-    else blocks.push({ acc: sl.acc, cat: sl.cat, sub: sl.sub, a1: sl.a1, a2: sl.a2, count: 1 });
-  });
-
-  // 选中某个账户时，只点亮与它相关的引线
+  /* ---------- 选中高亮（不弹窗、不加文字） ---------- */
   var mwHotEdges = null;
   if (mwSelected) {
     mwHotEdges = {};
@@ -6811,36 +6800,29 @@ function mwDrawSvg(nodes, edges) {
   var parts = [];
   parts.push('<svg viewBox="0 0 ' + SIZE + ' ' + SIZE + '" width="100%" preserveAspectRatio="xMidYMid meet">');
 
-  /* ---------- 逐笔引线 ---------- */
+  /* ---------- 逐笔引线：颜色取转出块 ---------- */
   txs.forEach(function (x, i) {
-    var fs = txSlots[i].f, ts = txSlots[i].t;
+    var fs = txSlot[i].f, ts = txSlot[i].t;
     var p1 = pt(R_IN, fs.mid);
     var p2 = pt(R_IN, ts.mid);
     var k = 0.34;
     var c1 = [cx + (p1[0] - cx) * k, cy + (p1[1] - cy) * k];
     var c2 = [cx + (p2[0] - cx) * k, cy + (p2[1] - cy) * k];
 
-    var col = (x.ct === '费用类')
-      ? (subColor[x.sub] || '#f87171')
-      : (CAT_LINE[x.ct] || '#94a3b8');
-    // 线的粗细反映这一笔的金额，但限制在 0.5~6 之间，保证密的时候也能看出层次
-    var w = Math.min(6, Math.max(0.5, 0.5 + x.amt / 2000));
-
+    var col = colorOf[x.f] || '#94a3b8';
+    var w = Math.min(5, Math.max(0.45, 0.4 + x.amt / 2400));
     var isHot = !mwHotEdges || mwHotEdges[x.f + '\u0001' + x.to];
+
     parts.push('<path d="M ' + p1[0].toFixed(1) + ' ' + p1[1].toFixed(1)
       + ' C ' + c1[0].toFixed(1) + ' ' + c1[1].toFixed(1) + ', '
       + c2[0].toFixed(1) + ' ' + c2[1].toFixed(1) + ', '
       + p2[0].toFixed(1) + ' ' + p2[1].toFixed(1) + '"'
       + ' fill="none" stroke="' + col + '" stroke-width="' + w.toFixed(2)
-      + '" stroke-opacity="' + (isHot ? '0.34' : '0.05') + '" stroke-linecap="round">'
-      + '<title>' + mwEsc(x.f) + ' → ' + mwEsc(x.to) + '　¥' + x.amt.toFixed(2) + '　' + x.d + '</title></path>');
+      + '" stroke-opacity="' + (isHot ? '0.34' : '0.05') + '" stroke-linecap="round"/>');
   });
 
-  /* ---------- 环块（按账户，长度 = 笔数） ---------- */
+  /* ---------- 环块 ---------- */
   blocks.forEach(function (b) {
-    var fillC = (b.cat === '费用类') ? (subColor[b.sub] || '#fca5a5') : (CAT_FILL[b.cat] || '#cbd5e1');
-    var sel = (mwSelected === b.acc);
-    var dim = mwSelected && !sel;
     var span = b.a2 - b.a1;
     var large = span > Math.PI ? 1 : 0;
     var x1 = cx + R_OUT * Math.sin(b.a1), y1 = cy - R_OUT * Math.cos(b.a1);
@@ -6849,52 +6831,51 @@ function mwDrawSvg(nodes, edges) {
     var x4 = cx + R_IN * Math.sin(b.a1), y4 = cy - R_IN * Math.cos(b.a1);
     var dd = 'M ' + x1 + ' ' + y1 + ' A ' + R_OUT + ' ' + R_OUT + ' 0 ' + large + ' 1 ' + x2 + ' ' + y2
       + ' L ' + x3 + ' ' + y3 + ' A ' + R_IN + ' ' + R_IN + ' 0 ' + large + ' 0 ' + x4 + ' ' + y4 + ' Z';
-
-    parts.push('<path d="' + dd + '" fill="' + fillC + '" fill-opacity="' + (dim ? '0.22' : sel ? '1' : '0.92') + '"'
-      + ' stroke="#fff" stroke-width="1.1"'
-      + ' class="mw-ring" data-node="' + mwEsc(b.acc) + '" style="cursor:pointer">'
-      + '<title>' + mwEsc(b.acc) + '　' + b.count + ' 笔</title></path>');
+    var sel = (mwSelected === b.acc);
+    var dim = mwSelected && !sel;
+    parts.push('<path d="' + dd + '" fill="' + (colorOf[b.acc] || '#cbd5e1') + '"'
+      + ' fill-opacity="' + (dim ? '0.25' : sel ? '1' : '0.9') + '"'
+      + ' stroke="#fff" stroke-width="1.2"'
+      + ' class="mw-ring" data-node="' + mwEsc(b.acc) + '" style="cursor:pointer"/>');
   });
 
-  /* ---------- 文字 ---------- */
+  /* ---------- 文字：从弧外沿开始，字号随弧长自动缩放 ---------- */
   blocks.forEach(function (b) {
     var span = b.a2 - b.a1;
-    var fillC = (b.cat === '费用类') ? (subColor[b.sub] || '#fca5a5') : (CAT_FILL[b.cat] || '#cbd5e1');
-    var dim = mwSelected && !(mwSelected === b.acc);
     var mid = (b.a1 + b.a2) / 2;
     var deg = mid * 180 / Math.PI;
     var flip = (mid > Math.PI / 2 && mid < Math.PI * 1.5);
-    var lb = b.acc.length > 10 ? b.acc.slice(0, 10) + '…' : b.acc;
+    var dim = mwSelected && !(mwSelected === b.acc);
+    var color = colorOf[b.acc] || '#cbd5e1';
 
-    if (span > 0.06) {
-      var rMid = (R_OUT + R_IN) / 2;
-      parts.push('<text x="' + (cx + rMid).toFixed(1) + '" y="' + (cy + 4) + '"'
-        + ' text-anchor="middle" font-size="11.5" font-weight="700"'
-        + ' fill="' + (dim ? '#c9c9c9' : '#0f172a') + '"'
-        + ' transform="rotate(' + (flip ? deg + 180 : deg) + ' ' + cx + ' ' + cy + ')"'
-        + ' style="pointer-events:none">' + mwEsc(lb) + '</text>');
-    } else {
-      var rr = R_OUT + 24;
+    // 弧长（像素）→ 决定可用字号与是否需要引线
+    var arcPx = span * (R_OUT + 16);
+    var lb = b.acc;
+    if (lb.length > 12) lb = lb.slice(0, 12) + '…';
+
+    // 字号：随弧长缩，最小 6.5，最大 12
+    var fs = Math.max(6.5, Math.min(12, arcPx / Math.max(4, lb.length) * 1.35));
+    var needLeader = (arcPx < lb.length * fs * 0.62);
+    var rStart = needLeader ? (R_OUT + 26) : (R_OUT + 10);
+
+    parts.push('<text x="' + (cx + rStart).toFixed(1) + '" y="' + (cy + fs * 0.36).toFixed(1) + '"'
+      + ' text-anchor="start" font-size="' + fs.toFixed(1) + '" font-weight="600"'
+      + ' fill="' + (dim ? '#c9c9c9' : '#374151') + '"'
+      + ' transform="rotate(' + (flip ? deg + 180 : deg) + ' ' + cx + ' ' + cy + ')"'
+      + ' style="pointer-events:none">' + mwEsc(lb) + '</text>');
+
+    if (needLeader) {
       var o1 = pt(R_OUT, mid);
-      var o2 = pt(rr + 22, mid);
+      var o2 = pt(R_OUT + 22, mid);
       parts.push('<line x1="' + o1[0].toFixed(1) + '" y1="' + o1[1].toFixed(1) + '"'
         + ' x2="' + o2[0].toFixed(1) + '" y2="' + o2[1].toFixed(1) + '"'
-        + ' stroke="' + fillC + '" stroke-width="1" stroke-opacity="0.8"/>');
-      parts.push('<text x="' + (cx + rr + 28).toFixed(1) + '" y="' + (cy + 3.4) + '"'
-        + ' text-anchor="start" font-size="10" font-weight="600"'
-        + ' fill="' + (dim ? '#c9c9c9' : '#374151') + '"'
-        + ' transform="rotate(' + (flip ? deg + 180 : deg) + ' ' + cx + ' ' + cy + ')"'
-        + ' style="pointer-events:none">' + mwEsc(lb) + '</text>');
+        + ' stroke="' + color + '" stroke-width="0.9" stroke-opacity="0.75"/>');
     }
   });
 
-  parts.push('<text x="' + cx + '" y="' + (cy - 2) + '" text-anchor="middle" font-size="15" font-weight="700" fill="#4c3d80">'
-    + mwEsc(mwSelected ? (mwSelected.length > 10 ? mwSelected.slice(0, 10) + '…' : mwSelected) : 'Money Way') + '</text>');
-  parts.push('<text x="' + cx + '" y="' + (cy + 18) + '" text-anchor="middle" font-size="10" fill="#9ca3af">'
-    + txs.length + ' 笔流水 · ' + (txs.length * 2) + ' 段</text>');
   parts.push('</svg>');
 
-  /* ---------- 外壳 ---------- */
+  /* ---------- 外壳：左图 + 右栏（设置 + 列表） ---------- */
   var wrap = document.createElement('div');
   wrap.className = 'mw-split';
 
@@ -6906,55 +6887,77 @@ function mwDrawSvg(nodes, edges) {
   var listBox = document.createElement('div');
   listBox.className = 'mw-list';
 
-  // 按账户聚合（笔数 + 金额）
-  var agg = {};
-  txs.forEach(function (x) {
-    [['f', x.f, x.cf, x.amt], ['t', x.to, x.ct, x.amt]].forEach(function (r) {
-      var a = agg[r[1]] || (agg[r[1]] = { name: r[1], cat: r[2], sub: (accOf(r[1]) || {}).sub, n: 0, sum: 0 });
-      a.n += 1; a.sum += r[3];
-    });
-  });
-  var listArr = Object.keys(agg).map(function (k) { return agg[k]; })
-    .sort(function (a, b) { return b.n - a.n || b.sum - a.sum; });
+  /* 设置区（从顶部搬进来） */
+  listBox.innerHTML = ''
+    + '<div class="mw-side-head">Money Way</div>'
+    + '<div class="mw-side-set">'
+    + '  <label>从 <input type="date" id="mw-start" value="' + mwRange.start + '"></label>'
+    + '  <label>到 <input type="date" id="mw-end" value="' + mwRange.end + '"></label>'
+    + '  <label>只看前 <select id="mw-topn"><option>8</option><option selected>12</option><option>20</option><option>36</option><option value="999">全部</option></select> 个</label>'
+    + '  <button type="button" class="ghost" id="mw-apply">应用</button>'
+    + '</div>'
+    + '<div class="mw-side-stat">' + txs.length + ' 笔流水 · ' + accList.length + ' 个账户 · ' + (txs.length * 2) + ' 段</div>';
 
-  var catOrder = ['收入类', '权益类', '资产类', '负债类', '费用类', '其它'];
-  catOrder.forEach(function (cat) {
-    var list = listArr.filter(function (x) { return x.cat === cat; });
-    if (!list.length) return;
+  /* 列表：按类型 → 分类分组 */
+  var groupOrder = [];
+  var groups = {};
+  accList.forEach(function (a) {
+    var key = a.cat + '|' + a.sub;
+    if (!groups[key]) { groups[key] = { cat: a.cat, sub: a.sub, list: [] }; groupOrder.push(key); }
+    groups[key].list.push(a);
+  });
+  groupOrder.forEach(function (key) {
+    var g = groups[key];
     var box = document.createElement('div');
     box.className = 'mw-list-sec';
     var head = document.createElement('div');
     head.className = 'mw-list-head';
-    head.textContent = cat + '（' + list.length + '）';
+    head.textContent = g.cat + (g.sub && g.sub !== '未分类' ? ' · ' + g.sub : '') + '（' + g.list.length + '）';
     box.appendChild(head);
-    list.forEach(function (it) {
+    g.list.forEach(function (it) {
       var row = document.createElement('div');
-      row.className = 'mw-list-row' + (mwSelected === it.name ? ' on' : '');
-      var color = (it.cat === '费用类') ? (subColor[it.sub] || '#fca5a5') : (CAT_FILL[it.cat] || '#cbd5e1');
-      row.innerHTML = '<i class="mw-dot" style="background:' + color + '"></i><span>' + mwEsc(it.name)
-        + '</span><b>' + it.n + ' 笔</b><i class="mw-pct">¥' + Math.round(it.sum) + '</i>';
-      row.onclick = function () {
-        mwSelected = (mwSelected === it.name) ? null : it.name;
-        renderMoneyWay(document.getElementById('main'), document.getElementById('footer'));
-      };
+      row.className = 'mw-list-row';
+      row.innerHTML = '<i class="mw-dot" style="background:' + (colorOf[it.name] || '#cbd5e1') + '"></i>'
+        + '<span>' + mwEsc(it.name) + '</span><b>' + it.n + ' 笔</b><i class="mw-pct">¥' + Math.round(it.sum) + '</i>';
       box.appendChild(row);
     });
     listBox.appendChild(box);
   });
   wrap.appendChild(listBox);
 
+  /* 收起三角：放在右栏右上角 */
   var tg = document.createElement('button');
   tg.type = 'button';
   tg.className = 'mw-toggle';
-  tg.title = '收起 / 展开右侧列表';
+  tg.title = '收起 / 展开右侧栏';
   tg.textContent = '▶';
-  wrap.appendChild(tg);
   tg.onclick = function () {
     var hidden = listBox.classList.toggle('collapsed');
     tg.textContent = hidden ? '◀' : '▶';
+    tg.classList.toggle('shifted', hidden);
+  };
+  wrap.appendChild(tg);
+
+  /* 设置区绑定 */
+  var startI = listBox.querySelector('#mw-start');
+  var endI = listBox.querySelector('#mw-end');
+  var selTop = listBox.querySelector('#mw-topn');
+  var applyB = listBox.querySelector('#mw-apply');
+  if (selTop) selTop.value = String(mwTopN > 40 ? 999 : mwTopN);
+  if (applyB) applyB.onclick = function () {
+    var sv = startI.value || '', ev2 = endI.value || '';
+    if (sv && ev2 && sv > ev2) { toast('起始日期不能晚于结束日期', { type: 'error' }); return; }
+    mwRange = { start: sv, end: ev2 };
+    mwSelected = null;
+    renderMoneyWay(document.getElementById('main'), document.getElementById('footer'));
+  };
+  if (selTop) selTop.onchange = function () {
+    mwTopN = Number(selTop.value) || 12;
+    mwSelected = null;
+    renderMoneyWay(document.getElementById('main'), document.getElementById('footer'));
   };
 
-  /* ---------- 交互 ---------- */
+  /* ---------- 缩放平移 ---------- */
   var zoom = 1, tx = 0, ty = 0;
   var svgEl = chartBox.querySelector('svg');
   try {
@@ -6998,18 +7001,37 @@ function mwDrawSvg(nodes, edges) {
   chartBox.addEventListener('touchmove', function (ev) {
     if (ev.touches.length === 2 && pinch) {
       ev.preventDefault();
-      var d = Math.hypot(ev.touches[0].clientX - ev.touches[1].clientX, ev.touches[0].clientY - ev.touches[1].clientY);
-      zoom = Math.min(4, Math.max(0.4, pinch.z * (d / Math.max(1, pinch.d))));
+      var d2 = Math.hypot(ev.touches[0].clientX - ev.touches[1].clientX, ev.touches[0].clientY - ev.touches[1].clientY);
+      zoom = Math.min(4, Math.max(0.4, pinch.z * (d2 / Math.max(1, pinch.d))));
       applyT();
     }
   }, { passive: false });
   chartBox.addEventListener('touchend', function () { pinch = null; }, { passive: true });
 
+  /* 点弧块只做高亮，不弹任何窗口、不加文字 */
   wrap.querySelectorAll('.mw-ring').forEach(function (g2) {
     g2.onclick = function () {
       var nm = g2.getAttribute('data-node');
       mwSelected = (mwSelected === nm) ? null : nm;
-      renderMoneyWay(document.getElementById('main'), document.getElementById('footer'));
+      // 只更新透明度，不重建整页
+      var hot = {};
+      if (mwSelected) {
+        txs.forEach(function (x) {
+          if (x.f === mwSelected || x.to === mwSelected) hot[x.f + '\u0001' + x.to] = 1;
+        });
+      }
+      var paths = svgEl.querySelectorAll('path:not(.mw-ring)');
+      var idx = 0;
+      txs.forEach(function (x) {
+        var p = paths[idx++];
+        if (!p) return;
+        var on = !mwSelected || hot[x.f + '\u0001' + x.to];
+        p.setAttribute('stroke-opacity', on ? '0.34' : '0.05');
+      });
+      svgEl.querySelectorAll('.mw-ring').forEach(function (r) {
+        var m = r.getAttribute('data-node');
+        r.setAttribute('fill-opacity', !mwSelected ? '0.9' : (m === mwSelected ? '1' : '0.25'));
+      });
     };
   });
 
