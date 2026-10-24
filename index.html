@@ -5492,7 +5492,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v10.38';
+const APP_VER = 'v10.39';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -6583,6 +6583,8 @@ function mwDrawSvg(nodes, edges) {
   nodes.forEach(function (nd) {
     if (!byCat[nd.cat]) return;
     var v = nd.cat === '费用类' ? (nd.inflow || nd.outflow) : (nd.outflow || nd.inflow);
+    // 合计为 0 的账户不参与（否则环上会出现宽度 0 的空块）
+    if (!(v > 0)) return;
     byCat[nd.cat].push({ name: nd.name, cat: nd.cat, value: v, nd: nd });
   });
 
@@ -6610,7 +6612,9 @@ function mwDrawSvg(nodes, edges) {
     var a = -GAP / 2;
     list.forEach(function (item) {
       var span = (item.value / total) * TAU;
-      angleOf[li][item.name] = { a1: a, a2: a + Math.max(0.004, span - GAP), mid: a + span / 2 };
+      // 小于 0.5° 的块直接跳过，不再画成一条「空环块」
+      if (span < 0.0087) return;
+      angleOf[li][item.name] = { a1: a, a2: a + Math.max(0.003, span - GAP), mid: a + span / 2 };
       a = a + span;
     });
   });
@@ -6678,7 +6682,8 @@ function mwDrawSvg(nodes, edges) {
     var total = list.reduce(function (a, b) { return a + b.value; }, 0) || 1;
     list.forEach(function (item) {
       var an = angleOf[li][item.name];
-      if (!an) return;
+      if (!an) return;                 // 被过滤掉的零值账户
+      if (an.a2 - an.a1 < 0.004) return; // 太窄，不画
       var sel = (mwSelected === item.name);
       var dim = mwSelected && !sel;
       parts.push('<path d="' + mwRingPath(cx, cy, RING[li].in, RING[li].out, an.a1, an.a2) + '"'
