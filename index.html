@@ -5565,7 +5565,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v10.51';
+const APP_VER = 'v10.52';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -6418,6 +6418,7 @@ var MW_COLOR = {
 var mwRange = null;
 var mwSelected = null;
 var mwShowInternal = true;
+var mwTopN = 12;
 
 function mwCatOf(name) {
   for (var i = 0; i < state.accounts.length; i++) {
@@ -6533,6 +6534,7 @@ function renderMoneyWay(main, footer) {
     + '<label class="mw-date">从 <input type="date" id="mw-start" value="' + mwRange.start + '"></label>'
     + '<label class="mw-date">到 <input type="date" id="mw-end" value="' + mwRange.end + '"></label>'
     + '<button type="button" class="ghost" id="mw-apply">应用</button>'
+    + '<label class="mw-date">只看前 <select id="mw-topn"><option>8</option><option selected>12</option><option>20</option><option>36</option><option value="999">全部</option></select> 个账户</label>'
     + '<button type="button" class="ghost" id="mw-internal"></button>';
   main.appendChild(bar);
 
@@ -6565,6 +6567,44 @@ function renderMoneyWay(main, footer) {
     edges.forEach(function (e) { alive[e.from] = 1; alive[e.to] = 1; });
     nodes = nodes.filter(function (nd) { return alive[nd.name]; });
 
+    /* 账户一多，环上全是碎块、字糊成一团、弦密到看不出主次。
+       这里只留流量最大的 N 个账户，其余并成「其它」，并把太小的弦滤掉。 */
+    nodes.sort(function (a, b) { return b.total - a.total; });
+    var keep = {};
+    var top = Math.min(mwTopN, nodes.length);
+    for (var i2 = 0; i2 < top; i2++) keep[nodes[i2].name] = 1;
+
+    var folded = {};
+    var newNodes = nodes.slice(0, top).map(function (nd) { return Object.assign({}, nd); });
+    var newEdges = [];
+    var grandTotal = nodes.reduce(function (a, b) { return a + b.total; }, 0) || 1;
+
+    edges.forEach(function (e) {
+      var fIn = keep[e.from], tIn = keep[e.to];
+      if (fIn && tIn) { newEdges.push(e); return; }
+      // 有一端被折叠 → 换成「其它」
+      var f = fIn ? e.from : '其它';
+      var t = tIn ? e.to : '其它';
+      if (f === t) return;
+      var key = f + '\u0001' + t;
+      if (!folded[key]) folded[key] = { from: f, to: t, value: 0 };
+      folded[key].value += e.value;
+    });
+    Object.keys(folded).forEach(function (k) { newEdges.push(folded[k]); });
+
+    if (Object.keys(folded).length) {
+      var otherTotal = 0;
+      newEdges.forEach(function (e) { if (e.from === '其它' || e.to === '其它') otherTotal += e.value; });
+      newNodes.push({ name: '其它', cat: '其它', inflow: otherTotal, outflow: otherTotal, total: otherTotal });
+    }
+
+    // 弦：低于总额 1.5% 的不画，避免糊成一团
+    var minEdge = grandTotal * 0.015;
+    newEdges = newEdges.filter(function (e) { return e.value >= minEdge; });
+
+    nodes = newNodes;
+    edges = newEdges;
+
     if (!nodes.length) {
       body.innerHTML = '<div class="mw-empty">这个区间里没有可画的流水</div>';
       side.innerHTML = '';
@@ -6592,6 +6632,15 @@ function renderMoneyWay(main, footer) {
     syncInt();
     draw();
   };
+  var selTop = bar.querySelector('#mw-topn');
+  if (selTop) {
+    selTop.value = String(mwTopN > 40 ? 999 : mwTopN);
+    selTop.onchange = function () {
+      mwTopN = Number(selTop.value) || 12;
+      mwSelected = null;
+      draw();
+    };
+  }
 
   draw();
   footer.textContent = 'Money Way · ' + mwRange.start + ' ~ ' + mwRange.end + ' · 点账户看它的来路与去向';
@@ -6651,8 +6700,8 @@ function mwRingPath(cx, cy, rIn, rOut, a1, a2) {
    连线从源块连到目标块，曲线穿过圆心区域（chord 样式），
    文字沿圆心射线朝外排；块太窄时拉引线到环外。 */
 function mwDrawSvg(nodes, edges) {
-  var CAT_FILL = { '收入类': '#6ee7b7', '权益类': '#a5b4fc', '资产类': '#34d399', '负债类': '#f87171' };
-  var CAT_LINE = { '收入类': '#10b981', '权益类': '#6366f1', '资产类': '#059669', '负债类': '#dc2626' };
+  var CAT_FILL = { '收入类': '#6ee7b7', '权益类': '#a5b4fc', '资产类': '#34d399', '负债类': '#f87171', '其它': '#cbd5e1' };
+  var CAT_LINE = { '收入类': '#10b981', '权益类': '#6366f1', '资产类': '#059669', '负债类': '#dc2626', '其它': '#94a3b8' };
   var FEE_PALETTE = ['#f9a8d4', '#fca5a5', '#fdba74', '#fcd34d', '#bef264',
                      '#86efac', '#67e8f9', '#93c5fd', '#c4b5fd', '#d8b4fe'];
 
