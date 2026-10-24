@@ -5313,14 +5313,14 @@ table#summary-table tbody td.col-name { z-index: 6; }
   overflow: auto;
   display: block;
   cursor: grab;
-  touch-action: auto;          /* 手机上要能左右拖 */
+  touch-action: none;          /* 自己处理拖动与双指 */
 }
 .mw-chart:active { cursor: grabbing; }
 .mw-chart svg {
   display: block;
-  width: 1000px; height: 1000px;   /* 固定大图，靠容器滚动看全 */
-  transform-origin: center;
-  transition: transform .1s ease-out;
+  width: 1300px; height: 1300px;   /* 再放大 30%，留出外环余量 */
+  transform-origin: center center;
+  transition: transform .08s ease-out;
 }
 .mw-list {
   flex: 0 0 250px; width: 250px;
@@ -5561,7 +5561,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v10.44';
+const APP_VER = 'v10.45';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -6643,13 +6643,13 @@ function mwRingPath(cx, cy, rIn, rOut, a1, a2) {
      · 每个环块的出线点按线数等距分开，不挤在一点
    环宽 60，可拖动旋转。 */
 function mwDrawSvg(nodes, edges) {
-  var CAT_FILL = { '收入类': '#6ee7b7', '资产类': '#34d399', '负债类': '#f87171' };
-  var CAT_EDGE = { '收入类': '#10b981', '资产类': '#059669', '负债类': '#dc2626' };
+  var CAT_FILL = { '收入类': '#6ee7b7', '权益类': '#a5b4fc', '资产类': '#34d399', '负债类': '#f87171' };
+  var CAT_EDGE = { '收入类': '#10b981', '权益类': '#6366f1', '资产类': '#059669', '负债类': '#dc2626' };
   var FEE_PALETTE = ['#f9a8d4', '#fca5a5', '#fdba74', '#fcd34d', '#bef264',
                      '#86efac', '#67e8f9', '#93c5fd', '#c4b5fd', '#d8b4fe'];
 
   var TAU = Math.PI * 2;
-  var SIZE = 1000;
+  var SIZE = 1300;                 // 比上一版大 30%，外环不再贴边缺损
   var cx = SIZE / 2, cy = SIZE / 2;
   var THICK = 60;
 
@@ -6670,7 +6670,7 @@ function mwDrawSvg(nodes, edges) {
     var v = (nd.cat === '费用类') ? (nd.inflow || nd.outflow) : (nd.outflow || nd.inflow);
     if (!(v > 0)) return;
     var rec = { name: nd.name, cat: nd.cat, value: v };
-    if (nd.cat === '收入类') income.push(rec);
+    if (nd.cat === '收入类' || nd.cat === '权益类') income.push(rec);
     else if (nd.cat === '资产类' || nd.cat === '负债类') midL.push(rec);
     else if (nd.cat === '费用类') fee.push(rec);
   });
@@ -6711,7 +6711,7 @@ function mwDrawSvg(nodes, edges) {
   });
 
   var layerOf = function (cat) {
-    if (cat === '收入类') return 0;
+    if (cat === '收入类' || cat === '权益类') return 0;
     if (cat === '资产类' || cat === '负债类') return 1;
     if (cat === '费用类') return 2;
     return -1;
@@ -6758,32 +6758,42 @@ function mwDrawSvg(nodes, edges) {
   var parts = [];
   parts.push('<svg viewBox="0 0 ' + SIZE + ' ' + SIZE + '" width="100%" preserveAspectRatio="xMidYMid meet">');
 
-  /* ---------- 布线：径向出 → 沿共心圆弧 → 径向入 ---------- */
+  /* ---------- 布线：三段弧 ----------
+     ① 起始段：从环块出线点，半径 30 的小弧弯出去
+     ② 中间段：从起始段末端到尾段起点的弧（不与环心共心）
+     ③ 尾段：半径 30 的小弧弯进目标块
+     三段拼起来，全程不进入环内。 */
+  var CURVE_R = 30;
   liveEdges.forEach(function (e) {
     var lf = e._lf, lt = e._lt;
-    var band = BAND[lf];
     var rOut = RING[lf].out;
     var rIn = RING[lt].in;
-    var rMid = (band.from + band.to) / 2;
 
     var p1 = pt(rOut, e.aOut);
-    var p2 = pt(rMid, e.aOut);
-    var p3 = pt(rMid, e.aIn);
-    var p4 = pt(rIn, e.aIn);
+    // 起始段末端：沿半径外推一个 CURVE_R，角度往目标方向偏一点点
+    var dir = (e.aIn >= e.aOut) ? 1 : -1;
+    var bend = CURVE_R / Math.max(60, rOut);
+    var p1b = pt(rOut + CURVE_R, e.aOut + dir * bend);
 
-    var large = Math.abs(e.aIn - e.aOut) > Math.PI ? 1 : 0;
-    var sweep = (e.aIn >= e.aOut) ? 1 : 0;
+    var p2 = pt(rIn, e.aIn);
+    var p2b = pt(rIn - CURVE_R, e.aIn - dir * bend);
+
+    var rMid = Math.max(40, (rOut + rIn) / 2);
+    var span = Math.abs(e.aIn - (e.aOut + dir * bend * 2));
+    var large = span > Math.PI ? 1 : 0;
+    var sw = dir > 0 ? 1 : 0;
+
     var d = 'M ' + p1[0].toFixed(1) + ' ' + p1[1].toFixed(1)
-      + ' L ' + p2[0].toFixed(1) + ' ' + p2[1].toFixed(1)
-      + ' A ' + rMid + ' ' + rMid + ' 0 ' + large + ' ' + sweep + ' ' + p3[0].toFixed(1) + ' ' + p3[1].toFixed(1)
-      + ' L ' + p4[0].toFixed(1) + ' ' + p4[1].toFixed(1);
+      + ' A ' + CURVE_R + ' ' + CURVE_R + ' 0 0 ' + sw + ' ' + p1b[0].toFixed(1) + ' ' + p1b[1].toFixed(1)
+      + ' A ' + rMid.toFixed(0) + ' ' + rMid.toFixed(0) + ' 0 ' + large + ' ' + sw + ' ' + p2b[0].toFixed(1) + ' ' + p2b[1].toFixed(1)
+      + ' A ' + CURVE_R + ' ' + CURVE_R + ' 0 0 ' + sw + ' ' + p2[0].toFixed(1) + ' ' + p2[1].toFixed(1);
 
     var ct = mwCatOf(e.to);
     var col = (lt === 2) ? (feeColor[(accOf(e.to) || {}).sub] || '#f87171') : (CAT_EDGE[ct] || '#94a3b8');
     var w = 1.4 + Math.min(9, e.value / 1500);
 
     parts.push('<path d="' + d + '" fill="none" stroke="' + col + '" stroke-width="' + w.toFixed(1)
-      + '" stroke-opacity="0.5" stroke-linecap="round" stroke-linejoin="round">'
+      + '" stroke-opacity="0.5" stroke-linecap="round">'
       + '<title>' + mwEsc(e.from) + ' → ' + mwEsc(e.to) + '　¥' + e.value.toFixed(2) + '</title></path>');
   });
 
@@ -6879,31 +6889,55 @@ function mwDrawSvg(nodes, edges) {
     tg.textContent = hidden ? '◀' : '▶';
   };
 
-  /* ---------- 滚轮缩放 + 拖动旋转 ---------- */
-  var zoom = 1, rot = 0;
+  /* ---------- 交互：拖动平移 / 滚轮缩放 / 双指缩放 ---------- */
+  var zoom = 1, tx = 0, ty = 0;
   var svgEl = chartBox.querySelector('svg');
   var applyT = function () {
-    if (svgEl) svgEl.style.transform = 'scale(' + zoom.toFixed(2) + ') rotate(' + rot.toFixed(1) + 'deg)';
+    if (svgEl) svgEl.style.transform = 'translate(' + tx.toFixed(1) + 'px,' + ty.toFixed(1) + 'px) scale(' + zoom.toFixed(2) + ')';
   };
+  if (svgEl) {
+    svgEl.style.margin = '0 auto';
+    svgEl.style.willChange = 'transform';
+  }
+
   chartBox.addEventListener('wheel', function (ev) {
     ev.preventDefault();
-    zoom = Math.min(3.5, Math.max(0.5, zoom + (ev.deltaY > 0 ? -0.12 : 0.12)));
+    zoom = Math.min(4, Math.max(0.4, zoom + (ev.deltaY > 0 ? -0.1 : 0.1)));
     applyT();
   }, { passive: false });
 
-  var drag = null;
+  // 单指拖动 = 平移环心；双指 = 缩放
+  var drag = null, pinch = null;
   chartBox.addEventListener('pointerdown', function (ev) {
     if (ev.target.classList && ev.target.classList.contains('mw-ring')) return;
-    drag = { x: ev.clientX, r: rot };
-    chartBox.setPointerCapture && chartBox.setPointerCapture(ev.pointerId);
+    drag = { x: ev.clientX, y: ev.clientY, tx: tx, ty: ty };
+    try { chartBox.setPointerCapture(ev.pointerId); } catch (e) {}
   });
   chartBox.addEventListener('pointermove', function (ev) {
     if (!drag) return;
-    rot = drag.r + (ev.clientX - drag.x) * 0.4;
+    tx = drag.tx + (ev.clientX - drag.x);
+    ty = drag.ty + (ev.clientY - drag.y);
     applyT();
   });
   chartBox.addEventListener('pointerup', function () { drag = null; });
   chartBox.addEventListener('pointercancel', function () { drag = null; });
+
+  chartBox.addEventListener('touchstart', function (ev) {
+    if (ev.touches.length === 2) {
+      drag = null;
+      var d = Math.hypot(ev.touches[0].clientX - ev.touches[1].clientX, ev.touches[0].clientY - ev.touches[1].clientY);
+      pinch = { d: d, z: zoom };
+    }
+  }, { passive: true });
+  chartBox.addEventListener('touchmove', function (ev) {
+    if (ev.touches.length === 2 && pinch) {
+      ev.preventDefault();
+      var d = Math.hypot(ev.touches[0].clientX - ev.touches[1].clientX, ev.touches[0].clientY - ev.touches[1].clientY);
+      zoom = Math.min(4, Math.max(0.4, pinch.z * (d / Math.max(1, pinch.d))));
+      applyT();
+    }
+  }, { passive: false });
+  chartBox.addEventListener('touchend', function () { pinch = null; }, { passive: true });
 
   wrap.querySelectorAll('.mw-ring').forEach(function (g2) {
     g2.onclick = function () {
