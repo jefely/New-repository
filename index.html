@@ -5565,7 +5565,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v10.48';
+const APP_VER = 'v10.49';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -6896,7 +6896,8 @@ function mwDrawSvg(nodes, edges) {
   try {
     var cw = chartBox.clientWidth || 900;
     var ch = chartBox.clientHeight || 700;
-    zoom = Math.min(1, cw / 1300, ch / 1300);
+    // 留 92% 的余量，保证整个外环都在视野里
+    zoom = Math.min(1, (cw * 0.92) / 1300, (ch * 0.92) / 1300);
   } catch (e) {}
 
   var applyT = function () {
