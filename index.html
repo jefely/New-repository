@@ -5303,23 +5303,34 @@ table#summary-table tbody td.col-name { z-index: 6; }
   .mw-list { max-height: 32vh; }
 }
 
-/* Money Way：左侧大正方图 + 右侧固定宽列表 */
-.mw-split { display: flex; align-items: stretch; gap: 0; padding: 0; flex: 1 1 auto; min-height: 0; overflow: hidden; }
+/* Money Way：左侧可滚动的大正方图 + 右侧固定宽列表（贴右沿） */
+.mw-split {
+  display: flex; align-items: stretch; gap: 0;
+  padding: 0; flex: 1 1 auto; min-height: 0; overflow: hidden;
+}
 .mw-chart {
-  flex: 0 0 auto;
-  width: min(200vmin, 1120px);       /* 大约原来 4 倍 */
-  height: min(200vmin, 1120px);
-  overflow: hidden; display: flex; align-items: center; justify-content: center;
-  cursor: grab; touch-action: pan-y;
+  flex: 1 1 auto; min-width: 0;
+  overflow: auto;
+  display: block;
+  cursor: grab;
+  touch-action: auto;          /* 手机上要能左右拖 */
 }
 .mw-chart:active { cursor: grabbing; }
-.mw-chart svg { display: block; width: 100%; height: 100%; transform-origin: center; transition: transform .1s ease-out; }
+.mw-chart svg {
+  display: block;
+  width: 1000px; height: 1000px;   /* 固定大图，靠容器滚动看全 */
+  transform-origin: center;
+  transition: transform .1s ease-out;
+}
 .mw-list {
-  flex: 0 0 240px; width: 240px; margin-left: auto;   /* 贴住右沿 */
+  flex: 0 0 250px; width: 250px;
+  box-sizing: border-box;
   font-size: 12px; line-height: 1.5;
-  max-height: calc(100vh - 200px); overflow: auto;
-  padding: 8px 10px 8px 6px; background: var(--bg-main);
+  overflow: auto;
+  padding: 8px 12px 8px 10px;
+  background: var(--bg-main);
   border-left: 1px solid var(--border-light);
+  max-height: calc(100vh - 170px);
 }
 .mw-list.collapsed { display: none; }
 .mw-list-sec { margin-bottom: 10px; }
@@ -5329,15 +5340,16 @@ table#summary-table tbody td.col-name { z-index: 6; }
 .mw-list-row.on { background: rgba(139,108,255,.16); font-weight: 700; }
 .mw-dot { width: 8px; height: 8px; border-radius: 50%; flex: 0 0 auto; }
 .mw-list-row span { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.mw-list-row b { font-variant-numeric: tabular-nums; }
-.mw-pct { font-style: normal; color: var(--text-muted); width: 32px; text-align: right; }
+.mw-list-row b { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.mw-pct { font-style: normal; color: var(--text-muted); width: 32px; text-align: right; flex: 0 0 auto; }
 .mw-list-empty { font-size: 12px; color: var(--text-muted); }
 .mw-toggle {
-  flex: 0 0 auto; width: 18px; align-self: stretch;
+  flex: 0 0 auto; width: 16px; align-self: stretch;
   border: 0; background: var(--bg-gray); color: var(--text-muted);
-  cursor: pointer; font-size: 11px; padding: 0;
+  cursor: pointer; font-size: 10px; padding: 0;
 }
 .mw-toggle:hover { background: #ece7ff; color: var(--primary); }
+
 </style>
 </head>
 <body>
@@ -5549,7 +5561,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v10.43';
+const APP_VER = 'v10.44';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -6854,7 +6866,18 @@ function mwDrawSvg(nodes, edges) {
     });
     listBox.appendChild(box);
   });
+  // 右沿的收起 / 展开三角
+  var tg = document.createElement('button');
+  tg.type = 'button';
+  tg.className = 'mw-toggle';
+  tg.title = '收起 / 展开右侧列表';
+  tg.textContent = '▶';
+  wrap.appendChild(tg);
   wrap.appendChild(listBox);
+  tg.onclick = function () {
+    var hidden = listBox.classList.toggle('collapsed');
+    tg.textContent = hidden ? '◀' : '▶';
+  };
 
   /* ---------- 滚轮缩放 + 拖动旋转 ---------- */
   var zoom = 1, rot = 0;
