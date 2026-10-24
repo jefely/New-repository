@@ -5238,6 +5238,33 @@ table#summary-table tbody td.col-name { z-index: 6; }
   padding: 0 8px !important; font-size: 11.5px !important;
   letter-spacing: 0 !important; min-width: 0 !important; flex: 0 0 auto;
 }
+
+/* ===== Money Way · 资金路径图 ===== */
+.mw-bar { gap: 10px; flex-wrap: wrap; align-items: center; }
+.mw-title { font-weight: 700; color: var(--primary); font-size: 14px; margin-right: 6px; }
+.mw-date { font-size: 12px; color: var(--text-muted); display: inline-flex; align-items: center; gap: 4px; }
+.mw-date input { height: 26px; font-size: 12px; }
+.mw-body { flex: 1 1 auto; min-height: 0; overflow: auto; background: var(--bg-main); }
+.mw-svg-wrap { padding: 8px 10px 18px; }
+.mw-svg-wrap svg { display: block; height: auto; }
+.mw-empty { padding: 40px 0; text-align: center; color: var(--text-muted); font-size: 13px; }
+.mw-side {
+  flex: 0 0 auto; max-height: 38vh; overflow: auto;
+  border-top: 1px solid var(--border-light); background: var(--bg-gray);
+  padding: 10px 14px 14px; font-size: 12.5px;
+}
+.mw-side-hint { color: var(--text-muted); }
+.mw-side-head { display: flex; align-items: baseline; gap: 8px; margin-bottom: 4px; }
+.mw-side-head b { font-size: 14px; }
+.mw-side-head span { font-size: 11px; color: var(--text-muted); }
+.mw-side-sum { color: var(--text-muted); margin-bottom: 6px; }
+.mw-side-sec { margin-top: 9px; }
+.mw-side-title { font-weight: 700; color: var(--primary); font-size: 12px; margin-bottom: 3px; }
+.mw-side-row { display: flex; gap: 8px; padding: 2px 0; }
+.mw-side-row span { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mw-side-row b { font-variant-numeric: tabular-nums; }
+.mw-side-row i { font-style: normal; color: var(--text-muted); width: 38px; text-align: right; }
+.mw-side-empty { color: var(--text-muted); }
 </style>
 </head>
 <body>
@@ -5250,6 +5277,7 @@ table#summary-table tbody td.col-name { z-index: 6; }
   <button data-tab="install">分期</button>
   <button data-tab="fixed">固定</button>
   <button data-tab="audit">校验</button>
+  <button data-tab="money">钱路</button>
 </div>
 
 <main id="main"></main>
@@ -5448,7 +5476,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v10.28';
+const APP_VER = 'v10.29';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -6282,6 +6310,356 @@ function switchAuditTab(key, silent) {
   }
   main.scrollTop = 0;
   if (key === 'thanks') loadThanksWall();
+}
+
+
+/* ============================================================
+   Money Way · 资金路径图
+   ------------------------------------------------------------
+   只画区间内真的有过流的账户；三列：收入/负债 → 资产 → 费用。
+   边 = 同一对「转出→转入」的金额合计，线宽正比金额。
+   资产内部转账画虚线。权益类不进图。
+   ============================================================ */
+var MW_COLOR = {
+  '收入类': '#22c55e',
+  '负债类': '#f59e0b',
+  '资产类': '#6366f1',
+  '费用类': '#ef4444'
+};
+var mwRange = null;
+var mwSelected = null;
+var mwShowInternal = true;
+
+function mwCatOf(name) {
+  for (var i = 0; i < state.accounts.length; i++) {
+    if (String(state.accounts[i].name || '').trim() === String(name || '').trim()) {
+      return String(state.accounts[i].cat || '未知') || '未知';
+    }
+  }
+  return '未知';
+}
+
+function mwBuildGraph(start, end) {
+  var edgeMap = {};
+  var touch = {};
+  var i, t, d, amt, f, to, cf, ct, key;
+
+  for (i = 0; i < state.transactions.length; i++) {
+    t = state.transactions[i];
+    d = String(t.date || '');
+    if (!d) continue;
+    if (start && d < start) continue;
+    if (end && d > end) continue;
+    amt = Number(t.amount) || 0;
+    if (!amt) continue;
+    f = String(t.from || '').trim();
+    to = String(t.to || '').trim();
+    if (!f || !to) continue;
+    cf = mwCatOf(f);
+    ct = mwCatOf(to);
+    if (cf === '权益类' || ct === '权益类') continue;
+    if (cf === '未知' || ct === '未知') continue;
+
+    key = f + '\u0001' + to;
+    if (!edgeMap[key]) edgeMap[key] = { from: f, to: to, value: 0 };
+    edgeMap[key].value += amt;
+
+    if (!touch[f]) touch[f] = { inflow: 0, outflow: 0 };
+    touch[f].outflow += amt;
+    if (!touch[to]) touch[to] = { inflow: 0, outflow: 0 };
+    touch[to].inflow += amt;
+  }
+
+  var nodes = [];
+  for (var nm in touch) {
+    nodes.push({
+      name: nm,
+      cat: mwCatOf(nm),
+      inflow: touch[nm].inflow,
+      outflow: touch[nm].outflow,
+      total: touch[nm].inflow + touch[nm].outflow
+    });
+  }
+  nodes.sort(function (a, b) { return b.total - a.total; });
+
+  var edges = [];
+  for (var k in edgeMap) edges.push(edgeMap[k]);
+
+  return { nodes: nodes, edges: edges };
+}
+
+function mwTraceUp(name, edges, seen, out) {
+  seen = seen || {};
+  out = out || [];
+  for (var i = 0; i < edges.length; i++) {
+    var e = edges[i];
+    if (e.to !== name) continue;
+    if (seen[e.from]) continue;
+    seen[e.from] = 1;
+    out.push(e);
+    var c = mwCatOf(e.from);
+    if (c !== '收入类' && c !== '负债类') mwTraceUp(e.from, edges, seen, out);
+  }
+  return out;
+}
+
+function mwTraceDown(name, edges, seen, out) {
+  seen = seen || {};
+  out = out || [];
+  for (var i = 0; i < edges.length; i++) {
+    var e = edges[i];
+    if (e.from !== name) continue;
+    if (seen[e.to]) continue;
+    seen[e.to] = 1;
+    out.push(e);
+    if (mwCatOf(e.to) !== '费用类') mwTraceDown(e.to, edges, seen, out);
+  }
+  return out;
+}
+
+function mwEsc(v) {
+  return String(v == null ? '' : v).replace(/[&<>"']/g, function (m) {
+    if (m === '&') return '&amp;';
+    if (m === '<') return '&lt;';
+    if (m === '>') return '&gt;';
+    if (m === '"') return '&quot;';
+    return '&#39;';
+  });
+}
+
+function renderMoneyWay(main, footer) {
+  main.innerHTML = '';
+  main.style.padding = '0';
+
+  if (!mwRange) {
+    var now = new Date();
+    var mm = String(now.getMonth() + 1).padStart(2, '0');
+    mwRange = { start: now.getFullYear() + '-' + mm + '-01', end: todayISO() };
+  }
+
+  var bar = document.createElement('div');
+  bar.className = 'toolbar mw-bar';
+  bar.innerHTML = ''
+    + '<span class="mw-title">Money Way</span>'
+    + '<label class="mw-date">从 <input type="date" id="mw-start" value="' + mwRange.start + '"></label>'
+    + '<label class="mw-date">到 <input type="date" id="mw-end" value="' + mwRange.end + '"></label>'
+    + '<button type="button" class="ghost" id="mw-apply">应用</button>'
+    + '<button type="button" class="ghost" id="mw-internal"></button>';
+  main.appendChild(bar);
+
+  var body = document.createElement('div');
+  body.className = 'mw-body';
+  main.appendChild(body);
+
+  var side = document.createElement('div');
+  side.className = 'mw-side';
+  main.appendChild(side);
+
+  var intBtn = bar.querySelector('#mw-internal');
+  var syncInt = function () {
+    intBtn.textContent = '内部转账：' + (mwShowInternal ? '显示' : '隐藏');
+  };
+  syncInt();
+
+  var draw = function () {
+    var g = mwBuildGraph(mwRange.start, mwRange.end);
+    var nodes = g.nodes;
+    var edges = g.edges;
+
+    if (!mwShowInternal) {
+      edges = edges.filter(function (e) {
+        return !(mwCatOf(e.from) === '资产类' && mwCatOf(e.to) === '资产类');
+      });
+    }
+
+    var alive = {};
+    edges.forEach(function (e) { alive[e.from] = 1; alive[e.to] = 1; });
+    nodes = nodes.filter(function (nd) { return alive[nd.name]; });
+
+    if (!nodes.length) {
+      body.innerHTML = '<div class="mw-empty">这个区间里没有可画的流水</div>';
+      side.innerHTML = '';
+      return;
+    }
+
+    body.innerHTML = '';
+    body.appendChild(mwDrawSvg(nodes, edges));
+
+    mwRenderSide(side, nodes, edges);
+  };
+
+  bar.querySelector('#mw-apply').onclick = function () {
+    var sv = bar.querySelector('#mw-start').value || '';
+    var ev = bar.querySelector('#mw-end').value || '';
+    if (sv && ev && sv > ev) { toast('起始日期不能晚于结束日期', { type: 'error' }); return; }
+    mwRange = { start: sv, end: ev };
+    mwSelected = null;
+    draw();
+    footer.textContent = 'Money Way · ' + mwRange.start + ' ~ ' + mwRange.end;
+  };
+
+  intBtn.onclick = function () {
+    mwShowInternal = !mwShowInternal;
+    syncInt();
+    draw();
+  };
+
+  draw();
+  footer.textContent = 'Money Way · ' + mwRange.start + ' ~ ' + mwRange.end + ' · 点账户看它的来路与去向';
+}
+
+function mwDrawSvg(nodes, edges) {
+  var colX = [90, 520, 950];
+  var nodeW = 150;
+  var padTop = 56;
+  var gap = 14;
+
+  var cols = [[], [], []];
+  nodes.forEach(function (nd) {
+    var ci = nd.cat === '资产类' ? 1 : (nd.cat === '费用类' ? 2 : 0);
+    cols[ci].push(nd);
+  });
+
+  var maxCount = Math.max(cols[0].length, cols[1].length, cols[2].length, 1);
+  var H = Math.max(420, padTop + maxCount * 64 + 40);
+  var W = 1170;
+
+  var pos = {};
+  cols.forEach(function (list, ci) {
+    if (!list.length) return;
+    var total = list.reduce(function (a, b) { return a + b.total; }, 0) || 1;
+    var heights = list.map(function (nd) {
+      return Math.max(30, Math.round((nd.total / total) * (H - padTop - 30) - gap));
+    });
+    var sumH = heights.reduce(function (a, b) { return a + b; }, 0) + gap * (list.length - 1);
+    var y = padTop + Math.max(0, ((H - padTop - 30) - sumH) / 2);
+    for (var i = 0; i < list.length; i++) {
+      pos[list[i].name] = { x: colX[ci], y: y, w: nodeW, h: heights[i], nd: list[i] };
+      y += heights[i] + gap;
+    }
+  });
+
+  var live = edges.filter(function (e) { return pos[e.from] && pos[e.to]; });
+  var maxVal = live.reduce(function (a, e) { return Math.max(a, e.value); }, 1);
+  var px = function (v) { return Math.max(1.2, (v / maxVal) * 24); };
+
+  var outAcc = {}, inAcc = {};
+  Object.keys(pos).forEach(function (nm) { outAcc[nm] = 0; inAcc[nm] = 0; });
+
+  var byTarget = live.slice().sort(function (a, b) { return pos[a.to].y - pos[b.to].y; });
+  var outPort = {};
+  byTarget.forEach(function (e) {
+    var p = pos[e.from];
+    var w = px(e.value);
+    var off = outAcc[e.from];
+    outPort[e.from + '\u0001' + e.to] = { y: p.y + off + w / 2, w: w };
+    outAcc[e.from] = off + w + 1.2;
+  });
+
+  var bySource = live.slice().sort(function (a, b) { return pos[a.from].y - pos[b.from].y; });
+  var inPort = {};
+  bySource.forEach(function (e) {
+    var p = pos[e.to];
+    var w = px(e.value);
+    var off = inAcc[e.to];
+    inPort[e.from + '\u0001' + e.to] = { y: p.y + off + w / 2, w: w };
+    inAcc[e.to] = off + w + 1.2;
+  });
+
+  var hot = null;
+  if (mwSelected) {
+    var up = mwTraceUp(mwSelected, live);
+    var dn = mwTraceDown(mwSelected, live);
+    hot = {};
+    up.concat(dn).forEach(function (e) { hot[e.from + '\u0001' + e.to] = 1; });
+  }
+
+  var parts = [];
+  parts.push('<svg viewBox="0 0 ' + W + ' ' + H + '" width="100%" preserveAspectRatio="xMidYMin meet">');
+  parts.push('<text x="20" y="24" font-size="12" fill="#8b93a3">收入类 / 负债类</text>');
+  parts.push('<text x="' + (colX[1] - 10) + '" y="24" font-size="12" fill="#8b93a3">资产类（中转）</text>');
+  parts.push('<text x="' + (colX[2] - 10) + '" y="24" font-size="12" fill="#8b93a3">费用类（去向）</text>');
+
+  live.forEach(function (e) {
+    var a = pos[e.from], b = pos[e.to];
+    var op = outPort[e.from + '\u0001' + e.to];
+    var ip = inPort[e.from + '\u0001' + e.to];
+    var x1 = a.x + a.w, y1 = op.y, x2 = b.x, y2 = ip.y;
+    var dx = Math.max(44, (x2 - x1) * 0.42);
+    var d = 'M ' + x1 + ' ' + y1 + ' C ' + (x1 + dx) + ' ' + y1 + ', ' + (x2 - dx) + ' ' + y2 + ', ' + x2 + ' ' + y2;
+    var internal = (a.nd.cat === '资产类' && b.nd.cat === '资产类');
+    var isHot = !hot || hot[e.from + '\u0001' + e.to];
+    var color = MW_COLOR[b.nd.cat] || '#94a3b8';
+    parts.push('<path d="' + d + '" fill="none" stroke="' + color + '" stroke-width="' + Math.max(1, op.w).toFixed(1)
+      + '" stroke-opacity="' + (isHot ? '0.72' : '0.1') + '" stroke-linecap="round"'
+      + (internal ? ' stroke-dasharray="7 5"' : '')
+      + '><title>' + mwEsc(e.from) + ' → ' + mwEsc(e.to) + '　¥' + e.value.toFixed(2) + (internal ? '（内部转账）' : '') + '</title></path>');
+  });
+
+  Object.keys(pos).forEach(function (nm) {
+    var p = pos[nm];
+    var c = MW_COLOR[p.nd.cat] || '#94a3b8';
+    var sel = (mwSelected === nm);
+    var dim = mwSelected && !sel;
+    parts.push('<g class="mw-node" data-node="' + mwEsc(nm) + '" style="cursor:pointer">');
+    parts.push('<rect x="' + p.x + '" y="' + p.y + '" width="' + p.w + '" height="' + p.h
+      + '" rx="9" fill="' + c + '" fill-opacity="' + (sel ? '0.45' : (dim ? '0.08' : '0.18'))
+      + '" stroke="' + c + '" stroke-width="' + (sel ? '2.6' : '1.4') + '" stroke-opacity="' + (dim ? '0.3' : '1') + '"/>');
+    parts.push('<text x="' + (p.x + 10) + '" y="' + (p.y + p.h / 2 + 4) + '" font-size="12.5" font-weight="'
+      + (sel ? '700' : '600') + '" fill="' + (dim ? '#8b93a3' : '#1f2430') + '">'
+      + mwEsc(nm.length > 9 ? nm.slice(0, 9) + '…' : nm) + '</text>');
+    parts.push('<title>' + mwEsc(nm) + '（' + p.nd.cat + '）　流入 ¥' + p.nd.inflow.toFixed(2) + '　流出 ¥' + p.nd.outflow.toFixed(2) + '</title>');
+    parts.push('</g>');
+  });
+
+  parts.push('</svg>');
+
+  var wrap = document.createElement('div');
+  wrap.className = 'mw-svg-wrap';
+  wrap.innerHTML = parts.join('');
+  wrap.querySelectorAll('.mw-node').forEach(function (g2) {
+    g2.onclick = function () {
+      var nm = g2.getAttribute('data-node');
+      mwSelected = (mwSelected === nm) ? null : nm;
+      var main = document.getElementById('main');
+      var f = document.getElementById('footer');
+      renderMoneyWay(main, f);
+    };
+  });
+  return wrap;
+}
+
+function mwRenderSide(side, nodes, edges) {
+  if (!mwSelected) {
+    side.innerHTML = '<div class="mw-side-hint">点图里任意一个账户，这里列出它的来路与去向。</div>';
+    return;
+  }
+  var nd = null;
+  for (var i = 0; i < nodes.length; i++) if (nodes[i].name === mwSelected) nd = nodes[i];
+  if (!nd) { side.innerHTML = ''; return; }
+
+  var up = mwTraceUp(mwSelected, edges);
+  var dn = mwTraceDown(mwSelected, edges);
+
+  var group = function (list, key, title) {
+    var m = {};
+    list.forEach(function (e) { m[e[key]] = (m[e[key]] || 0) + e.value; });
+    var rows = Object.keys(m).map(function (k) { return [k, m[k]]; })
+      .sort(function (a, b) { return b[1] - a[1]; });
+    var total = rows.reduce(function (s2, r) { return s2 + r[1]; }, 0) || 1;
+    var html = '<div class="mw-side-sec"><div class="mw-side-title">' + title + '</div>';
+    if (!rows.length) html += '<div class="mw-side-empty">—</div>';
+    rows.forEach(function (r) {
+      html += '<div class="mw-side-row"><span>' + mwEsc(r[0]) + '</span><b>¥' + r[1].toFixed(2)
+        + '</b><i>' + (r[1] / total * 100).toFixed(0) + '%</i></div>';
+    });
+    return html + '</div>';
+  };
+
+  side.innerHTML = '<div class="mw-side-head"><b>' + mwEsc(mwSelected) + '</b><span>' + nd.cat + '</span></div>'
+    + '<div class="mw-side-sum">流入 ¥' + nd.inflow.toFixed(2) + '　流出 ¥' + nd.outflow.toFixed(2) + '</div>'
+    + group(up, 'from', '来路（上游）')
+    + group(dn, 'to', '去向（下游）');
 }
 
 function renderAudit(main, footer) {
@@ -9686,6 +10064,7 @@ function render() {
   else if (currentTab === 'fixed') renderFixed(main, footer);
   else if (currentTab === 'query') renderQuery(main, footer);
   else if (currentTab === 'audit') renderAudit(main, footer);
+  else if (currentTab === 'money') renderMoneyWay(main, footer);
 
   // 数据体检：标红重复/异常项（flow 和 summary 页才有可标的地方）
   if (currentTab === 'flow' || currentTab === 'summary') {
