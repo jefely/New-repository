@@ -5565,7 +5565,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v10.47';
+const APP_VER = 'v10.48';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -6747,50 +6747,42 @@ function mwDrawSvg(nodes, edges) {
   });
   liveEdges.forEach(function (e) {
     var lf = layerOf(mwCatOf(e.from)), lt = layerOf(mwCatOf(e.to));
-    var kOut = lf + '|' + e.from, kIn = lt + '|' + e.to;
-    var nOut = outCount[kOut] || 1, nIn = inCount[kIn] || 1;
-    var iOut = outIdx[kOut] || 0, iIn = inIdx[kIn] || 0;
-    outIdx[kOut] = iOut + 1; inIdx[kIn] = iIn + 1;
-
     var af = angleOf[lf][e.from], at = angleOf[lt][e.to];
-    // 在块的角度范围内等距取点
-    e.aOut = af.a1 + (af.a2 - af.a1) * ((iOut + 0.5) / nOut);
-    e.aIn = at.a1 + (at.a2 - at.a1) * ((iIn + 0.5) / nIn);
+    // 出线端不再在块内等分：统一用块的中角，线从块的正中间出去
+    e.aOut = af.mid;
+    e.aIn = at.mid;
     e._lf = lf; e._lt = lt;
   });
 
   var parts = [];
   parts.push('<svg viewBox="0 0 ' + SIZE + ' ' + SIZE + '" width="100%" preserveAspectRatio="xMidYMid meet">');
 
-  /* ---------- 布线：三段弧 ----------
-     ① 起始段：从环块出线点，半径 30 的小弧弯出去
-     ② 中间段：从起始段末端到尾段起点的弧（不与环心共心）
-     ③ 尾段：半径 30 的小弧弯进目标块
-     三段拼起来，全程不进入环内。 */
-  var CURVE_R = 30;
+  /* ---------- 布线：一条平滑曲线，控制点全部落在环间空白带内 ----------
+     起点在源环外沿，终点在目标环内沿；
+     两个控制点沿切向拉开一点，半径取带内 1/3 与 2/3 处 ——
+     曲线整条都在带里，既不会穿环，也不会像三段拼的那样折角。 */
   liveEdges.forEach(function (e) {
     var lf = e._lf, lt = e._lt;
     var rOut = RING[lf].out;
     var rIn = RING[lt].in;
 
     var p1 = pt(rOut, e.aOut);
-    // 起始段末端：沿半径外推一个 CURVE_R，角度往目标方向偏一点点
-    var dir = (e.aIn >= e.aOut) ? 1 : -1;
-    var bend = CURVE_R / Math.max(60, rOut);
-    var p1b = pt(rOut + CURVE_R, e.aOut + dir * bend);
-
     var p2 = pt(rIn, e.aIn);
-    var p2b = pt(rIn - CURVE_R, e.aIn - dir * bend);
 
-    var rMid = Math.max(40, (rOut + rIn) / 2);
-    var span = Math.abs(e.aIn - (e.aOut + dir * bend * 2));
-    var large = span > Math.PI ? 1 : 0;
-    var sw = dir > 0 ? 1 : 0;
+    var dir = (e.aIn >= e.aOut) ? 1 : -1;
+    // 切向偏移量：角度差越大，控制点越靠外，曲线更舒展
+    var da = Math.abs(e.aIn - e.aOut);
+    var bow = Math.min(da * 0.45, 0.55);
+
+    var rA = rOut + (rIn - rOut) * 0.34;
+    var rB = rOut + (rIn - rOut) * 0.66;
+    var c1 = pt(rA, e.aOut + dir * bow);
+    var c2 = pt(rB, e.aIn - dir * bow);
 
     var d = 'M ' + p1[0].toFixed(1) + ' ' + p1[1].toFixed(1)
-      + ' A ' + CURVE_R + ' ' + CURVE_R + ' 0 0 ' + sw + ' ' + p1b[0].toFixed(1) + ' ' + p1b[1].toFixed(1)
-      + ' A ' + rMid.toFixed(0) + ' ' + rMid.toFixed(0) + ' 0 ' + large + ' ' + sw + ' ' + p2b[0].toFixed(1) + ' ' + p2b[1].toFixed(1)
-      + ' A ' + CURVE_R + ' ' + CURVE_R + ' 0 0 ' + sw + ' ' + p2[0].toFixed(1) + ' ' + p2[1].toFixed(1);
+      + ' C ' + c1[0].toFixed(1) + ' ' + c1[1].toFixed(1)
+      + ', ' + c2[0].toFixed(1) + ' ' + c2[1].toFixed(1)
+      + ', ' + p2[0].toFixed(1) + ' ' + p2[1].toFixed(1);
 
     var ct = mwCatOf(e.to);
     var col = (lt === 2) ? (feeColor[(accOf(e.to) || {}).sub] || '#f87171') : (CAT_EDGE[ct] || '#94a3b8');
@@ -6817,16 +6809,19 @@ function mwDrawSvg(nodes, edges) {
         + ' class="mw-ring" data-node="' + mwEsc(item.name) + '" style="cursor:pointer">'
         + '<title>' + mwEsc(item.name) + '　¥' + item.value.toFixed(2) + '　' + (item.value / total * 100).toFixed(1) + '%</title></path>');
 
-      if (an.span > 0.045) {
+      if (an.span > 0.04) {
         var rMid2 = (RING[li].in + RING[li].out) / 2;
-        var deg = an.mid * 180 / Math.PI;
-        var flip = (an.mid > Math.PI / 2 && an.mid < Math.PI * 1.5);
-        var rot = flip ? deg + 180 : deg;
-        var rx = flip ? (cx - rMid2) : (cx + rMid2);
-        var lb = item.name.length > 7 ? item.name.slice(0, 7) + '…' : item.name;
-        parts.push('<text x="' + rx.toFixed(1) + '" y="' + (cy + 4) + '" text-anchor="middle" font-size="11" font-weight="600"'
-          + ' fill="' + (dim ? '#a3a3a3' : '#374151') + '"'
-          + ' transform="rotate(' + rot.toFixed(1) + ' ' + cx + ' ' + cy + ')"'
+        var deg = an.span > 0.14
+          ? an.mid * 180 / Math.PI
+          : an.mid * 180 / Math.PI;   // 统一沿射线方向，不做 180° 翻转
+        var lb = item.name.length > 9 ? item.name.slice(0, 9) + '…' : item.name;
+        // 文字从「圆心射线与环中线的交点」开始，朝外排；位置就是引线位置
+        var anchorX = cx + rMid2;
+        parts.push('<text'
+          + ' x="' + anchorX.toFixed(1) + '" y="' + (cy + 3.6) + '"'
+          + ' text-anchor="start" font-size="11" font-weight="600"'
+          + ' fill="' + (dim ? '#a3a3a3' : '#1f2937') + '"'
+          + ' transform="rotate(' + deg.toFixed(1) + ' ' + cx + ' ' + cy + ')"'
           + ' style="pointer-events:none">' + mwEsc(lb) + '</text>');
       }
     });
