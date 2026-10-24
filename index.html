@@ -5492,7 +5492,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v10.37';
+const APP_VER = 'v10.38';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -6568,15 +6568,13 @@ function mwDrawSvg(nodes, edges) {
 
   /* 环很细（只放得下账户名），环与环之间留出很宽的黑色布线区 */
   var RING = [
-    { in: 46, out: 68 },        // ① 总收入
-    { in: 170, out: 192 },      // ② 收入 / 负债
-    { in: 294, out: 316 },      // ③ 资产
-    { in: 418, out: 440 }       // ④ 费用 + 离开
+    { in: 60, out: 82 },        // ① 收入 / 负债
+    { in: 186, out: 208 },      // ② 资产（中转）
+    { in: 312, out: 334 }       // ③ 费用 / 离开
   ];
   var BAND = [
-    { from: 68, to: 170 },
-    { from: 192, to: 294 },
-    { from: 316, to: 418 }
+    { from: 82, to: 186 },
+    { from: 208, to: 312 }
   ];
   var GAP = 0.012;
 
@@ -6591,22 +6589,21 @@ function mwDrawSvg(nodes, edges) {
   var totalIncome = byCat['收入类'].reduce(function (a, b) { return a + b.value; }, 0);
   var totalExpense = byCat['费用类'].reduce(function (a, b) { return a + b.value; }, 0);
 
-  var layer0 = [{ name: '总收入', cat: '合计', value: totalIncome, virtual: true }];
-  var layer1 = byCat['收入类'].concat(byCat['负债类']);
-  var layer2 = byCat['资产类'];
-  var layer3 = byCat['费用类'].slice();
+  var layer0 = byCat['收入类'].concat(byCat['负债类']);
+  var layer1 = byCat['资产类'];
+  var layer2 = byCat['费用类'].slice();
 
   var sinkLeft = Math.max(0, totalIncome - totalExpense);
-  if (sinkLeft > 0.01) layer1.push({ name: '收入汇总', cat: '收入类', value: sinkLeft, virtual: true });
+  if (sinkLeft > 0.01) layer0.push({ name: '收入汇总', cat: '收入类', value: sinkLeft, virtual: true });
 
-  var totalAssetOut = layer2.reduce(function (a, b) { return a + b.value; }, 0);
+  var totalAssetOut = layer1.reduce(function (a, b) { return a + b.value; }, 0);
   var leak = Math.max(0, totalAssetOut - totalExpense);
-  if (leak > 0.01) layer3.push({ name: '离开账本', cat: '费用类', value: leak, virtual: true });
+  if (leak > 0.01) layer2.push({ name: '离开账本', cat: '费用类', value: leak, virtual: true });
 
-  var layers = [layer0, layer1, layer2, layer3];
+  var layers = [layer0, layer1, layer2];
 
   /* ---------- 每层里每个账户的角度区间 ---------- */
-  var angleOf = [{}, {}, {}, {}];
+  var angleOf = [{}, {}, {}];
   layers.forEach(function (list, li) {
     var total = list.reduce(function (a, b) { return a + b.value; }, 0);
     if (!total) return;
@@ -6619,9 +6616,9 @@ function mwDrawSvg(nodes, edges) {
   });
 
   var layerOf = function (cat, name) {
-    if (cat === '收入类' || cat === '负债类') return 1;
-    if (cat === '资产类') return 2;
-    if (cat === '费用类') return 3;
+    if (cat === '收入类' || cat === '负债类') return 0;
+    if (cat === '资产类') return 1;
+    if (cat === '费用类') return 2;
     return -1;
   };
   var pt = function (r, ang) { return [cx + r * Math.sin(ang), cy - r * Math.cos(ang)]; };
@@ -6638,19 +6635,17 @@ function mwDrawSvg(nodes, edges) {
     // 收入/负债 → 资产：跨 BAND[0] 和 BAND[1]
     // 资产 → 费用：跨 BAND[1] 和 BAND[2]
     // 同层（资产内部转账）跳过
-    if (lt !== lf + 1 && !(lf === 1 && lt === 2) && !(lf === 2 && lt === 3)) return;
+    if (lt !== lf + 1) return;
 
     var af, at;
-    if (lf === 1 && lt === 2) {
-      af = angleOf[1][e.from];
-      at = angleOf[2][e.to];
+    if (lf === 0 && lt === 1) {
+      af = angleOf[0][e.from];
+      at = angleOf[1][e.to];
       if (!af || !at) return;
-      // 这条线要跨两个布线带，中间穿过第 3 层环（资产那一圈）
-      var bandA = BAND[1], bandB = BAND[2];
-      var p0 = pt(RING[1].out, af.mid);
-      var p3 = pt(RING[2].in, at.mid);
-      var m1 = pt(RING[1].out + 20, af.mid);
-      var m2 = pt(RING[2].in - 20, at.mid);
+      var p0 = pt(RING[0].out, af.mid);
+      var p3 = pt(RING[1].in, at.mid);
+      var m1 = pt(RING[0].out + 30, af.mid);
+      var m2 = pt(RING[1].in - 30, at.mid);
       parts.push('<path d="M ' + p0[0].toFixed(1) + ' ' + p0[1].toFixed(1)
         + ' C ' + m1[0].toFixed(1) + ' ' + m1[1].toFixed(1) + ', '
         + m2[0].toFixed(1) + ' ' + m2[1].toFixed(1) + ', '
@@ -6658,14 +6653,14 @@ function mwDrawSvg(nodes, edges) {
         + ' fill="none" stroke="#a78bfa" stroke-width="' + (1.2 + Math.min(5, e.value / 2500)).toFixed(1)
         + '" stroke-opacity="0.32" stroke-linecap="round">'
         + '<title>' + mwEsc(e.from) + ' → ' + mwEsc(e.to) + '　¥' + e.value.toFixed(2) + '</title></path>');
-    } else if (lf === 2 && lt === 3) {
-      af = angleOf[2][e.from];
-      at = angleOf[3][e.to];
+    } else if (lf === 1 && lt === 2) {
+      af = angleOf[1][e.from];
+      at = angleOf[2][e.to];
       if (!af || !at) return;
-      var p1 = pt(RING[2].out, af.mid);
-      var p4 = pt(RING[3].in, at.mid);
-      var c1 = pt(RING[2].out + 24, af.mid);
-      var c2 = pt(RING[3].in - 24, at.mid);
+      var p1 = pt(RING[1].out, af.mid);
+      var p4 = pt(RING[2].in, at.mid);
+      var c1 = pt(RING[1].out + 30, af.mid);
+      var c2 = pt(RING[2].in - 30, at.mid);
       parts.push('<path d="M ' + p1[0].toFixed(1) + ' ' + p1[1].toFixed(1)
         + ' C ' + c1[0].toFixed(1) + ' ' + c1[1].toFixed(1) + ', '
         + c2[0].toFixed(1) + ' ' + c2[1].toFixed(1) + ', '
@@ -6677,8 +6672,8 @@ function mwDrawSvg(nodes, edges) {
   });
 
   /* ---------- 四层环 ---------- */
-  var FILL = ['#ddd6fe', '#c4b5fd', '#a78bfa', '#8b5cf6'];
-  var EDGE = ['#c4b5fd', '#a78bfa', '#8b5cf6', '#6d28d9'];
+  var FILL = ['#c4b5fd', '#a78bfa', '#8b5cf6'];
+  var EDGE = ['#a78bfa', '#8b5cf6', '#6d28d9'];
   layers.forEach(function (list, li) {
     var total = list.reduce(function (a, b) { return a + b.value; }, 0) || 1;
     list.forEach(function (item) {
@@ -6696,8 +6691,8 @@ function mwDrawSvg(nodes, edges) {
   });
 
   /* ---------- 层名（沿 3 点钟方向的小字） ---------- */
-  var names = ['总收入', '收入 / 负债', '资产（中转）', '费用 / 离开'];
-  for (var li2 = 0; li2 < 4; li2++) {
+  var names = ['收入 / 负债', '资产（中转）', '费用 / 离开'];
+  for (var li2 = 0; li2 < 3; li2++) {
     var pr = pt((RING[li2].in + RING[li2].out) / 2, 0.03);
     parts.push('<text x="' + pr[0].toFixed(0) + '" y="' + (pr[1] + 3).toFixed(0) + '" font-size="10" fill="#8b93a3">' + names[li2] + '</text>');
   }
@@ -6718,7 +6713,7 @@ function mwDrawSvg(nodes, edges) {
   /* ---------- 图例 ---------- */
   var legend = document.createElement('div');
   legend.className = 'mw-legend';
-  var layerNames = ['① 总收入', '② 收入 / 负债', '③ 资产（中转）', '④ 费用 / 离开'];
+  var layerNames = ['① 收入 / 负债', '② 资产（中转）', '③ 费用 / 离开'];
   layers.forEach(function (list, li) {
     var box = document.createElement('div');
     box.className = 'mw-legend-col';
