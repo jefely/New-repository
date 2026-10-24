@@ -1,4 +1,4 @@
-# NT账本 · 数据模型契约
+﻿# NT账本 · 数据模型契约
 
 > 这份文档定义「数据怎么组织、怎么算、什么绝对不允许」。
 > 任何改动如果违反这里的条款，即使功能看起来正常，也算 bug。
@@ -280,7 +280,7 @@ function settleDue(today = todayISO()) {
 ### 6.1 唯一的余额
 
 ```
-余额 = Σ 所有 status='confirmed' 的流水（含期初）
+余额 = 区间期初（Σ date < start）+ 区间内收支
 ```
 
 ### 6.2 「其中分期」是拆解
@@ -292,11 +292,76 @@ function settleDue(today = todayISO()) {
 
 | 概念 | 公式 | 性质 |
 |---|---|---|
-| 当前结余 | `Σ confirmed 流水` | 唯一的钱 |
+| 当前结余 | `区间期初 + 区间内转入 − 区间内转出` | 唯一的钱 |
 | 其中分期 | `Σ(剩余期数 × 每期金额)` | **拆解说明，不参与加减** |
 | ~~真实欠款~~ | ~~余额 - 其中分期~~ | ❌ **不存在，会重复计算** |
 
-### 6.3 参与 / 不参与
+### 6.3 区间期初：**算出来的**，不是那条期初流水
+
+这是 B2 模型必须补的条款。选定的统计区间，「期初」不能取那条 `opening` 流水。
+
+```
+账本期初    = 那条 __OPENING__ 流水（固定，只在账本起点有意义）
+区间期初    = Σ (date < 区间开始日) 的所有 confirmed 流水   ← 动态算出
+区间余额    = 区间期初 + 区间内转入 − 区间内转出
+```
+
+**为什么必须这样**：
+
+如果直接把期初流水当区间期初，选「2026-10」时那条 `2026-01-01` 的流水根本不在区间里，会被漏掉，结果就变成「10 月的净收支」而不是「到 10 月底的总余额」——原来的对账结果会全变。
+
+### 6.4 任意时点余额（B2 的副产品）
+
+有了「区间期初 = 累计到某日」，就顺带获得一个新能力：
+
+```
+2026-06-30 那天，招行储有多少钱？
+= Σ (date ≤ 2026-06-30 且 status='confirmed') 该账户的流水
+```
+
+字段期初做不到这件事（只有「起点」和「现在」两个状态）。
+
+**算法（前缀和，避免每次重算）**：
+
+```js
+function buildTimeline(accountName) {
+  const isDebit = ['资产类', '费用类'].includes(catOf(accountName));
+  let bal = 0;
+  return state.transactions
+    .filter(t => t.status === 'confirmed')
+    .filter(t => t.to === accountName || t.from === accountName)
+    .sort((a, b) => String(a.date).localeCompare(String(b.date)))
+    .map(t => {
+      const inflow  = t.to   === accountName ? Number(t.amount) : 0;
+      const outflow = t.from === accountName ? Number(t.amount) : 0;
+      bal += isDebit ? inflow - outflow : outflow - inflow;
+      return { date: t.date, balance: bal, tx: t };
+    });
+}
+
+function balanceAt(accountName, date) {
+  const line = buildTimeline(accountName);
+  // 二分找最后一个 date ≤ 目标日 的位置
+  let lo = 0, hi = line.length - 1, ans = -1;
+  while (lo <= hi) {
+    const mid = (lo + hi) >> 1;
+    if (String(line[mid].date) <= date) { ans = mid; lo = mid + 1; }
+    else hi = mid - 1;
+  }
+  return ans >= 0 ? line[ans].balance : 0;
+}
+```
+
+期初流水（`from = '__OPENING__'`）天然被算作「流入」，不需要特判。
+
+**用途**：
+
+| 用途 | 是否必做 |
+|---|---|
+| 汇总表选定区间时算区间期初 | **必做**（隐式，用户无感） |
+| 「某天各账户余额」快照页 | 可选 |
+
+### 6.5 参与 / 不参与
 
 | 数据 | 参与余额 | 参与「其中分期」 |
 |---|---|---|
@@ -373,7 +438,7 @@ function settleDue(today = todayISO()) {
 
 ## 十、一句话版本
 
-> **流水是唯一事实源，分三段：期初（历史）/ 当前（已确认，含确定的未来）/ 计划（规则演算，只读）。期初是一条对手方为虚拟权益账户的流水；分期是流水的 `inst` 字段，已还期数按日期推算不存盘；固定收支是规则，勾选时按「变动了几个维度」决定替换还是新增（0~1 变替换，2 变新增）；余额只算已确认的，`其中分期` 是拆解不是追加。**
+> **流水是唯一事实源，分三段：期初（历史）/ 当前（已确认，含确定的未来）/ 计划（规则演算，只读）。期初是一条对手方为虚拟权益账户的流水；分期是流水的 `inst` 字段，已还期数按日期推算不存盘；固定收支是规则，勾选时按「变动了几个维度」决定替换还是新增（0~1 变替换，2 变新增）；余额只算已确认的，`其中分期` 是拆解不是追加；区间期初是「区间开始前的累计余额」动态算出，因此任意时点的余额都可查。**
 
 ---
 
