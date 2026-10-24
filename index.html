@@ -5281,6 +5281,27 @@ table#summary-table tbody td.col-name { z-index: 6; }
 .mw-legend-row b { font-variant-numeric: tabular-nums; }
 .mw-legend-row i { font-style: normal; color: var(--text-muted); width: 34px; text-align: right; }
 .mw-legend-empty { font-size: 12px; color: var(--text-muted); }
+
+/* 左图右表 + 滚轮缩放 */
+.mw-split { display: flex; align-items: flex-start; gap: 12px; padding: 10px; flex: 1 1 auto; min-height: 0; }
+.mw-chart { flex: 0 0 auto; width: min(56vw, 560px); aspect-ratio: 1 / 1; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+.mw-chart svg { display: block; width: 100%; height: auto; transition: transform .12s ease-out; transform-origin: center; }
+.mw-list { flex: 1 1 auto; min-width: 0; max-height: calc(100vh - 220px); overflow: auto; padding-right: 4px; }
+.mw-list-sec { margin-bottom: 12px; }
+.mw-list-head { font-size: 12px; font-weight: 700; color: var(--primary); margin-bottom: 4px; }
+.mw-list-row { display: flex; align-items: center; gap: 7px; font-size: 12.5px; padding: 3px 6px; border-radius: 6px; cursor: pointer; }
+.mw-list-row:hover { background: var(--bg-gray); }
+.mw-list-row.on { background: rgba(139,108,255,.16); font-weight: 700; }
+.mw-dot { width: 8px; height: 8px; border-radius: 50%; flex: 0 0 auto; }
+.mw-list-row span { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mw-list-row b { font-variant-numeric: tabular-nums; }
+.mw-pct { font-style: normal; color: var(--text-muted); width: 36px; text-align: right; }
+.mw-list-empty { font-size: 12px; color: var(--text-muted); }
+@media (max-width: 760px) {
+  .mw-split { flex-direction: column; }
+  .mw-chart { width: 100%; }
+  .mw-list { max-height: 32vh; }
+}
 </style>
 </head>
 <body>
@@ -5492,7 +5513,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v10.41';
+const APP_VER = 'v10.42';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -6561,65 +6582,79 @@ function mwRingPath(cx, cy, rIn, rOut, a1, a2) {
     + ' A ' + rIn + ' ' + rIn + ' 0 ' + large + ' 0 ' + x4 + ' ' + y4 + ' Z';
 }
 
+/* 三环：
+   内环 = 收入类
+   中环 = 资产类（绿）+ 负债类（红）
+   外环 = 费用类（按「分类」上不同颜色）
+   取消所有虚拟节点（收入汇总 / 离开账本），图只表达真实流动。
+   环宽 44px，环间 96px 布线带。 */
 function mwDrawSvg(nodes, edges) {
-  /* 同一个账目类型（收入/负债/资产/费用）用同一个颜色；
-     同一环里可能混着两类（内环是收入 + 负债），靠颜色分开。 */
   var CAT_FILL = {
-    '收入类': '#6ee7b7',   // 绿
-    '负债类': '#fbbf24',   // 橙
-    '资产类': '#7dd3fc',   // 蓝
-    '费用类': '#fca5a5'    // 红
+    '收入类': '#6ee7b7',
+    '资产类': '#34d399',
+    '负债类': '#f87171'
   };
   var CAT_EDGE = {
     '收入类': '#10b981',
-    '负债类': '#d97706',
-    '资产类': '#0284c7',
-    '费用类': '#dc2626'
+    '资产类': '#059669',
+    '负债类': '#dc2626'
   };
+  // 费用按「分类(sub)」分色
+  var FEE_PALETTE = ['#f9a8d4', '#fca5a5', '#fdba74', '#fcd34d', '#bef264',
+                     '#86efac', '#67e8f9', '#93c5fd', '#c4b5fd', '#d8b4fe'];
 
   var TAU = Math.PI * 2;
   var SIZE = 900;
   var cx = SIZE / 2, cy = SIZE / 2;
 
-  /* 环很细（只放得下账户名），环与环之间留出很宽的黑色布线区 */
   var RING = [
-    { in: 60, out: 82 },        // ① 收入 / 负债
-    { in: 186, out: 208 },      // ② 资产（中转）
-    { in: 312, out: 334 }       // ③ 费用 / 离开
+    { in: 90, out: 134 },      // ① 收入
+    { in: 232, out: 276 },     // ② 资产 / 负债
+    { in: 374, out: 418 }      // ③ 费用
   ];
   var BAND = [
-    { from: 82, to: 186 },
-    { from: 208, to: 312 }
+    { from: 134, to: 232 },
+    { from: 276, to: 374 }
   ];
-  var GAP = 0.012;
+  var GAP = 0.014;
 
-  /* ---------- 归拢四层数据 ---------- */
-  var byCat = { '收入类': [], '负债类': [], '资产类': [], '费用类': [] };
+  /* ---------- 分层 ---------- */
+  var income = [], mid = [], fee = [];
   nodes.forEach(function (nd) {
-    if (!byCat[nd.cat]) return;
-    var v = nd.cat === '费用类' ? (nd.inflow || nd.outflow) : (nd.outflow || nd.inflow);
-    // 合计为 0 的账户不参与（否则环上会出现宽度 0 的空块）
+    var v = (nd.cat === '费用类') ? (nd.inflow || nd.outflow) : (nd.outflow || nd.inflow);
     if (!(v > 0)) return;
-    byCat[nd.cat].push({ name: nd.name, cat: nd.cat, value: v, nd: nd });
+    var rec = { name: nd.name, cat: nd.cat, value: v, nd: nd };
+    if (nd.cat === '收入类') income.push(rec);
+    else if (nd.cat === '资产类' || nd.cat === '负债类') mid.push(rec);
+    else if (nd.cat === '费用类') fee.push(rec);
   });
 
-  var totalIncome = byCat['收入类'].reduce(function (a, b) { return a + b.value; }, 0);
-  var totalExpense = byCat['费用类'].reduce(function (a, b) { return a + b.value; }, 0);
+  // 费用按分类排在一起，同分类相邻、同色
+  var subOf = function (name) {
+    for (var i = 0; i < state.accounts.length; i++) {
+      if (String(state.accounts[i].name || '').trim() === String(name || '').trim()) {
+        return String(state.accounts[i].sub || '未分类');
+      }
+    }
+    return '未分类';
+  };
+  fee.sort(function (a, b) {
+    var sa = subOf(a.name), sb = subOf(b.name);
+    if (sa === sb) return b.value - a.value;
+    return sa < sb ? -1 : 1;
+  });
+  var feeSubs = [];
+  fee.forEach(function (r) {
+    var sb = subOf(r.name);
+    if (feeSubs.indexOf(sb) < 0) feeSubs.push(sb);
+    r.sub = sb;
+  });
+  var feeColor = {};
+  feeSubs.forEach(function (sb, i) { feeColor[sb] = FEE_PALETTE[i % FEE_PALETTE.length]; });
 
-  var layer0 = byCat['收入类'].concat(byCat['负债类']);
-  var layer1 = byCat['资产类'];
-  var layer2 = byCat['费用类'].slice();
+  var layers = [income, mid, fee];
 
-  var sinkLeft = Math.max(0, totalIncome - totalExpense);
-  if (sinkLeft > 0.01) layer0.push({ name: '收入汇总', cat: '收入类', value: sinkLeft, virtual: true });
-
-  var totalAssetOut = layer1.reduce(function (a, b) { return a + b.value; }, 0);
-  var leak = Math.max(0, totalAssetOut - totalExpense);
-  if (leak > 0.01) layer2.push({ name: '离开账本', cat: '费用类', value: leak, virtual: true });
-
-  var layers = [layer0, layer1, layer2];
-
-  /* ---------- 每层里每个账户的角度区间 ---------- */
+  /* ---------- 角度 ---------- */
   var angleOf = [{}, {}, {}];
   layers.forEach(function (list, li) {
     var total = list.reduce(function (a, b) { return a + b.value; }, 0);
@@ -6627,16 +6662,15 @@ function mwDrawSvg(nodes, edges) {
     var a = -GAP / 2;
     list.forEach(function (item) {
       var span = (item.value / total) * TAU;
-      // 小于 0.5° 的块直接跳过，不再画成一条「空环块」
-      if (span < 0.0087) return;
-      angleOf[li][item.name] = { a1: a, a2: a + Math.max(0.003, span - GAP), mid: a + span / 2 };
+      if (span < 0.006) return;
+      angleOf[li][item.name] = { a1: a, a2: a + Math.max(0.002, span - GAP), mid: a + span / 2, span: span };
       a = a + span;
     });
   });
 
-  var layerOf = function (cat, name) {
-    if (cat === '收入类' || cat === '负债类') return 0;
-    if (cat === '资产类') return 1;
+  var layerOf = function (cat) {
+    if (cat === '收入类') return 0;
+    if (cat === '资产类' || cat === '负债类') return 1;
     if (cat === '费用类') return 2;
     return -1;
   };
@@ -6645,124 +6679,140 @@ function mwDrawSvg(nodes, edges) {
   var parts = [];
   parts.push('<svg viewBox="0 0 ' + SIZE + ' ' + SIZE + '" width="100%" preserveAspectRatio="xMidYMid meet">');
 
-  /* ---------- 布线：先画在最下面，环盖住端点 ---------- */
+  /* ---------- 布线 ---------- */
   edges.forEach(function (e) {
     var cf = mwCatOf(e.from), ct = mwCatOf(e.to);
     var lf = layerOf(cf), lt = layerOf(ct);
-    if (lf < 0 || lt < 0) return;
+    if (lf < 0 || lt < 0 || lt !== lf + 1) return;
+    var af = angleOf[lf][e.from], at = angleOf[lt][e.to];
+    if (!af || !at) return;
 
-    // 收入/负债 → 资产：跨 BAND[0] 和 BAND[1]
-    // 资产 → 费用：跨 BAND[1] 和 BAND[2]
-    // 同层（资产内部转账）跳过
-    if (lt !== lf + 1) return;
+    var p0 = pt(RING[lf].out, af.mid);
+    var p1 = pt(RING[lt].in, at.mid);
+    var m1 = pt(RING[lf].out + (BAND[lf].to - BAND[lf].from) * 0.42, af.mid);
+    var m2 = pt(RING[lt].in - (BAND[lf].to - BAND[lf].from) * 0.42, at.mid);
+    var w = 1.6 + Math.min(11, e.value / 1200);
 
-    var af, at;
-    if (lf === 0 && lt === 1) {
-      af = angleOf[0][e.from];
-      at = angleOf[1][e.to];
-      if (!af || !at) return;
-      var p0 = pt(RING[0].out, af.mid);
-      var p3 = pt(RING[1].in, at.mid);
-      var m1 = pt(RING[0].out + 30, af.mid);
-      var m2 = pt(RING[1].in - 30, at.mid);
-      parts.push('<path d="M ' + p0[0].toFixed(1) + ' ' + p0[1].toFixed(1)
-        + ' C ' + m1[0].toFixed(1) + ' ' + m1[1].toFixed(1) + ', '
-        + m2[0].toFixed(1) + ' ' + m2[1].toFixed(1) + ', '
-        + p3[0].toFixed(1) + ' ' + p3[1].toFixed(1) + '"'
-        + ' fill="none" stroke="' + (CAT_EDGE[ct] || '#a78bfa') + '" stroke-width="' + (1.4 + Math.min(9, e.value / 1500)).toFixed(1)
-        + '" stroke-opacity="0.42" stroke-linecap="round">'
-        + '<title>' + mwEsc(e.from) + ' → ' + mwEsc(e.to) + '　¥' + e.value.toFixed(2) + '</title></path>');
-    } else if (lf === 1 && lt === 2) {
-      af = angleOf[1][e.from];
-      at = angleOf[2][e.to];
-      if (!af || !at) return;
-      var p1 = pt(RING[1].out, af.mid);
-      var p4 = pt(RING[2].in, at.mid);
-      var c1 = pt(RING[1].out + 30, af.mid);
-      var c2 = pt(RING[2].in - 30, at.mid);
-      parts.push('<path d="M ' + p1[0].toFixed(1) + ' ' + p1[1].toFixed(1)
-        + ' C ' + c1[0].toFixed(1) + ' ' + c1[1].toFixed(1) + ', '
-        + c2[0].toFixed(1) + ' ' + c2[1].toFixed(1) + ', '
-        + p4[0].toFixed(1) + ' ' + p4[1].toFixed(1) + '"'
-        + ' fill="none" stroke="' + (CAT_EDGE[ct] || '#8b5cf6') + '" stroke-width="' + (1.4 + Math.min(9, e.value / 1500)).toFixed(1)
-        + '" stroke-opacity="0.45" stroke-linecap="round">'
-        + '<title>' + mwEsc(e.from) + ' → ' + mwEsc(e.to) + '　¥' + e.value.toFixed(2) + '</title></path>');
-    }
+    parts.push('<path d="M ' + p0[0].toFixed(1) + ' ' + p0[1].toFixed(1)
+      + ' C ' + m1[0].toFixed(1) + ' ' + m1[1].toFixed(1) + ', '
+      + m2[0].toFixed(1) + ' ' + m2[1].toFixed(1) + ', '
+      + p1[0].toFixed(1) + ' ' + p1[1].toFixed(1) + '"'
+      + ' fill="none" stroke="' + (ct === '费用类' ? (feeColor[subOf(e.to)] || '#f87171') : (CAT_EDGE[ct] || '#94a3b8'))
+      + '" stroke-width="' + w.toFixed(1) + '" stroke-opacity="0.45" stroke-linecap="round">'
+      + '<title>' + mwEsc(e.from) + ' → ' + mwEsc(e.to) + '　¥' + e.value.toFixed(2) + '</title></path>');
   });
 
-  /* ---------- 四层环 ---------- */
+  /* ---------- 环块 + 径向文字 ---------- */
   layers.forEach(function (list, li) {
     var total = list.reduce(function (a, b) { return a + b.value; }, 0) || 1;
     list.forEach(function (item) {
       var an = angleOf[li][item.name];
-      if (!an) return;                 // 被过滤掉的零值账户
-      if (an.a2 - an.a1 < 0.004) return; // 太窄，不画
+      if (!an) return;
+      if (an.a2 - an.a1 < 0.004) return;
+
+      var fillC;
+      if (li === 2) fillC = feeColor[item.sub] || '#fca5a5';
+      else fillC = CAT_FILL[item.cat] || '#cbd5e1';
+      var edgeC = (li === 2) ? '#94a3b8' : (CAT_EDGE[item.cat] || '#94a3b8');
+
       var sel = (mwSelected === item.name);
       var dim = mwSelected && !sel;
-      var fillC = CAT_FILL[item.cat] || '#cbd5e1';
-      var edgeC = CAT_EDGE[item.cat] || '#94a3b8';
+
       parts.push('<path d="' + mwRingPath(cx, cy, RING[li].in, RING[li].out, an.a1, an.a2) + '"'
         + ' fill="' + fillC + '" fill-opacity="' + (dim ? '0.25' : sel ? '1' : '0.92') + '"'
-        + ' stroke="' + edgeC + '" stroke-opacity="' + (sel ? '1' : '0.65') + '" stroke-width="' + (sel ? 2.4 : 0.9) + '"'
+        + ' stroke="' + edgeC + '" stroke-opacity="' + (sel ? '1' : '0.5') + '" stroke-width="' + (sel ? 2.6 : 0.9) + '"'
         + ' class="mw-ring" data-node="' + mwEsc(item.name) + '" style="cursor:pointer">'
-        + '<title>' + mwEsc(item.name) + '　¥' + item.value.toFixed(2)
-        + '（' + (item.value / total * 100).toFixed(1) + '%）' + (item.virtual ? '　虚拟' : '') + '</title></path>');
+        + '<title>' + mwEsc(item.name) + '（' + item.cat + (item.sub ? ' · ' + item.sub : '') + '）　¥'
+        + item.value.toFixed(2) + '　' + (item.value / total * 100).toFixed(1) + '%</title></path>');
+
+      // 文字沿半径方向（与直径辐射线平行）
+      if (an.span > 0.05) {
+        var rMid = (RING[li].in + RING[li].out) / 2;
+        var deg = an.mid * 180 / Math.PI;
+        var flip = (an.mid > Math.PI / 2 && an.mid < Math.PI * 1.5);
+        var tx = cx + rMid;
+        var rot = deg;
+        if (flip) { rot = deg + 180; tx = cx - rMid; }
+        var label = item.name.length > 7 ? item.name.slice(0, 7) + '…' : item.name;
+        parts.push('<text x="' + (flip ? (cx - rMid) : tx) + '" y="' + (cy + 3.5) + '"'
+          + ' text-anchor="middle" font-size="10.5" font-weight="600"'
+          + ' fill="' + (dim ? '#a3a3a3' : '#374151') + '"'
+          + ' transform="rotate(' + rot.toFixed(1) + ' ' + cx + ' ' + cy + ')"'
+          + ' style="pointer-events:none">' + mwEsc(label) + '</text>');
+      }
     });
   });
 
-  /* ---------- 层名（沿 3 点钟方向的小字） ---------- */
-  var names = ['收入 / 负债', '资产（中转）', '费用 / 离开'];
+  /* ---------- 层名 ---------- */
+  var names = ['收入', '资产 / 负债', '费用'];
   for (var li2 = 0; li2 < 3; li2++) {
-    var pr = pt((RING[li2].in + RING[li2].out) / 2, 0.03);
-    parts.push('<text x="' + pr[0].toFixed(0) + '" y="' + (pr[1] + 3).toFixed(0) + '" font-size="10" fill="#8b93a3">' + names[li2] + '</text>');
+    var pr = pt(RING[li2].in - 14, 0.02);
+    parts.push('<text x="' + pr[0].toFixed(0) + '" y="' + pr[1].toFixed(0) + '" font-size="11" fill="#9ca3af">' + names[li2] + '</text>');
   }
 
   /* ---------- 中心 ---------- */
-  var centerLabel = mwSelected || 'Money Way';
-  parts.push('<text x="' + cx + '" y="' + (cy - 3) + '" text-anchor="middle" font-size="13" font-weight="700" fill="#4c3d80">'
-    + mwEsc(centerLabel.length > 9 ? centerLabel.slice(0, 9) + '…' : centerLabel) + '</text>');
-  parts.push('<text x="' + cx + '" y="' + (cy + 14) + '" text-anchor="middle" font-size="9.5" fill="#8b93a3">'
-    + (mwSelected ? '再点还原' : '点环看构成') + '</text>');
+  var cl = mwSelected || 'Money Way';
+  parts.push('<text x="' + cx + '" y="' + (cy - 2) + '" text-anchor="middle" font-size="15" font-weight="700" fill="#4c3d80">'
+    + mwEsc(cl.length > 10 ? cl.slice(0, 10) + '…' : cl) + '</text>');
+  parts.push('<text x="' + cx + '" y="' + (cy + 18) + '" text-anchor="middle" font-size="10" fill="#9ca3af">'
+    + (mwSelected ? '再点还原' : '滚轮缩放') + '</text>');
 
   parts.push('</svg>');
 
+  /* ---------- 外壳：左图 + 右列表 ---------- */
   var wrap = document.createElement('div');
-  wrap.className = 'mw-svg-wrap mw-ring-wrap';
-  wrap.innerHTML = parts.join('');
+  wrap.className = 'mw-split';
 
-  /* ---------- 图例 ---------- */
-  var legend = document.createElement('div');
-  legend.className = 'mw-legend';
-  var layerNames = ['① 收入 / 负债', '② 资产（中转）', '③ 费用 / 离开'];
+  var chartBox = document.createElement('div');
+  chartBox.className = 'mw-chart';
+  chartBox.innerHTML = parts.join('');
+  wrap.appendChild(chartBox);
+
+  var listBox = document.createElement('div');
+  listBox.className = 'mw-list';
+  var layerNames = ['① 收入', '② 资产 / 负债', '③ 费用'];
   layers.forEach(function (list, li) {
     var box = document.createElement('div');
-    box.className = 'mw-legend-col';
+    box.className = 'mw-list-sec';
     var head = document.createElement('div');
-    head.className = 'mw-legend-head';
+    head.className = 'mw-list-head';
     head.textContent = layerNames[li];
     box.appendChild(head);
     var total = list.reduce(function (a, b) { return a + b.value; }, 0) || 1;
     if (!list.length) {
       var em = document.createElement('div');
-      em.className = 'mw-legend-empty';
+      em.className = 'mw-list-empty';
       em.textContent = '—';
       box.appendChild(em);
     }
     list.forEach(function (item) {
+      var an = angleOf[li][item.name];
+      if (!an) return;
       var row = document.createElement('div');
-      row.className = 'mw-legend-row' + (mwSelected === item.name ? ' on' : '');
-      row.innerHTML = '<span>' + mwEsc(item.name) + '</span><b>¥' + item.value.toFixed(0)
-        + '</b><i>' + (item.value / total * 100).toFixed(0) + '%</i>';
-      row.style.cursor = 'pointer';
+      row.className = 'mw-list-row' + (mwSelected === item.name ? ' on' : '');
+      var dot = li === 2
+        ? '<i class="mw-dot" style="background:' + (feeColor[item.sub] || '#fca5a5') + '"></i>'
+        : '<i class="mw-dot" style="background:' + (CAT_FILL[item.cat] || '#cbd5e1') + '"></i>';
+      row.innerHTML = dot + '<span>' + mwEsc(item.name) + '</span><b>¥' + item.value.toFixed(0)
+        + '</b><i class="mw-pct">' + (item.value / total * 100).toFixed(0) + '%</i>';
       row.onclick = function () {
         mwSelected = (mwSelected === item.name) ? null : item.name;
         renderMoneyWay(document.getElementById('main'), document.getElementById('footer'));
       };
       box.appendChild(row);
     });
-    legend.appendChild(box);
+    listBox.appendChild(box);
   });
-  wrap.appendChild(legend);
+  wrap.appendChild(listBox);
+
+  /* ---------- 滚轮缩放 ---------- */
+  var zoom = 1;
+  chartBox.addEventListener('wheel', function (ev) {
+    ev.preventDefault();
+    zoom = Math.min(3, Math.max(0.6, zoom + (ev.deltaY > 0 ? -0.12 : 0.12)));
+    var svg = chartBox.querySelector('svg');
+    if (svg) svg.style.transform = 'scale(' + zoom.toFixed(2) + ')';
+  }, { passive: false });
 
   wrap.querySelectorAll('.mw-ring').forEach(function (g2) {
     g2.onclick = function () {
@@ -6771,6 +6821,7 @@ function mwDrawSvg(nodes, edges) {
       renderMoneyWay(document.getElementById('main'), document.getElementById('footer'));
     };
   });
+
   return wrap;
 }
 
