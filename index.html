@@ -5268,6 +5268,19 @@ table#summary-table tbody td.col-name { z-index: 6; }
 
 .mw-ring-wrap { display: flex; justify-content: center; padding: 10px; }
 .mw-ring-wrap svg { max-width: 620px; max-height: 62vh; }
+
+/* 环形图图例：三层各一列 */
+.mw-ring-wrap { flex-direction: column; align-items: center; }
+.mw-legend { display: flex; gap: 18px; flex-wrap: wrap; justify-content: center; width: 100%; max-width: 760px; margin-top: 6px; }
+.mw-legend-col { flex: 1 1 200px; min-width: 180px; }
+.mw-legend-head { font-size: 12px; font-weight: 700; color: var(--primary); margin-bottom: 4px; }
+.mw-legend-row { display: flex; gap: 6px; font-size: 12px; padding: 2px 4px; border-radius: 5px; }
+.mw-legend-row:hover { background: var(--bg-gray); }
+.mw-legend-row.on { background: rgba(139,108,255,.16); font-weight: 700; }
+.mw-legend-row span { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mw-legend-row b { font-variant-numeric: tabular-nums; }
+.mw-legend-row i { font-style: normal; color: var(--text-muted); width: 34px; text-align: right; }
+.mw-legend-empty { font-size: 12px; color: var(--text-muted); }
 </style>
 </head>
 <body>
@@ -5479,7 +5492,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v10.31';
+const APP_VER = 'v10.32';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -6599,6 +6612,44 @@ function mwDrawSvg(nodes, edges) {
   var wrap = document.createElement('div');
   wrap.className = 'mw-svg-wrap mw-ring-wrap';
   wrap.innerHTML = parts.join('');
+
+  // 图例：三层各列出 名称 + 金额 + 占比，图上认不出时看这里
+  var legend = document.createElement('div');
+  legend.className = 'mw-legend';
+  var layerNames = ['收入类（内环）', '资产 / 负债（中环）', '费用类（外环）'];
+  var cols2 = [[], [], []];
+  layers.forEach(function (list, li) {
+    var total = list.reduce(function (a, b) { return a + b.value; }, 0) || 1;
+    list.forEach(function (item) { cols2[li].push({ item: item, total: total }); });
+  });
+  cols2.forEach(function (rows, li) {
+    var box = document.createElement('div');
+    box.className = 'mw-legend-col';
+    var head = document.createElement('div');
+    head.className = 'mw-legend-head';
+    head.textContent = layerNames[li];
+    box.appendChild(head);
+    if (!rows.length) {
+      var em = document.createElement('div');
+      em.className = 'mw-legend-empty';
+      em.textContent = '—';
+      box.appendChild(em);
+    }
+    rows.forEach(function (r) {
+      var row = document.createElement('div');
+      row.className = 'mw-legend-row' + (mwSelected === r.item.name ? ' on' : '');
+      row.innerHTML = '<span>' + mwEsc(r.item.name) + '</span><b>¥' + r.item.value.toFixed(0)
+        + '</b><i>' + (r.item.value / r.total * 100).toFixed(0) + '%</i>';
+      row.style.cursor = 'pointer';
+      row.onclick = function () {
+        mwSelected = (mwSelected === r.item.name) ? null : r.item.name;
+        renderMoneyWay(document.getElementById('main'), document.getElementById('footer'));
+      };
+      box.appendChild(row);
+    });
+    legend.appendChild(box);
+  });
+  wrap.appendChild(legend);
   wrap.querySelectorAll('.mw-ring').forEach(function (g2) {
     g2.onclick = function () {
       var nm = g2.getAttribute('data-node');
