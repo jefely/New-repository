@@ -5576,7 +5576,7 @@ function siteQrDataUrl() {
   return _siteQrUrl;
 }
 
-const APP_VER = 'v10.55';
+const APP_VER = 'v10.56';
 const LS_KEY_BASE = 'flow_grid_v5';
 const BOOKS_KEY = 'purple_books_v1';
 
@@ -6543,9 +6543,6 @@ function renderMoneyWay(main, footer) {
   body.className = 'mw-body';
   main.appendChild(body);
 
-  var side = document.createElement('div');
-  side.className = 'mw-side';
-  main.appendChild(side);
 
 
   var draw = function () {
@@ -6687,6 +6684,15 @@ function mwRingPath(cx, cy, rIn, rOut, a1, a2) {
    · 每笔一条线，线的颜色取「转出块」的颜色
    · 文字从弧外沿开始外推，字号随可用弧长自动缩放
    · 设置项与列表全部收进右侧栏；点弧块不做任何弹窗 */
+/* Money Way · 逐笔和弦图（弧块按「统计分类」划分）
+   ------------------------------------------------------------
+   · 弧块 = 统计分类(sub)：「储蓄 / 网账 / 现金 / 日常 / 生活 …」
+     弧块数量 = 分类数量，颜色也只由分类决定（全图颜色数 = 分类数）
+   · 弧块内部按账户再分段，段的多少 = 该账户参与的流水笔数
+   · 每笔流水两个槽位（转出端 / 转入端），块与块之间留间隔
+   · 连线颜色 = **转出端所属分类**的颜色
+   · 文字只标分类名，每个弧块一个，不会再重复
+   ============================================================ */
 function mwDrawSvg(nodes, edges) {
   var TAU = Math.PI * 2;
   var SIZE = 1300;
@@ -6722,73 +6728,107 @@ function mwDrawSvg(nodes, edges) {
     }
     return null;
   };
-  var subOf = function (name) { var a = accOf(name); return (a && a.sub) ? String(a.sub) : '未分类'; };
+  var subOf = function (name) {
+    var a = accOf(name);
+    var sb = a && a.sub ? String(a.sub) : '';
+    return sb || '未分类';
+  };
 
-  /* ---------- 账户聚合 + 排序（类型 → 分类 → 账户） ---------- */
+  /* ---------- 分类（弧块）与颜色 ---------- */
   var CAT_ORDER = ['收入类', '权益类', '资产类', '负债类', '费用类', '其它'];
-  var agg = {};
+  var subMeta = {};        // key = cat + '|' + sub
+  var subKeys = [];
+  function ensureSub(cat, sub) {
+    var key = cat + '|' + sub;
+    if (!subMeta[key]) {
+      subMeta[key] = { key: key, cat: cat, sub: sub, n: 0, sum: 0 };
+      subKeys.push(key);
+    }
+    return subMeta[key];
+  }
+
+  var accAgg = {};         // 账户 → { n, sum }
   txs.forEach(function (x) {
     [[x.f, x.cf], [x.to, x.ct]].forEach(function (pair) {
       var nm = pair[0], cat = pair[1];
-      var a = agg[nm] || (agg[nm] = { name: nm, cat: cat, sub: subOf(nm), n: 0, sum: 0 });
+      var sub = subOf(nm);
+      var m = ensureSub(cat, sub);
+      m.n += 1; m.sum += x.amt;
+      var a = accAgg[nm] || (accAgg[nm] = { name: nm, cat: cat, sub: sub, n: 0, sum: 0 });
       a.n += 1; a.sum += x.amt;
     });
   });
-  var accList = Object.keys(agg).map(function (k) { return agg[k]; });
-  accList.sort(function (a, b) {
-    var ia = CAT_ORDER.indexOf(a.cat), ib = CAT_ORDER.indexOf(b.cat);
+  // 排序：类型 → 分类（按笔数降序）
+  subKeys.sort(function (a, b) {
+    var A = subMeta[a], B = subMeta[b];
+    var ia = CAT_ORDER.indexOf(A.cat), ib = CAT_ORDER.indexOf(B.cat);
     if (ia !== ib) return ia - ib;
-    if (a.sub !== b.sub) return a.sub < b.sub ? -1 : 1;
-    if (a.n !== b.n) return b.n - a.n;
-    return a.name < b.name ? -1 : 1;
+    return B.n - A.n;
   });
 
-  // 颜色：黄金角取色相，保证相邻块不同色
-  var colorOf = {};
-  accList.forEach(function (a, i) {
-    colorOf[a.name] = 'hsl(' + ((i * 137.508) % 360).toFixed(0) + ', 62%, 58%)';
+  // 颜色：每个分类一个色相（黄金角），全图颜色数 = 分类数
+  var subColor = {};
+  subKeys.forEach(function (k, i) {
+    subColor[k] = 'hsl(' + ((i * 137.508) % 360).toFixed(0) + ', 62%, 58%)';
   });
+  var colorOfName = function (nm) {
+    var a = accAgg[nm];
+    if (!a) return '#cbd5e1';
+    return subColor[a.cat + '|' + a.sub] || '#cbd5e1';
+  };
 
-  /* ---------- 槽位：每笔两个 ---------- */
-  var slots = [];
-  var txSlot = [];
+  /* ---------- 槽位：每笔两个，按 分类 → 账户 → 时间 排 ---------- */
+  var subRank = {};
+  subKeys.forEach(function (k, i) { subRank[k] = i; });
+  function rankOf(name) {
+    var a = accAgg[name];
+    if (!a) return 9999;
+    return subRank[a.cat + '|' + a.sub] || 9999;
+  }
+
+  var slots = [], txSlot = [];
   txs.forEach(function (x, i) {
-    var fs = { acc: x.f, idx: i };
-    var ts = { acc: x.to, idx: i };
+    var fs = { acc: x.f, idx: i, side: 'f' };
+    var ts = { acc: x.to, idx: i, side: 't' };
     txSlot.push({ f: fs, t: ts });
     slots.push(fs, ts);
   });
-  // 槽位按账户排：账户顺序由 accList 决定，账户内按时间
-  var rank = {};
-  accList.forEach(function (a, i) { rank[a.name] = i; });
   slots.sort(function (a, b) {
-    var ra = rank[a.acc], rb = rank[b.acc];
+    var ra = rankOf(a.acc), rb = rankOf(b.acc);
     if (ra !== rb) return ra - rb;
+    if (a.acc !== b.acc) return a.acc < b.acc ? -1 : 1;
     return a.idx - b.idx;
   });
 
   var unit = TAU / slots.length;
-  var GAP = Math.min(unit * 1.4, 0.008);
+  var GAP_BLOCK = Math.min(unit * 3, 0.016);   // 分类块之间的间隔
+  var GAP_ACC = Math.min(unit * 1.2, 0.004);   // 账户之间的细分隔
+
   var ang = -Math.PI / 2;
-  var prev = null;
+  var prevSub = null, prevAcc = null;
   slots.forEach(function (sl) {
-    if (prev !== null && sl.acc !== prev) ang += GAP;
+    var a = accAgg[sl.acc];
+    var key = a.cat + '|' + a.sub;
+    if (prevSub !== null && key !== prevSub) ang += GAP_BLOCK;
+    else if (prevAcc !== null && sl.acc !== prevAcc) ang += GAP_ACC;
     sl.a1 = ang; sl.a2 = ang + unit; sl.mid = ang + unit / 2;
     ang += unit;
-    prev = sl.acc;
+    prevSub = key; prevAcc = sl.acc;
   });
 
-  // 每个账户的连续区间
+  /* ---------- 分类块（弧块）---------- */
   var blocks = [];
   slots.forEach(function (sl) {
+    var a = accAgg[sl.acc];
+    var key = a.cat + '|' + a.sub;
     var last = blocks[blocks.length - 1];
-    if (last && last.acc === sl.acc) { last.a2 = sl.a2; last.n++; }
-    else blocks.push({ acc: sl.acc, a1: sl.a1, a2: sl.a2, n: 1, cat: agg[sl.acc].cat, sub: agg[sl.acc].sub });
+    if (last && last.key === key) { last.a2 = sl.a2; last.n++; }
+    else blocks.push({ key: key, cat: a.cat, sub: a.sub, a1: sl.a1, a2: sl.a2, n: 1 });
   });
 
   var pt = function (r, a) { return [cx + r * Math.sin(a), cy - r * Math.cos(a)]; };
 
-  /* ---------- 选中高亮（不弹窗、不加文字） ---------- */
+  /* ---------- 高亮 ---------- */
   var mwHotEdges = null;
   if (mwSelected) {
     mwHotEdges = {};
@@ -6800,7 +6840,7 @@ function mwDrawSvg(nodes, edges) {
   var parts = [];
   parts.push('<svg viewBox="0 0 ' + SIZE + ' ' + SIZE + '" width="100%" preserveAspectRatio="xMidYMid meet">');
 
-  /* ---------- 逐笔引线：颜色取转出块 ---------- */
+  /* ---------- 逐笔引线（颜色 = 转出端分类色） ---------- */
   txs.forEach(function (x, i) {
     var fs = txSlot[i].f, ts = txSlot[i].t;
     var p1 = pt(R_IN, fs.mid);
@@ -6809,7 +6849,7 @@ function mwDrawSvg(nodes, edges) {
     var c1 = [cx + (p1[0] - cx) * k, cy + (p1[1] - cy) * k];
     var c2 = [cx + (p2[0] - cx) * k, cy + (p2[1] - cy) * k];
 
-    var col = colorOf[x.f] || '#94a3b8';
+    var col = colorOfName(x.f);       // ← 由转出账户所属分类决定
     var w = Math.min(5, Math.max(0.45, 0.4 + x.amt / 2400));
     var isHot = !mwHotEdges || mwHotEdges[x.f + '\u0001' + x.to];
 
@@ -6818,10 +6858,10 @@ function mwDrawSvg(nodes, edges) {
       + c2[0].toFixed(1) + ' ' + c2[1].toFixed(1) + ', '
       + p2[0].toFixed(1) + ' ' + p2[1].toFixed(1) + '"'
       + ' fill="none" stroke="' + col + '" stroke-width="' + w.toFixed(2)
-      + '" stroke-opacity="' + (isHot ? '0.34' : '0.05') + '" stroke-linecap="round"/>');
+      + '" stroke-opacity="' + (isHot ? '0.32' : '0.05') + '" stroke-linecap="round"/>');
   });
 
-  /* ---------- 环块 ---------- */
+  /* ---------- 弧块 ---------- */
   blocks.forEach(function (b) {
     var span = b.a2 - b.a1;
     var large = span > Math.PI ? 1 : 0;
@@ -6831,51 +6871,48 @@ function mwDrawSvg(nodes, edges) {
     var x4 = cx + R_IN * Math.sin(b.a1), y4 = cy - R_IN * Math.cos(b.a1);
     var dd = 'M ' + x1 + ' ' + y1 + ' A ' + R_OUT + ' ' + R_OUT + ' 0 ' + large + ' 1 ' + x2 + ' ' + y2
       + ' L ' + x3 + ' ' + y3 + ' A ' + R_IN + ' ' + R_IN + ' 0 ' + large + ' 0 ' + x4 + ' ' + y4 + ' Z';
-    var sel = (mwSelected === b.acc);
+    var sel = (mwSelected && accAgg[mwSelected] &&
+      (accAgg[mwSelected].cat + '|' + accAgg[mwSelected].sub) === b.key);
     var dim = mwSelected && !sel;
-    parts.push('<path d="' + dd + '" fill="' + (colorOf[b.acc] || '#cbd5e1') + '"'
-      + ' fill-opacity="' + (dim ? '0.25' : sel ? '1' : '0.9') + '"'
-      + ' stroke="#fff" stroke-width="1.2"'
-      + ' class="mw-ring" data-node="' + mwEsc(b.acc) + '" style="cursor:pointer"/>');
+    parts.push('<path d="' + dd + '" fill="' + (subColor[b.key] || '#cbd5e1') + '"'
+      + ' fill-opacity="' + (dim ? '0.28' : sel ? '1' : '0.92') + '"'
+      + ' stroke="#fff" stroke-width="1.3"'
+      + ' class="mw-ring" data-node="' + mwEsc(b.sub) + '" style="cursor:pointer"/>');
   });
 
-  /* ---------- 文字：从弧外沿开始，字号随弧长自动缩放 ---------- */
+  /* ---------- 文字：每个弧块只标一个分类名，从弧外沿开始 ---------- */
   blocks.forEach(function (b) {
     var span = b.a2 - b.a1;
     var mid = (b.a1 + b.a2) / 2;
     var deg = mid * 180 / Math.PI;
     var flip = (mid > Math.PI / 2 && mid < Math.PI * 1.5);
-    var dim = mwSelected && !(mwSelected === b.acc);
-    var color = colorOf[b.acc] || '#cbd5e1';
+    var dim = mwSelected && !(accAgg[mwSelected] && (accAgg[mwSelected].cat + '|' + accAgg[mwSelected].sub) === b.key);
+    var lb = b.sub || '未分类';
 
-    // 弧长（像素）→ 决定可用字号与是否需要引线
-    var arcPx = span * (R_OUT + 16);
-    var lb = b.acc;
-    if (lb.length > 12) lb = lb.slice(0, 12) + '…';
+    var arcPx = span * (R_OUT + 14);
+    var fs = Math.max(7, Math.min(12, arcPx / Math.max(3, lb.length) * 1.15));
+    var rStart = R_OUT + 8;
 
-    // 字号：随弧长缩，最小 6.5，最大 12
-    var fs = Math.max(6.5, Math.min(12, arcPx / Math.max(4, lb.length) * 1.35));
-    var needLeader = (arcPx < lb.length * fs * 0.62);
-    var rStart = needLeader ? (R_OUT + 26) : (R_OUT + 10);
-
-    parts.push('<text x="' + (cx + rStart).toFixed(1) + '" y="' + (cy + fs * 0.36).toFixed(1) + '"'
-      + ' text-anchor="start" font-size="' + fs.toFixed(1) + '" font-weight="600"'
-      + ' fill="' + (dim ? '#c9c9c9' : '#374151') + '"'
-      + ' transform="rotate(' + (flip ? deg + 180 : deg) + ' ' + cx + ' ' + cy + ')"'
-      + ' style="pointer-events:none">' + mwEsc(lb) + '</text>');
-
-    if (needLeader) {
-      var o1 = pt(R_OUT, mid);
-      var o2 = pt(R_OUT + 22, mid);
-      parts.push('<line x1="' + o1[0].toFixed(1) + '" y1="' + o1[1].toFixed(1) + '"'
-        + ' x2="' + o2[0].toFixed(1) + '" y2="' + o2[1].toFixed(1) + '"'
-        + ' stroke="' + color + '" stroke-width="0.9" stroke-opacity="0.75"/>');
+    var px = cx + rStart, py = cy + fs * 0.36;
+    if (flip) {
+      // 翻转的那半边用 end 锚点，避免文字跑到环里
+      parts.push('<text x="' + (cx - rStart).toFixed(1) + '" y="' + py.toFixed(1) + '"'
+        + ' text-anchor="end" font-size="' + fs.toFixed(1) + '" font-weight="700"'
+        + ' fill="' + (dim ? '#c9c9c9' : '#374151') + '"'
+        + ' transform="rotate(' + (deg + 180).toFixed(1) + ' ' + cx + ' ' + cy + ')"'
+        + ' style="pointer-events:none">' + mwEsc(lb) + '</text>');
+    } else {
+      parts.push('<text x="' + px.toFixed(1) + '" y="' + py.toFixed(1) + '"'
+        + ' text-anchor="start" font-size="' + fs.toFixed(1) + '" font-weight="700"'
+        + ' fill="' + (dim ? '#c9c9c9' : '#374151') + '"'
+        + ' transform="rotate(' + deg.toFixed(1) + ' ' + cx + ' ' + cy + ')"'
+        + ' style="pointer-events:none">' + mwEsc(lb) + '</text>');
     }
   });
 
   parts.push('</svg>');
 
-  /* ---------- 外壳：左图 + 右栏（设置 + 列表） ---------- */
+  /* ---------- 左图 + 右栏（唯一的数据区） ---------- */
   var wrap = document.createElement('div');
   wrap.className = 'mw-split';
 
@@ -6887,45 +6924,31 @@ function mwDrawSvg(nodes, edges) {
   var listBox = document.createElement('div');
   listBox.className = 'mw-list';
 
-  /* 设置区（从顶部搬进来） */
   listBox.innerHTML = ''
     + '<div class="mw-side-head">Money Way</div>'
     + '<div class="mw-side-set">'
     + '  <label>从 <input type="date" id="mw-start" value="' + mwRange.start + '"></label>'
     + '  <label>到 <input type="date" id="mw-end" value="' + mwRange.end + '"></label>'
-    + '  <label>只看前 <select id="mw-topn"><option>8</option><option selected>12</option><option>20</option><option>36</option><option value="999">全部</option></select> 个</label>'
+    + '  <label>只看前 <select id="mw-topn"><option>8</option><option selected>12</option><option>20</option><option>36</option><option value="999">全部</option></select> 笔/账户</label>'
     + '  <button type="button" class="ghost" id="mw-apply">应用</button>'
     + '</div>'
-    + '<div class="mw-side-stat">' + txs.length + ' 笔流水 · ' + accList.length + ' 个账户 · ' + (txs.length * 2) + ' 段</div>';
+    + '<div class="mw-side-stat">' + txs.length + ' 笔流水 · ' + subKeys.length + ' 个分类 · '
+    + Object.keys(accAgg).length + ' 个账户 · ' + (txs.length * 2) + ' 段</div>';
 
-  /* 列表：按类型 → 分类分组 */
-  var groupOrder = [];
-  var groups = {};
-  accList.forEach(function (a) {
-    var key = a.cat + '|' + a.sub;
-    if (!groups[key]) { groups[key] = { cat: a.cat, sub: a.sub, list: [] }; groupOrder.push(key); }
-    groups[key].list.push(a);
-  });
-  groupOrder.forEach(function (key) {
-    var g = groups[key];
+  // 列表按分类列出
+  subKeys.forEach(function (key) {
+    var meta = subMeta[key];
     var box = document.createElement('div');
     box.className = 'mw-list-sec';
     var head = document.createElement('div');
     head.className = 'mw-list-head';
-    head.textContent = g.cat + (g.sub && g.sub !== '未分类' ? ' · ' + g.sub : '') + '（' + g.list.length + '）';
+    head.innerHTML = '<i class="mw-dot" style="background:' + subColor[key] + '"></i>'
+      + meta.cat + ' · ' + meta.sub + '（' + meta.n + ' 笔 · ¥' + Math.round(meta.sum) + '）';
     box.appendChild(head);
-    g.list.forEach(function (it) {
-      var row = document.createElement('div');
-      row.className = 'mw-list-row';
-      row.innerHTML = '<i class="mw-dot" style="background:' + (colorOf[it.name] || '#cbd5e1') + '"></i>'
-        + '<span>' + mwEsc(it.name) + '</span><b>' + it.n + ' 笔</b><i class="mw-pct">¥' + Math.round(it.sum) + '</i>';
-      box.appendChild(row);
-    });
     listBox.appendChild(box);
   });
   wrap.appendChild(listBox);
 
-  /* 收起三角：放在右栏右上角 */
   var tg = document.createElement('button');
   tg.type = 'button';
   tg.className = 'mw-toggle';
@@ -6938,7 +6961,6 @@ function mwDrawSvg(nodes, edges) {
   };
   wrap.appendChild(tg);
 
-  /* 设置区绑定 */
   var startI = listBox.querySelector('#mw-start');
   var endI = listBox.querySelector('#mw-end');
   var selTop = listBox.querySelector('#mw-topn');
@@ -7007,33 +7029,6 @@ function mwDrawSvg(nodes, edges) {
     }
   }, { passive: false });
   chartBox.addEventListener('touchend', function () { pinch = null; }, { passive: true });
-
-  /* 点弧块只做高亮，不弹任何窗口、不加文字 */
-  wrap.querySelectorAll('.mw-ring').forEach(function (g2) {
-    g2.onclick = function () {
-      var nm = g2.getAttribute('data-node');
-      mwSelected = (mwSelected === nm) ? null : nm;
-      // 只更新透明度，不重建整页
-      var hot = {};
-      if (mwSelected) {
-        txs.forEach(function (x) {
-          if (x.f === mwSelected || x.to === mwSelected) hot[x.f + '\u0001' + x.to] = 1;
-        });
-      }
-      var paths = svgEl.querySelectorAll('path:not(.mw-ring)');
-      var idx = 0;
-      txs.forEach(function (x) {
-        var p = paths[idx++];
-        if (!p) return;
-        var on = !mwSelected || hot[x.f + '\u0001' + x.to];
-        p.setAttribute('stroke-opacity', on ? '0.34' : '0.05');
-      });
-      svgEl.querySelectorAll('.mw-ring').forEach(function (r) {
-        var m = r.getAttribute('data-node');
-        r.setAttribute('fill-opacity', !mwSelected ? '0.9' : (m === mwSelected ? '1' : '0.25'));
-      });
-    };
-  });
 
   return wrap;
 }
